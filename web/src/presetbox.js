@@ -10,6 +10,13 @@
 // name and hands the tab a blank setup under it; nothing is written
 // until the user presses Save on the tab, so a name on its own costs
 // nothing and an abandoned one leaves no entry behind.
+//
+// SELECTION MODE. A long press starts it; after that a tap picks a row
+// out instead of opening it, and picked rows go grey. The two buttons
+// become one `⋮` whose menu is built from WHAT is picked: presets only
+// can be moved into a set, and a set cannot go inside a set, so any
+// selection holding one offers nothing yet. Android back leaves the
+// mode before it closes the sheet.
 import { $, $in } from './dom.js';
 import { askConfirm } from './confirm.js';
 import { openScreen, closeScreen } from './nav.js';
@@ -20,23 +27,84 @@ import { openScreen, closeScreen } from './nav.js';
  *            pick: (n: string) => void, create: (n: string) => void,
  *            remove: (n: string) => void,
  *            addCat: (name: string) => void,
- *            removeCat: (id: string) => void}} PresetApi
+ *            removeCat: (id: string) => void,
+ *            move: (names: string[], catId: string) => void}} PresetApi
  */
 /** @type {PresetApi | null} */
 let box = null;
 /** what the name row is naming: a preset or a set */
 let naming = 'preset';
+/** null when not selecting; otherwise the picked rows */
+/** @type {{presets: Set<string>, cats: Set<string>} | null} */
+let sel = null;
 
-/** a row with a name on the left and a delete on the right */
-function row(cls, name, onPick, onDelete) {
+const LONG_MS = 450;
+
+const selecting = () => sel !== null;
+const selCount = () => (sel ? sel.presets.size + sel.cats.size : 0);
+
+// Selection mode is a screen of its own, so Android back leaves it
+// rather than closing the sheet underneath. Closing the sheet while
+// selecting pops both, in order, and the mode cleans itself up.
+function beginSel(kind, key) {
+  sel = { presets: new Set(), cats: new Set() };
+  openScreen('presetsel', () => {
+    sel = null;
+    $('presetMenu').hidden = true;
+    render();
+  });
+  toggle(kind, key);
+}
+const endSel = () => closeScreen('presetsel');
+function toggle(kind, key) {
+  if (!sel) return;
+  const set = kind === 'cat' ? sel.cats : sel.presets;
+  if (set.has(key)) set.delete(key);
+  else set.add(key);
+  if (!selCount()) return endSel(); // nothing left picked: leave the mode
+  render();
+}
+
+/** a press that is held rather than tapped */
+function onLongPress(el, fn) {
+  let t; // untyped: @types/node calls this a Timeout, the browser a number
+  const start = () => {
+    clearTimeout(t);
+    t = setTimeout(fn, LONG_MS);
+  };
+  const cancel = () => clearTimeout(t);
+  el.addEventListener('touchstart', start, { passive: true });
+  el.addEventListener('touchend', cancel);
+  el.addEventListener('touchmove', cancel, { passive: true });
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    cancel();
+    fn();
+  });
+}
+
+/**
+ * One row. `kind` decides which bucket it selects into; `open` is what
+ * a plain tap does when nothing is being selected.
+ */
+function row(kind, key, name, open, onDelete) {
   const el = document.createElement('div');
-  el.className = 'xrow ' + cls;
+  el.className = 'prrow ' + (kind === 'cat' ? 'prcat' : 'prpreset');
   el.innerHTML = '<button class="prname"></button><button class="prdel" title="Delete">✕</button>';
-  const pick = el.querySelector('.prname');
+  const pick = /** @type {HTMLButtonElement} */ (el.querySelector('.prname'));
   pick.textContent = name;
-  if (onPick) pick.addEventListener('click', onPick);
-  else /** @type {HTMLButtonElement} */ (pick).disabled = true;
-  el.querySelector('.prdel').addEventListener('click', onDelete);
+  const picked = sel && (kind === 'cat' ? sel.cats : sel.presets).has(key);
+  if (picked) el.classList.add('picked');
+  pick.addEventListener('click', () => {
+    if (selecting()) return toggle(kind, key);
+    if (open) open();
+  });
+  onLongPress(pick, () => {
+    if (!selecting()) beginSel(kind, key);
+  });
+  const del = /** @type {HTMLButtonElement} */ (el.querySelector('.prdel'));
+  del.hidden = selecting(); // one thing at a time
+  del.addEventListener('click', onDelete);
   return el;
 }
 
@@ -46,10 +114,8 @@ function render() {
   if (!box) return;
   const api = box;
 
-  // Sets first. Nothing is in one yet — that is the next step — so a
-  // set shows its count and sits there waiting for presets.
   api.cats().forEach((c) => {
-    const el = row('prcat', c.name, null, () =>
+    const el = row('cat', c.id, c.name, null, () =>
       askConfirm('Delete the set "' + c.name + '"' + (c.count ? ' and its ' + c.count + ' presets?' : '?'), () => {
         api.removeCat(c.id);
         render();
@@ -63,10 +129,11 @@ function render() {
   });
 
   const names = api.names();
-  names.forEach((n) => {
+  names.forEach((n) =>
     list.appendChild(
       row(
-        'prpreset',
+        'preset',
+        n,
         n,
         () => {
           closeScreen('presets');
@@ -78,28 +145,74 @@ function render() {
             render();
           }),
       ),
-    );
-  });
+    ),
+  );
 
   if (!names.length && !api.cats().length) {
     const empty = document.createElement('div');
-    empty.className = 'hint';
+    empty.className = 'prnote';
     empty.textContent = 'Nothing saved yet.';
     list.appendChild(empty);
   }
+  drawBar();
 }
 
-/** show the name box for a preset or a set, or put it away */
-function nameRow(what) {
-  naming = what || naming;
-  const on = !!what;
-  $('presetNameRow').hidden = !on;
+/** the title and the buttons follow the mode */
+function drawBar() {
+  const on = selecting();
+  $('presetTitle').textContent = on ? selCount() + ' selected' : $('presetTitle').dataset.title || 'Presets';
   $('presetActions').hidden = on;
-  if (!on) return;
-  const input = $in('presetNameInput');
-  input.placeholder = what === 'cat' ? 'set name' : 'preset name';
-  input.value = '';
-  input.focus();
+  $('presetSelActions').hidden = !on;
+}
+
+/** what can be done with what is picked; empty means the menu stays shut */
+function actions() {
+  if (!sel || !sel.presets.size || sel.cats.size) return [];
+  return ['move']; // a set cannot go inside a set
+}
+
+/** one tappable line in the menu */
+function menuItem(menu, text, onClick) {
+  const b = document.createElement('button');
+  b.className = 'prmenu';
+  b.textContent = text;
+  b.addEventListener('click', onClick);
+  menu.appendChild(b);
+}
+function menuNote(menu, text, cls) {
+  const d = document.createElement('div');
+  d.className = cls;
+  d.textContent = text;
+  menu.appendChild(d);
+}
+
+/** what `⋮` shows: the actions available for what is picked */
+function openMenu() {
+  const menu = $('presetMenu');
+  menu.innerHTML = '';
+  const acts = actions();
+  if (!acts.length) menuNote(menu, 'Nothing to do with this selection.', 'prnote');
+  if (acts.includes('move')) menuItem(menu, 'Move', openMoveMenu);
+  menu.hidden = false;
+}
+
+/** the second step of Move: which set they go into */
+function openMoveMenu() {
+  const menu = $('presetMenu');
+  menu.innerHTML = '';
+  const cats = box ? box.cats() : [];
+  if (!cats.length) {
+    menuNote(menu, 'No categories yet. Make one first.', 'prnote');
+    return;
+  }
+  menuNote(menu, 'Move to', 'prgroup');
+  cats.forEach((c) =>
+    menuItem(menu, c.name, () => {
+      if (box && sel) box.move([...sel.presets], c.id);
+      menu.hidden = true;
+      endSel();
+    }),
+  );
 }
 
 /**
@@ -109,11 +222,26 @@ function nameRow(what) {
  */
 export function openPresets(title, api) {
   box = api;
-  $('presetTitle').textContent = title;
+  sel = null;
+  $('presetTitle').dataset.title = title;
+  $('presetMenu').hidden = true;
   nameRow('');
   render();
   $('presetOverlay').hidden = false;
   openScreen('presets', () => ($('presetOverlay').hidden = true));
+}
+
+/** show the name box for a preset or a set, or put it away */
+function nameRow(what) {
+  naming = what || naming;
+  const on = !!what;
+  $('presetNameRow').hidden = !on;
+  $('presetActions').hidden = on || selecting();
+  if (!on) return;
+  const input = $in('presetNameInput');
+  input.placeholder = what === 'cat' ? 'set name' : 'preset name';
+  input.value = '';
+  input.focus();
 }
 
 $('presetAdd').addEventListener('click', () => nameRow('preset'));
@@ -136,6 +264,14 @@ $('presetNameInput').addEventListener('keydown', (e) => {
   e.preventDefault();
   $('presetNameOk').click();
 });
-$('presetOverlay').addEventListener('click', (e) => {
-  if (e.target === $('presetOverlay')) closeScreen('presets'); // backdrop
+$('presetDots').addEventListener('click', () => {
+  if ($('presetMenu').hidden) openMenu();
+  else $('presetMenu').hidden = true;
 });
+$('presetOverlay').addEventListener('click', (e) => {
+  if (e.target !== $('presetOverlay')) return; // backdrop
+  if (selecting()) return endSel(); // leave the mode first
+  closeScreen('presets');
+});
+// a tap anywhere else in the sheet puts the menu away
+$('presetList').addEventListener('click', () => ($('presetMenu').hidden = true));

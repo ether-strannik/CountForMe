@@ -1,0 +1,126 @@
+/* The preset manager. Its own classes, shared with nothing: the list
+   here is the one place that has to hold fifty rows on a phone, so it
+   is tuned for density in a way no other list in the app should be. */
+
+#presetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 22; /* over the settings page at 20 */
+  background: var(--scrim);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+/* a column: the title and the buttons hold still, only the list moves */
+#presetOverlay .sheet {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.prlist {
+  flex: 1;
+  min-height: 0; /* a flex child will not shrink past its content without this */
+  overflow-y: auto;
+  margin-top: 6px;
+}
+
+/* 44px: under Android's 48 because the whole sheet is a list and the
+   rows have to fit, but still a target you can hit — and these are
+   long-press targets, not just taps. The name carries no padding of
+   its own; the row's height is the row's job. */
+.prrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 2px;
+  color: var(--text);
+}
+.prname {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 17px;
+  text-align: left;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prdel {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+/* a set: the thing that contains, so it is heavier than what it holds */
+.prcat .prname {
+  font-weight: 700;
+}
+.prcat .prname:disabled {
+  color: var(--text);
+  opacity: 1;
+}
+.prcount {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* selection: the row goes grey, the way a list app shows it */
+.prrow.picked {
+  background: var(--accent-soft);
+  border-radius: 8px;
+}
+
+#presetActions {
+  justify-content: space-between;
+}
+.prdots {
+  width: 44px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* the actions menu, where the buttons were */
+.prmenulist {
+  flex: none;
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.prmenu {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 17px;
+  text-align: left;
+  padding: 0 8px;
+}
+.prgroup {
+  margin: 10px 0 2px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.prnote {
+  padding: 12px 8px;
+  color: var(--muted);
+  font-size: 14px;
+}

@@ -113,6 +113,19 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
         store.cats.push({ id: 'c' + Date.now().toString(36), name, items: {} });
         saveStore();
       },
+      /** put presets into a set, taking them out of wherever they were */
+      move(picked, catId) {
+        const to = store.cats.find((c) => c.id === catId);
+        if (!to) return;
+        picked.forEach((n) => {
+          const from = setOf(n);
+          const p = (from ? from.items : store.items)[n];
+          if (p === undefined) return;
+          delete (from ? from.items : store.items)[n];
+          to.items[n] = p;
+        });
+        saveStore();
+      },
       // A set is deleted with what is in it: the presets went in on
       // purpose and the set is the thing being thrown away.
       removeCat(catId) {

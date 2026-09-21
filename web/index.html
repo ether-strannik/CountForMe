@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/tabs.css" />
     <link rel="stylesheet" href="css/sheets.css" />
     <link rel="stylesheet" href="css/settings.css" />
+    <link rel="stylesheet" href="css/presets.css" />
     <link rel="stylesheet" href="css/intervals.css" />
     <link rel="stylesheet" href="css/intervals2.css" />
     <link rel="stylesheet" href="css/timers.css" />
@@ -348,15 +349,19 @@
         <div class="sheethead">
           <div class="stitle" id="presetTitle">Presets</div>
         </div>
-        <div id="presetList" class="xlist"></div>
+        <div id="presetList" class="prlist"></div>
         <div id="presetNameRow" class="presetname" hidden>
           <input id="presetNameInput" placeholder="preset name" />
           <button id="presetNameOk" class="pbtn save">OK</button>
           <button id="presetNameCancel" class="pbtn">Cancel</button>
         </div>
+        <div id="presetMenu" class="prmenulist" hidden></div>
         <div class="catactions" id="presetActions">
           <button id="presetAddCat" class="pbtn">+ Category</button>
           <button id="presetAdd" class="pbtn save">New preset</button>
+        </div>
+        <div class="catactions" id="presetSelActions" hidden>
+          <button id="presetDots" class="pbtn prdots" title="Actions">⋮</button>
         </div>
       </div>
     </div>
