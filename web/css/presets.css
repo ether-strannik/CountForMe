@@ -77,6 +77,24 @@
 }
 .prcat .prname {
   font-weight: 700;
+  padding-left: 0;
+}
+/* the fold arrow, pointing down when the set is open. Its own target,
+   so tapping the name stays free for selecting. */
+.prfold {
+  width: 32px;
+  height: 40px;
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 0.12s;
+}
+.prcat.shut .prfold {
+  transform: rotate(0deg);
 }
 .prcat .prname:disabled {
   color: var(--text);

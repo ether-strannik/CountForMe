@@ -37,6 +37,11 @@ let naming = 'preset';
 /** null when not selecting; otherwise the picked rows */
 /** @type {{presets: Set<string>, cats: Set<string>} | null} */
 let sel = null;
+// Which sets are folded shut. Kept here rather than in the store: it
+// is how this phone is looking at the library right now, not part of
+// the library itself, and it must not travel in a shared set.
+/** @type {Set<string>} */
+const shut = new Set();
 
 const LONG_MS = 450;
 
@@ -89,8 +94,25 @@ function onLongPress(el, fn) {
  */
 function row(kind, key, name, open, onDelete) {
   const el = document.createElement('div');
-  el.className = 'prrow ' + (kind === 'cat' ? 'prcat' : 'prpreset');
-  el.innerHTML = '<button class="prname"></button><button class="prdel" title="Delete">✕</button>';
+  const cat = kind === 'cat';
+  el.className = 'prrow ' + (cat ? 'prcat' : 'prpreset');
+  el.innerHTML =
+    (cat ? '<button class="prfold" aria-expanded="true">›</button>' : '') +
+    '<button class="prname"></button><button class="prdel" title="Delete">✕</button>';
+  if (cat) {
+    // The arrow folds the set; it is its own target so a tap on the
+    // name is still free for selecting, and for whatever a set's own
+    // tap becomes later.
+    const fold = /** @type {HTMLButtonElement} */ (el.querySelector('.prfold'));
+    const open2 = !shut.has(key);
+    fold.setAttribute('aria-expanded', String(open2));
+    el.classList.toggle('shut', !open2);
+    fold.addEventListener('click', () => {
+      if (shut.has(key)) shut.delete(key);
+      else shut.add(key);
+      render();
+    });
+  }
   const pick = /** @type {HTMLButtonElement} */ (el.querySelector('.prname'));
   pick.textContent = name;
   const picked = sel && (kind === 'cat' ? sel.cats : sel.presets).has(key);
@@ -152,7 +174,7 @@ function render() {
     n.textContent = c.items.length ? String(c.items.length) : 'empty';
     el.insertBefore(n, el.querySelector('.prdel'));
     list.appendChild(el);
-    c.items.forEach((name) => list.appendChild(presetRow(api, name, true)));
+    if (!shut.has(c.id)) c.items.forEach((name) => list.appendChild(presetRow(api, name, true)));
   });
 
   // then the presets in no set, at the root
