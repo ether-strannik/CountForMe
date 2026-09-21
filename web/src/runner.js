@@ -117,10 +117,36 @@ export function makeRunner(hooks) {
   function schedule(from) {
     cancel();
     const base = audioCtx().currentTime - from; // audio time of run second 0
+    /** what the cue before this one placed, still able to be sounding */
+    let earlier = [];
     for (const c of cues) {
       if (c.at < from) continue;
-      sources.push(...playAt(c.event, base + c.at));
-      if (c.say) sources.push(...sayAt(c.say, base + c.at + SAY_AFTER));
+      const at = base + c.at;
+      cutAt(earlier, at);
+      const group = playAt(c.event, at);
+      if (c.say) group.push(...sayAt(c.say, at + SAY_AFTER));
+      sources.push(...group);
+      earlier = group; // a cue and its spoken count end together
+    }
+  }
+
+  /**
+   * End the previous cue where this one begins. A file plays to its own
+   * end otherwise, so a sound longer than the gap would still be ringing
+   * underneath the next cue. Decided here, at schedule time, so it holds
+   * with the app in the background like everything else.
+   *
+   * Only sampled sounds. The synth fallback already carries its own stop
+   * time, and a second `stop()` later than that would extend it.
+   */
+  function cutAt(group, at) {
+    for (const s of group) {
+      if (!(/** @type {AudioBufferSourceNode} */ (s).buffer)) continue;
+      try {
+        s.stop(at);
+      } catch {
+        /* already over */
+      }
     }
   }
 

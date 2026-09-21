@@ -22,8 +22,7 @@ First release.
 - **Voice**, on a second switch. The number is spoken as well as shown.
 - **A sound for each cue** — prepare, work, halfway, last seconds, rest
   and finish. Fifteen ship with the app; your own go in a folder you
-  choose once and appear in the same lists. Tapping a sound in the
-  picker plays it, so you can hear one before keeping it.
+  choose once and appear in the same lists.
 - **Keep screen on**, in settings, for as long as the app is in front.
 - **Presets** per tab, saved by name and picked from the top of the
   screen.

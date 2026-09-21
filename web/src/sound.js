@@ -71,7 +71,7 @@ export const PACK = 'pack:';
 
 /** what each event plays when the user has never chosen for it */
 export const DEFAULTS = {
-  prepare: 'bell-1.mp3',
+  prepare: 'clock-ticking.mp3',
   main: 'gong.mp3',
   turn: 'bell-4.mp3',
   approach: 'piano-3.mp3',
