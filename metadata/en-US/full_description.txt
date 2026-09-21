@@ -1,0 +1,21 @@
+<b>Name:</b> Count for me<br>
+<b>Purpose:</b> A workout timer.<br>
+<b>What it is:</b> An opinionated interval timer built for workouts that do not fit neatly into standard work, rest, and round patterns.<br>
+<b>What it is not:</b> It is NOT a revolutionary new category of temporal athletic performance software.<br>
+<b>Why it exists:</b> The timers I tried did not support a few programming patterns I needed.<br>
+<b>Who it is for:</b> Workout enthusiasts and athletes who need more flexibility than a basic interval timer provides.<br>
+<b>Technology:</b> HTML, CSS, JavaScript, ES modules, Node.js, Capacitor, Android.<br>
+<b>Philosophy:</b> No accounts. No social layer. No gamification. No coaching. No bullshit.<br>
+<b>Success criterion:</b> It works reliably and gets out of the way.
+
+<b>What it does</b>
+
+<ul>
+<li><b>Timers that announce and stop.</b> A single cue when the timer reaches zero, like a sports watch, with no alarm to dismiss.</li>
+<li><b>Two interval modes that fit how you think.</b> Build workouts from work, rest, cycles, and sets, or define a block, cycle, and work duration and let the timer calculate the rest and cycle count.</li>
+<li><b>Variable cadence timer.</b> Split a block into ranges and give each range its own rate. Repeat the complete pattern across rounds.</li>
+<li><b>Themable interface.</b> Style the timer to your liking with customizable themes.</li>
+<li><b>Presets.</b> Save a complete setup by name and pick it back up from the top of the screen.</li>
+<li><b>Presets that travel.</b> Export what a tab holds to a file and hand it to someone else.</li>
+<li><b>Your own sound for each cue.</b> Assign your own audio files to work starts, turnarounds, countdowns, rest, and finish cues.</li>
+</ul>

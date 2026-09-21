@@ -1,0 +1,7 @@
+First release.
+
+Countdown timers that announce and stop. Phases, an interval tab in two
+modes. Cadence, where a block splits into ranges that each run at their
+own rate, with an optional rep count shown and spoken. Your own sound
+for each cue. Presets you can export and hand to someone else. Themes.
+Sessions keep running in the background.

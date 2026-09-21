@@ -1,0 +1,295 @@
+// Intervals 2: the block-first builder, the program library, and the
+// run screen that plays the expanded timeline.
+import { $, $in, $btn, MINUS_SVG, fitText } from './dom.js';
+import { fmt } from './format.js';
+import { load, save } from './storage.js';
+import { openKeypad } from './keypad.js';
+import { makeRunner } from './runner.js';
+import { makeLibrary } from './library.js';
+import { IV2_DEFAULT, iv2Expand } from './iv2expand.js';
+import { intervals2Cues } from './cues.js';
+import { approachSec } from './settings.js';
+
+// The user's program (defaults to the sample), persisted.
+let iv2Prog = JSON.parse(JSON.stringify(IV2_DEFAULT));
+const iv2Saved = load('timer.iv2prog', null);
+if (iv2Saved && Array.isArray(iv2Saved.segs)) iv2Prog = iv2Saved;
+const iv2SaveProg = () => save('timer.iv2prog', iv2Prog);
+
+// ---- builder ----
+function iv2Over() {
+  const x = iv2Expand(iv2Prog);
+  if (x.complete) {
+    $('iv2over').innerHTML =
+      '<b>' +
+      fmt(x.sessionSec) +
+      '</b> · ' +
+      x.totalReps +
+      ' reps · ' +
+      iv2Prog.rounds +
+      (iv2Prog.rounds > 1 ? ' rounds' : ' round');
+  } else {
+    $('iv2over').innerHTML =
+      "<span style='color:var(--warn)'>" + fmt(x.blockSec - x.covered) + ' of the block still undefined</span>';
+  }
+  $btn('iv2start').disabled = !x.complete;
+}
+
+export function iv2RenderSetup() {
+  $('iv2block').textContent = fmt(iv2Prog.blockSec);
+  $('iv2prep').textContent = fmt(iv2Prog.prepare);
+  $in('iv2rounds').value = String(iv2Prog.rounds);
+  $('iv2repcount').setAttribute('aria-checked', String(!!iv2Prog.showReps));
+  $('iv2voice').setAttribute('aria-checked', String(!!iv2Prog.voice));
+  const box = $('iv2rows');
+  box.innerHTML = '';
+  let from = 0;
+  iv2Prog.segs.forEach((seg, i) => {
+    const fromHere = from;
+    const el = document.createElement('div');
+    el.className = 'iv2row';
+    el.innerHTML =
+      '<span class="iv2rowlab">' +
+      (i + 1) +
+      '</span>' +
+      '<span class="iv2from">' +
+      fmt(fromHere) +
+      '</span>' +
+      '<span class="iv2dash">–</span>' +
+      '<button class="iv2timebtn iv2to">' +
+      fmt(seg.to) +
+      '</button>' +
+      '<label class="iv2ev">every <input class="iv2in" data-k="every" inputmode="numeric" />s</label>' +
+      (iv2Prog.showReps
+        ? '<label class="iv2rp"><input class="iv2in" data-k="reps" inputmode="numeric" /> rep</label>'
+        : '') +
+      '<button class="iv2del">' +
+      MINUS_SVG +
+      '</button>';
+    el.querySelector('.iv2to').addEventListener('click', () =>
+      openKeypad('Range end', seg.to, (sec) => {
+        seg.to = Math.min(iv2Prog.blockSec, Math.max(fromHere + 1, sec));
+        iv2SaveProg();
+        iv2RenderSetup();
+      }),
+    );
+    const eEvery = /** @type {HTMLInputElement} */ (el.querySelector('[data-k="every"]'));
+    eEvery.value = String(seg.every);
+    eEvery.addEventListener('input', () => {
+      seg.every = Math.max(1, Math.round(+eEvery.value || 0));
+      iv2SaveProg();
+      iv2Over();
+    });
+    const eReps = /** @type {HTMLInputElement} */ (el.querySelector('[data-k="reps"]'));
+    if (eReps) {
+      eReps.value = String(seg.reps || 1);
+      eReps.addEventListener('input', () => {
+        seg.reps = Math.max(1, Math.round(+eReps.value || 1));
+        iv2SaveProg();
+        iv2Over();
+      });
+    }
+    el.querySelector('.iv2del').addEventListener('click', () => {
+      iv2Prog.segs.splice(i, 1);
+      iv2SaveProg();
+      iv2RenderSetup();
+    });
+    box.appendChild(el);
+    from = seg.to;
+  });
+  const add = document.createElement('button');
+  add.className = 'iv2add';
+  add.textContent = '+ Add range';
+  add.addEventListener('click', () => {
+    const f = iv2Prog.segs.length ? iv2Prog.segs[iv2Prog.segs.length - 1].to : 0;
+    if (f >= iv2Prog.blockSec) return; // block already full
+    iv2Prog.segs.push({ to: iv2Prog.blockSec, every: 30 }); // fill to end
+    iv2SaveProg();
+    iv2RenderSetup();
+  });
+  box.appendChild(add);
+  iv2Over();
+}
+
+$('iv2block').addEventListener('click', () =>
+  openKeypad('Block length', iv2Prog.blockSec, (sec) => {
+    iv2Prog.blockSec = Math.max(1, sec);
+    iv2Prog.segs.forEach((s) => (s.to = Math.min(s.to, iv2Prog.blockSec)));
+    iv2SaveProg();
+    iv2RenderSetup();
+  }),
+);
+$('iv2prep').addEventListener('click', () =>
+  openKeypad('Prepare', iv2Prog.prepare, (sec) => {
+    iv2Prog.prepare = Math.max(0, sec);
+    iv2SaveProg();
+    iv2RenderSetup();
+  }),
+);
+// Rep counting off is the off state, so a range never has to say zero.
+// Turning it on gives every range that has no count one rep.
+$('iv2repcount').addEventListener('click', () => {
+  iv2Prog.showReps = !iv2Prog.showReps;
+  iv2SaveProg();
+  iv2RenderSetup();
+});
+// Voice: the switch holds the setting and nothing reads it yet.
+$('iv2voice').addEventListener('click', () => {
+  iv2Prog.voice = !iv2Prog.voice;
+  iv2SaveProg();
+  iv2RenderSetup();
+});
+$('iv2rounds').addEventListener('input', () => {
+  iv2Prog.rounds = Math.max(1, Math.round(+$in('iv2rounds').value || 1));
+  iv2SaveProg();
+  iv2Over();
+});
+$('intervals2').addEventListener('keydown', (e) => {
+  const t = /** @type {HTMLElement} */ (e.target);
+  if (e.key === 'Enter' && t.tagName === 'INPUT') {
+    e.preventDefault();
+    t.blur();
+  }
+});
+
+// ---- Intervals 2 program library (save/load) ----
+// The picker only selects on startup; the working program is its own
+// persisted copy (timer.iv2prog), so unsaved edits survive a reload.
+makeLibrary({
+  id: 'intervals2',
+  label: 'Cadence', // what the transfer sheet shows; the id stays, it is in saved files
+  ids: {
+    sel: 'iv2sel',
+    nw: 'iv2new',
+    save: 'iv2save',
+    del: 'iv2del',
+    name: 'iv2name',
+    input: 'iv2nameInput',
+    ok: 'iv2nameOk',
+    cancel: 'iv2nameCancel',
+  },
+  storeKey: 'timer.iv2programs',
+  lastKey: 'timer.iv2lastprog',
+  placeholder: '— presets —', // the same word on both tabs; the key stays
+  get: () => JSON.parse(JSON.stringify(iv2Prog)),
+  // a program is its ranges; anything without them is not one
+  valid: (p) => Array.isArray(p.segs),
+  apply(p) {
+    if (!p || !Array.isArray(p.segs)) return; // also guards what is already stored
+    iv2Prog = JSON.parse(JSON.stringify(p));
+    iv2SaveProg();
+    iv2RenderSetup();
+  },
+});
+
+// ---- run: the shared engine keeps the clock and plays the cues;
+// these hooks only draw ----
+/** the round and rep line, shrunk to fit when the numbers get long */
+const setCount = (t) => {
+  $('iv2count').textContent = t;
+  fitText($('iv2count'));
+};
+
+// How many reps this cue asks for, over the run screen for a moment.
+// Only reached when the program has rep counting switched on, since
+// the expansion reports zero otherwise. It closes early if the next
+// cue would arrive first.
+let repsId;
+function showReps(n, ms) {
+  clearTimeout(repsId);
+  $('iv2repsval').textContent = String(n);
+  $('iv2repslab').textContent = n === 1 ? 'REP' : 'REPS';
+  $('iv2reps').hidden = false;
+  repsId = setTimeout(() => ($('iv2reps').hidden = true), Math.max(400, Math.min(3000, ms)));
+}
+function hideReps() {
+  clearTimeout(repsId);
+  $('iv2reps').hidden = true;
+}
+let iv2Session = null;
+let iv2LastDing = -1;
+
+// current ding = the last one whose start has passed (time only advances)
+function iv2FindDing(elapsed) {
+  const d = iv2Session.dings;
+  let i = Math.max(0, iv2LastDing);
+  while (i + 1 < d.length && d[i + 1].start <= elapsed) i++;
+  return i;
+}
+
+const runner = makeRunner({
+  onScreen: () => !$('iv2run').hidden,
+  ready(left) {
+    $('iv2run').classList.add('prep');
+    $('iv2phase').textContent = 'READY';
+    setCount('');
+    $('iv2big').textContent = String(left);
+    $('iv2total').textContent = fmt(iv2Session.sessionSec);
+  },
+  frame(elapsed) {
+    $('iv2run').classList.remove('prep');
+    const s = iv2Session;
+    const idx = iv2FindDing(elapsed);
+    const d = s.dings[idx];
+    const nextStart = idx + 1 < s.dings.length ? s.dings[idx + 1].start : s.sessionSec;
+    const shown = Math.ceil(nextStart - elapsed);
+
+    if (idx !== iv2LastDing) {
+      iv2LastDing = idx;
+      $('iv2run').classList.add('go');
+      setTimeout(() => $('iv2run').classList.remove('go'), 500);
+      if (d.reps >= 1) showReps(d.reps, (nextStart - d.start) * 1000 - 200);
+    }
+    $('iv2phase').textContent = 'NEXT';
+    $('iv2big').textContent = String(shown);
+    setCount(d.round + 1 + '/' + s.prog.rounds + ' · ' + d.rep + '/' + s.totalReps);
+    $('iv2total').textContent = fmt(s.sessionSec - elapsed);
+  },
+  done() {
+    hideReps();
+    $('iv2run').classList.add('done');
+    $('iv2phase').textContent = 'DONE';
+    $('iv2big').textContent = '✓';
+    setCount(iv2Session.totalReps + '/' + iv2Session.totalReps);
+    $('iv2total').textContent = '0:00';
+  },
+  reset() {
+    hideReps();
+    $('iv2pause').textContent = 'PAUSE';
+    // see intervals.js: a session can end while another tab is showing
+    const showing = !$('iv2run').hidden;
+    $('iv2run').hidden = true;
+    $('iv2run').classList.remove('done', 'go', 'prep');
+    if (showing) $('intervals2').hidden = false;
+    iv2RenderSetup();
+  },
+  paused(p) {
+    $('iv2pause').textContent = p ? 'RESUME' : 'PAUSE';
+  },
+});
+
+/** true while a program is on the run screen (running, paused or done) */
+export const isIv2Running = () => runner.running();
+
+async function iv2Start(prog) {
+  const plan = iv2Expand(prog);
+  if (!plan.complete) return; // block not fully defined yet
+  iv2Session = plan;
+  const cues = intervals2Cues(plan, approachSec(), !!prog.voice);
+  await runner.arm(cues); // decode everything the session plays, first
+  iv2LastDing = -1;
+  $('iv2pause').textContent = 'PAUSE';
+  $('intervals2').hidden = true;
+  $('iv2run').hidden = false;
+  $('iv2run').classList.remove('done', 'go', 'prep');
+  runner.go({
+    prepare: plan.prog.prepare,
+    sessionSec: plan.sessionSec,
+    title: 'Cadence',
+    cues,
+  });
+}
+
+$('iv2start').addEventListener('click', () => iv2Start(iv2Prog));
+$('iv2stop').addEventListener('click', runner.stop);
+$('iv2pause').addEventListener('click', runner.togglePause);

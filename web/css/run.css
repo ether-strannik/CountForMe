@@ -1,0 +1,118 @@
+/* the run screen both interval tabs share: three panes, state colours,
+   STOP / PAUSE. Loaded after tabs.css: .runbtns button overrides
+   .bottom button at equal specificity. */
+#run,
+#iv2run {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  text-align: center;
+  padding-bottom: calc(146px + env(safe-area-inset-bottom));
+}
+.pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.pane + .pane {
+  border-top: 1px solid var(--line);
+}
+/* How many reps this cue asks for. Over the run screen for a moment at
+   each cue, only when a range asks for more than one. */
+#iv2reps {
+  position: fixed;
+  inset: 0;
+  z-index: 18;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.repsval {
+  font-weight: 800;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  font-size: min(60vw, 44vh);
+  color: var(--go);
+}
+.repslab {
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 3px;
+  font-size: clamp(16px, 5vw, 30px);
+}
+
+/* Stretched and clipped so its overflow can be measured: the pane
+   centres its children, which would otherwise let this size itself to
+   its content and run off the screen. fitText() shrinks it to fit. */
+.countval {
+  align-self: stretch;
+  overflow: hidden;
+  font-size: min(13vw, 11vh);
+}
+.plabel {
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 3px;
+  font-size: clamp(16px, 5vw, 30px);
+}
+.pval {
+  font-weight: 800;
+  line-height: 0.9;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: min(20vw, 16vh);
+}
+.pane.work {
+  flex: 2;
+}
+.pane.work .pval {
+  font-size: min(46vw, 34vh);
+}
+/* state colours, the same on both run screens */
+#run.go .pane.work .pval,
+#iv2run.go .pane.work .pval {
+  color: var(--go);
+}
+#run.turn .pane.work .pval {
+  color: var(--accent);
+}
+#run.prep .pane.work .pval,
+#iv2run.prep .pane.work .pval {
+  color: var(--warn);
+}
+#run.phase-rest .pane.work .pval {
+  color: var(--accent);
+}
+/* DONE keeps the plain text colour on both screens: finishing is not a
+   fault, and red is what goes wrong or deletes. */
+#stopBtn {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.runbtns {
+  display: flex;
+  gap: 8px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.runbtns button {
+  flex: 1;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+#pauseBtn {
+  background: var(--accent);
+  color: var(--on-accent);
+}

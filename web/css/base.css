@@ -1,0 +1,67 @@
+/* tokens, reset, page chrome shared by every screen */
+:root {
+  --bg: #12161a;
+  --card: #191f26;
+  --line: #232b34;
+  --text: #e6e6e6;
+  --muted: #8b98a5;
+  --accent: #64b5f6;
+  --warn: #d8a657;
+  --bad: #ef6b6b;
+  --go: #66bb6a;
+
+  /* The rest of what a theme has to reach. Named for what they mean, so
+     a theme sets them without knowing which control uses which. */
+  --on-accent: #06121f; /* ink on an accent-filled control */
+  --accent-soft: rgba(100, 181, 246, 0.4); /* accent as a track behind a knob */
+  --action: #eef1f4; /* the loudest button on a screen: START */
+  --on-action: #0b0f14;
+  --scrim: rgba(0, 0, 0, 0.6); /* the dim behind a sheet */
+  --glyph: #5b6672; /* a drawn mark that is not text: the delete circle */
+}
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    16px/1.4 system-ui,
+    sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+}
+header {
+  position: relative;
+  text-align: center;
+  padding: 16px 12px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.gear {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 15;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.gear:active {
+  color: var(--text);
+}
+header .title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}

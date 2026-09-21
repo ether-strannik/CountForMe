@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Count for me</string>
+    <string name="title_activity_main">Count for me</string>
+    <string name="package_name">com.al.countforme</string>
+    <string name="custom_url_scheme">com.al.countforme</string>
+</resources>

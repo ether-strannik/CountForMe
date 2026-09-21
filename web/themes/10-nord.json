@@ -1,0 +1,20 @@
+{
+  "name": "Nord",
+  "ui": {
+    "bg": "#2e3440",
+    "card": "#3b4252",
+    "line": "#4c566a",
+    "text": "#eceff4",
+    "muted": "#9aa7bd",
+    "accent": "#88c0d0",
+    "warn": "#ebcb8b",
+    "bad": "#bf616a",
+    "go": "#a3be8c",
+    "on-accent": "#2e3440",
+    "accent-soft": "rgba(136, 192, 208, 0.35)",
+    "action": "#e5e9f0",
+    "on-action": "#2e3440",
+    "scrim": "rgba(0, 0, 0, 0.55)",
+    "glyph": "#4c566a"
+  }
+}

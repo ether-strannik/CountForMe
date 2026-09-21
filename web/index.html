@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Count for me</title>
+    <!-- order matters: run.css overrides tabs.css at equal specificity -->
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/tabs.css" />
+    <link rel="stylesheet" href="css/sheets.css" />
+    <link rel="stylesheet" href="css/settings.css" />
+    <link rel="stylesheet" href="css/intervals.css" />
+    <link rel="stylesheet" href="css/intervals2.css" />
+    <link rel="stylesheet" href="css/timers.css" />
+    <link rel="stylesheet" href="css/run.css" />
+  </head>
+  <body>
+    <!-- global settings button -->
+    <button id="gear" class="gear" title="Settings">⚙</button>
+
+    <!-- CONFIG -->
+    <div id="config">
+      <header>
+        <div class="title">PHASES</div>
+      </header>
+      <div class="rows">
+        <div class="presets">
+          <select id="presetSel"></select>
+          <button id="presetNew" class="pbtn">New</button>
+          <button id="presetSave" class="pbtn">Save</button>
+          <button id="presetDel" class="pbtn">Del</button>
+        </div>
+        <div id="presetName" class="presetname" hidden>
+          <input id="presetNameInput" placeholder="preset name" />
+          <button id="presetNameOk" class="pbtn">OK</button>
+          <button id="presetNameCancel" class="pbtn">Cancel</button>
+        </div>
+        <div class="row">
+          <div class="label">Mode</div>
+          <select id="ivMode">
+            <option value="time">Time based</option>
+            <option value="standard">Standard</option>
+          </select>
+        </div>
+        <div class="row">
+          <div class="label">Prepare</div>
+          <button id="prepareBtn" class="iv2timebtn">0:10</button>
+        </div>
+        <!-- One box, two modes. Time based shows Block and Cycle, Standard
+             shows Rest and Cycles, and the order reads right either way. -->
+        <div class="blockbox">
+          <div class="row" id="rowBlock">
+            <div class="label">Block</div>
+            <button id="blockBtn" class="iv2timebtn">10:00</button>
+          </div>
+          <div class="row" id="rowCycle">
+            <div class="label">Cycle</div>
+            <button id="cycleBtn" class="iv2timebtn">1:00</button>
+          </div>
+          <div class="row">
+            <div class="label">Work</div>
+            <button id="workBtn" class="iv2timebtn">0:30</button>
+          </div>
+          <div class="row" id="rowRest" hidden>
+            <div class="label">Rest</div>
+            <button id="restBtn" class="iv2timebtn">0:15</button>
+          </div>
+          <div class="row" id="rowCycles" hidden>
+            <div class="label">Cycles</div>
+            <input id="cycles" class="setnum" inputmode="numeric" value="8" />
+          </div>
+          <div class="row">
+            <div class="label">Turnaround</div>
+            <button id="turn" class="toggle" aria-pressed="false">OFF</button>
+          </div>
+        </div>
+        <div class="blockbox">
+          <div class="row">
+            <div class="label">Rounds</div>
+            <input id="sets" class="setnum" inputmode="numeric" value="1" />
+          </div>
+          <div class="row">
+            <div class="label">Rest between rounds</div>
+            <button id="roundRestBtn" class="iv2timebtn">0:00</button>
+          </div>
+        </div>
+      </div>
+      <div class="bottom">
+        <div class="breakdown">
+          <div id="calcTop">--:--</div>
+          <div id="calcBot"></div>
+        </div>
+        <button id="startBtn">START</button>
+      </div>
+    </div>
+
+    <!-- RUN -->
+    <div id="run" hidden>
+      <div class="pane">
+        <div class="plabel">ROUNDS · CYCLES</div>
+        <div class="pval countval" id="count">1/1 - 1/1</div>
+      </div>
+      <div class="pane work">
+        <div class="plabel" id="phaseLabel">WORK</div>
+        <div class="pval" id="big">0</div>
+      </div>
+      <div class="pane">
+        <div class="plabel">TOTAL</div>
+        <div class="pval" id="total">0:00</div>
+      </div>
+      <div class="bottom">
+        <div class="runbtns">
+          <button id="stopBtn">STOP</button>
+          <button id="pauseBtn">PAUSE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COUNTDOWN TIMERS -->
+    <div id="timers" hidden>
+      <header><div class="title">TIMERS</div></header>
+      <div class="timerlist" id="timerList"></div>
+    </div>
+
+    <!-- new / edit countdown timer -->
+    <div id="timerAdd" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle" id="taTitle">New timer</div>
+        </div>
+        <input id="taName" class="catname" placeholder="name (optional)" />
+        <div class="tadisplay" id="taDisplay">00:00:00</div>
+        <div class="keypad" id="taKeypad"></div>
+        <div class="tasoundrow">
+          <span>Sound</span>
+          <select id="taSound"></select>
+          <button id="taPreview" class="pbtn">▶</button>
+        </div>
+        <div class="catactions">
+          <button id="taSave" class="pbtn save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- reusable mm:ss keypad -->
+    <div id="kp" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle" id="kpTitle">Time</div>
+        </div>
+        <div class="tadisplay" id="kpDisplay">00:00</div>
+        <div class="keypad" id="kpPad"></div>
+        <div class="catactions">
+          <button id="kpSave" class="pbtn save">Set</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- universal confirm dialog -->
+    <div id="confirm" hidden>
+      <div class="dialog">
+        <div class="confirmmsg" id="confirmMsg"></div>
+        <div class="catactions">
+          <button id="confirmNo" class="pbtn">Cancel</button>
+          <button id="confirmYes" class="pbtn danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CADENCE: the second interval screen, `intervals2` in the code -->
+    <div id="intervals2" hidden>
+      <header><div class="title">CADENCE</div></header>
+      <div class="iv2setup">
+        <div class="presets">
+          <select id="iv2sel"></select>
+          <button id="iv2new" class="pbtn">New</button>
+          <button id="iv2save" class="pbtn">Save</button>
+          <button id="iv2del" class="pbtn">Del</button>
+        </div>
+        <div id="iv2name" class="presetname" hidden>
+          <input id="iv2nameInput" placeholder="preset name" />
+          <button id="iv2nameOk" class="pbtn">OK</button>
+          <button id="iv2nameCancel" class="pbtn">Cancel</button>
+        </div>
+        <div class="iv2field">
+          <span>Prepare</span>
+          <button id="iv2prep" class="iv2timebtn">00:10</button>
+        </div>
+        <div class="iv2field">
+          <span>Block</span>
+          <button id="iv2block" class="iv2timebtn">05:00</button>
+        </div>
+        <div class="iv2blk">
+          <div class="iv2blktitle">Inside the block — a rep every N seconds</div>
+          <div id="iv2rows"></div>
+        </div>
+        <div class="iv2field">
+          <span>Rounds</span>
+          <input id="iv2rounds" class="setnum" inputmode="numeric" value="6" />
+          <span class="iv2unit">× block</span>
+        </div>
+        <div class="iv2sep"></div>
+        <div class="iv2two">
+          <div class="iv2opt">
+            <span>Rep count</span>
+            <button id="iv2repcount" class="switch" role="switch" aria-checked="false"></button>
+          </div>
+          <div class="iv2opt">
+            <span>Voice</span>
+            <button id="iv2voice" class="switch" role="switch" aria-checked="false"></button>
+          </div>
+        </div>
+        <div class="iv2over" id="iv2over"></div>
+      </div>
+      <div class="bottom"><button id="iv2start">START</button></div>
+    </div>
+
+    <!-- CADENCE run screen -->
+    <div id="iv2run" hidden>
+      <div class="pane">
+        <div class="plabel">ROUND · REP</div>
+        <div class="pval countval" id="iv2count">1/1 · 1/1</div>
+      </div>
+      <div class="pane work">
+        <div class="plabel" id="iv2phase">GO</div>
+        <div class="pval" id="iv2big">0</div>
+      </div>
+      <div class="pane">
+        <div class="plabel">TOTAL</div>
+        <div class="pval" id="iv2total">0:00</div>
+      </div>
+      <div class="bottom">
+        <div class="runbtns">
+          <button id="iv2stop">STOP</button>
+          <button id="iv2pause">PAUSE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CADENCE: how many reps this cue asks for, over the run screen -->
+    <div id="iv2reps" hidden>
+      <div class="repsval" id="iv2repsval">1</div>
+      <div class="repslab" id="iv2repslab">REPS</div>
+    </div>
+
+    <!-- bottom tabs -->
+    <nav class="tabs">
+      <button class="tab" data-tab="timers" aria-selected="false">Timers</button>
+      <button class="tab" data-tab="timer" aria-selected="true">Phases</button>
+      <button class="tab" data-tab="intervals2" aria-selected="false">Cadence</button>
+    </nav>
+
+    <!-- SETTINGS: a page, two tabs; Android back closes it -->
+    <div id="settings" hidden>
+      <header><div class="title">SETTINGS</div></header>
+      <nav class="stabs">
+        <button class="stab" data-stab="general" aria-selected="true">General</button>
+        <button class="stab" data-stab="sounds" aria-selected="false">Sounds</button>
+      </nav>
+      <div id="sGeneral" class="spage">
+        <div class="srow">
+          <div class="slabel">Opening screen <small>tab shown on launch</small></div>
+          <select id="startTab">
+            <option value="timers">Timers</option>
+            <option value="timer">Phases</option>
+            <option value="intervals2">Cadence</option>
+          </select>
+        </div>
+        <div class="srow">
+          <div class="slabel">Folder <small id="folderName">none picked</small></div>
+          <button id="pickFolder" class="pbtn">Choose</button>
+        </div>
+        <div class="srow">
+          <div class="slabel">Profiles <small id="profileNote">a tab's items, to or from a file</small></div>
+          <button id="exportProfiles" class="pbtn" hidden>Export</button>
+          <button id="importProfiles" class="pbtn">Import</button>
+          <input id="profPick" type="file" accept=".json,application/json" hidden />
+        </div>
+        <div class="srow">
+          <div class="slabel">Theme</div>
+          <select id="theme"></select>
+        </div>
+        <div class="srow" id="permNotif" hidden>
+          <div class="slabel">Notifications <small id="permNotifState"></small></div>
+          <button id="permNotifBtn" class="switch" role="switch" aria-checked="false"></button>
+        </div>
+        <div class="srow" id="permBattery" hidden>
+          <div class="slabel">Battery <small id="permBatteryState"></small></div>
+          <button id="permBatteryBtn" class="switch" role="switch" aria-checked="false"></button>
+        </div>
+      </div>
+      <div id="sSounds" class="spage" hidden>
+        <div class="srow">
+          <div class="slabel">Approach <small>knock seconds before a cycle ends</small></div>
+          <input id="approach" class="setnum" inputmode="numeric" value="3" />
+        </div>
+        <div class="srow">
+          <div class="slabel">Main <small>interval start</small></div>
+          <select id="snd-main"></select>
+          <button id="prev-main" class="play" title="Preview">▶</button>
+        </div>
+        <div class="srow">
+          <div class="slabel">Turnaround <small>halfway</small></div>
+          <select id="snd-turn"></select>
+          <button id="prev-turn" class="play" title="Preview">▶</button>
+        </div>
+        <div class="srow">
+          <div class="slabel">Approaching <small>near the cycle end</small></div>
+          <select id="snd-approach"></select>
+          <button id="prev-approach" class="play" title="Preview">▶</button>
+        </div>
+        <div class="srow">
+          <div class="slabel">Rest <small>rest phase starts</small></div>
+          <select id="snd-rest"></select>
+          <button id="prev-rest" class="play" title="Preview">▶</button>
+        </div>
+        <div class="srow">
+          <div class="slabel">End <small>session done</small></div>
+          <select id="snd-end"></select>
+          <button id="prev-end" class="play" title="Preview">▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- export / import: pick a tab, pick items, name the file -->
+    <div id="xferOverlay" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle" id="xferTitle">Export</div>
+        </div>
+        <div id="xferKinds" class="xlist"></div>
+        <div id="xferItems" class="xlist" hidden></div>
+        <div id="xferNameRow" hidden>
+          <input id="xferName" class="catname" placeholder="file name" />
+        </div>
+        <div class="hint" id="xferNote"></div>
+        <div class="catactions">
+          <button id="xferBack" class="pbtn">Back</button>
+          <button id="xferAll" class="pbtn">All</button>
+          <button id="xferNext" class="pbtn save">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/shared/fullscreen.js" defer></script>
+    <script src="/shared/textzoom.js" defer></script>
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>

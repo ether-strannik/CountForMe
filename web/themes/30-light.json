@@ -1,0 +1,20 @@
+{
+  "name": "Light",
+  "ui": {
+    "bg": "#eef1f5",
+    "card": "#ffffff",
+    "line": "#d5dbe2",
+    "text": "#1b2027",
+    "muted": "#5f6b7a",
+    "accent": "#1c74d4",
+    "warn": "#9a6206",
+    "bad": "#c62f2f",
+    "go": "#2e7d32",
+    "on-accent": "#ffffff",
+    "accent-soft": "rgba(28, 116, 212, 0.28)",
+    "action": "#1b2027",
+    "on-action": "#eef1f5",
+    "scrim": "rgba(0, 0, 0, 0.4)",
+    "glyph": "#98a2ae"
+  }
+}

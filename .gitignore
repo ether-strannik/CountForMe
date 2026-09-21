@@ -1,0 +1,16 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Installed, never committed: F-Droid's scanner rejects prebuilt binaries
+# in a source tree, and the lock file is what pins the versions anyway.
+node_modules/
+
+# The build directory Capacitor used before the project moved in here.
+www/
+
+# The release checklist. Working notes, not part of the app.
+TASKS.md

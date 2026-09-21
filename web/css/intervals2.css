@@ -1,0 +1,138 @@
+/* Intervals 2: the block-first builder */
+.iv2setup {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 8px 12px calc(150px + env(safe-area-inset-bottom));
+}
+.iv2field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 2px;
+}
+.iv2field > span:first-child {
+  flex: 1;
+  font-size: 18px;
+}
+.iv2unit {
+  color: var(--muted);
+}
+.iv2blk {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  margin: 6px 0;
+}
+.iv2sep {
+  border-top: 1px solid var(--line);
+  margin: 10px 0 2px;
+}
+/* the program's switches, two to a row; .switch comes from settings.css */
+.iv2two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.iv2opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.iv2blktitle {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+/* Wraps rather than overflows. A row that does not fit pushes the whole
+   page sideways and takes the labels off the edge of the screen, which
+   is worse than a second line. */
+.iv2row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+.iv2rowlab {
+  width: 16px;
+  color: var(--muted);
+}
+.iv2row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+/* two digits is all either of these ever holds */
+.iv2in {
+  width: 42px;
+  height: 38px;
+  text-align: center;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 16px;
+}
+/* the one auto margin in the row: everything else packs to the left and
+   this sits at the far edge. A second one would split the free space
+   and open a gap in the middle. */
+.iv2del {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.iv2add {
+  margin-top: 8px;
+  width: 100%;
+  border: 2px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.iv2over {
+  text-align: center;
+  font-size: 20px;
+  margin-top: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.iv2over b {
+  color: var(--accent);
+}
+.iv2timebtn {
+  height: 38px;
+  padding: 0 14px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.iv2from {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.iv2dash {
+  color: var(--muted);
+}
+/* the range's own end time: four characters, so it need not size
+   itself to its padding the way a standalone time button does */
+.iv2to {
+  width: 52px;
+  padding: 0;
+}
+#iv2start:disabled {
+  opacity: 0.35;
+}
