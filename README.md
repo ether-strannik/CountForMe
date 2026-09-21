@@ -1,6 +1,14 @@
-- **Name:** Count for me
+<p align="center">
+  <img src="logo.png" alt="Count for me" width="160" />
+</p>
+
+<h1 align="center">Count for me</h1>
+
+<p align="center">
+  An opinionated interval timer built for workouts that do not fit neatly into standard work, rest, and round patterns.
+</p>
+
 - **Purpose:** A workout timer.
-- **What it is:** An opinionated interval timer built for workouts that do not fit neatly into standard work, rest, and round patterns.
 - **What it is not:** It is NOT a revolutionary new category of temporal athletic performance software.
 - **Why it exists:** The timers I tried did not support a few programming patterns I needed.
 - **Who it is for:** Workout enthusiasts and athletes who need more flexibility than a basic interval timer provides.
