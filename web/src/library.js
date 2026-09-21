@@ -48,8 +48,9 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
   const store = migrate(load(storeKey, {}));
   const saveStore = () => save(storeKey, store);
 
+  const sorted = (map) => Object.keys(map).sort((a, b) => a.localeCompare(b));
   /** every preset name, wherever it lives; the flat view the rest uses */
-  const names = () => Object.keys(flat()).sort((a, b) => a.localeCompare(b));
+  const names = () => sorted(flat());
   /** {name: preset} across the whole tree */
   function flat() {
     const out = { ...store.items };
@@ -92,7 +93,10 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
   $(ids.name).addEventListener('click', () =>
     openPresets(label, {
       names,
-      cats: () => store.cats.map((c) => ({ id: c.id, name: c.name, count: Object.keys(c.items).length })),
+      // each set with the presets inside it, so the sheet can nest them
+      cats: () => store.cats.map((c) => ({ id: c.id, name: c.name, items: sorted(c.items) })),
+      // the presets in no set: these stay at the root, unindented
+      loose: () => sorted(store.items),
       pick(n) {
         const p = flat()[n];
         if (!p) return;

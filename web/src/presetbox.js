@@ -22,8 +22,8 @@ import { askConfirm } from './confirm.js';
 import { openScreen, closeScreen } from './nav.js';
 
 /**
- * @typedef {{names: () => string[],
- *            cats: () => {id: string, name: string, count: number}[],
+ * @typedef {{names: () => string[], loose: () => string[],
+ *            cats: () => {id: string, name: string, items: string[]}[],
  *            pick: (n: string) => void, create: (n: string) => void,
  *            remove: (n: string) => void,
  *            addCat: (name: string) => void,
@@ -108,47 +108,58 @@ function row(kind, key, name, open, onDelete) {
   return el;
 }
 
+/** a preset row, wherever it sits; `inset` marks one inside a set */
+function presetRow(api, n, inset) {
+  const el = row(
+    'preset',
+    n,
+    n,
+    () => {
+      closeScreen('presets');
+      api.pick(n);
+    },
+    () =>
+      askConfirm('Delete "' + n + '"?', () => {
+        api.remove(n);
+        render();
+      }),
+  );
+  if (inset) el.classList.add('prin');
+  return el;
+}
+
 function render() {
   const list = $('presetList');
   list.innerHTML = '';
   if (!box) return;
   const api = box;
 
-  api.cats().forEach((c) => {
+  // A set, then what is inside it, indented. The nesting is the whole
+  // point of a set: it is a programme, not a label on a flat list.
+  const cats = api.cats();
+  cats.forEach((c) => {
     const el = row('cat', c.id, c.name, null, () =>
-      askConfirm('Delete the set "' + c.name + '"' + (c.count ? ' and its ' + c.count + ' presets?' : '?'), () => {
-        api.removeCat(c.id);
-        render();
-      }),
+      askConfirm(
+        'Delete the set "' + c.name + '"' + (c.items.length ? ' and its ' + c.items.length + ' presets?' : '?'),
+        () => {
+          api.removeCat(c.id);
+          render();
+        },
+      ),
     );
     const n = document.createElement('small');
     n.className = 'prcount';
-    n.textContent = c.count ? String(c.count) : 'empty';
+    n.textContent = c.items.length ? String(c.items.length) : 'empty';
     el.insertBefore(n, el.querySelector('.prdel'));
     list.appendChild(el);
+    c.items.forEach((name) => list.appendChild(presetRow(api, name, true)));
   });
 
-  const names = api.names();
-  names.forEach((n) =>
-    list.appendChild(
-      row(
-        'preset',
-        n,
-        n,
-        () => {
-          closeScreen('presets');
-          api.pick(n);
-        },
-        () =>
-          askConfirm('Delete "' + n + '"?', () => {
-            api.remove(n);
-            render();
-          }),
-      ),
-    ),
-  );
+  // then the presets in no set, at the root
+  const loose = api.loose();
+  loose.forEach((n) => list.appendChild(presetRow(api, n, false)));
 
-  if (!names.length && !api.cats().length) {
+  if (!loose.length && !cats.length) {
     const empty = document.createElement('div');
     empty.className = 'prnote';
     empty.textContent = 'Nothing saved yet.';

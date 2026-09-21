@@ -63,7 +63,18 @@
   font-size: 18px;
 }
 
+/* a preset inside a set: indented under it, with a line running down
+   the gutter so a long set still reads as one group */
+.prin {
+  margin-left: 14px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
 /* a set: the thing that contains, so it is heavier than what it holds */
+.prcat {
+  margin-top: 6px;
+}
 .prcat .prname {
   font-weight: 700;
 }
