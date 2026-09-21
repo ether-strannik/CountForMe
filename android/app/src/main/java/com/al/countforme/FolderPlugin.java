@@ -36,6 +36,7 @@ import java.util.List;
  *   read({ name })      -> { base64 }
  *   write({ name, base64 })
  *   remove({ name })
+ *   share({ name, base64 })  hand the bytes to another app
  */
 @CapacitorPlugin(name = "Folder")
 public class FolderPlugin extends Plugin {
@@ -181,6 +182,44 @@ public class FolderPlugin extends Plugin {
       call.resolve();
     } catch (Exception e) {
       call.reject("cannot write: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Hand the bytes to whatever the user picks from the share sheet.
+   *
+   * Nothing goes in the user's folder: the file lands in the app's own
+   * cache, and the FileProvider grants the receiving app read access to
+   * that one file. Sharing needs no folder to have been picked at all.
+   */
+  @PluginMethod
+  public void share(PluginCall call) {
+    String name = call.getString("name");
+    String b64 = call.getString("base64");
+    if (name == null || b64 == null) { call.reject("nothing to share"); return; }
+    try {
+      java.io.File dir = new java.io.File(getContext().getCacheDir(), "share");
+      dir.mkdirs();
+      for (java.io.File old : dir.listFiles() == null ? new java.io.File[0] : dir.listFiles()) old.delete();
+      java.io.File f = new java.io.File(dir, name);
+      try (OutputStream out = new java.io.FileOutputStream(f)) {
+        out.write(Base64.decode(b64, Base64.DEFAULT));
+      }
+      Uri uri = androidx.core.content.FileProvider.getUriForFile(
+        getContext(),
+        getContext().getPackageName() + ".fileprovider",
+        f
+      );
+      Intent send = new Intent(Intent.ACTION_SEND);
+      send.setType("application/json");
+      send.putExtra(Intent.EXTRA_STREAM, uri);
+      send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      Intent chooser = Intent.createChooser(send, name);
+      chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      getContext().startActivity(chooser);
+      call.resolve();
+    } catch (Exception e) {
+      call.reject("cannot share: " + e.getMessage());
     }
   }
 

@@ -115,6 +115,10 @@
 #presetActions {
   justify-content: space-between;
 }
+/* the actions button sits where the primary button does: the right */
+#presetSelActions {
+  justify-content: flex-end;
+}
 .prdots {
   width: 44px;
   font-size: 20px;

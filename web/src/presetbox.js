@@ -21,7 +21,7 @@ import { $, $in } from './dom.js';
 import { askConfirm } from './confirm.js';
 import { openScreen, closeScreen } from './nav.js';
 import { packLibrary, unpackProfiles, fileName, cleanFileName } from './profiles.js';
-import { writeText } from './files.js';
+import { writeText, shareText } from './files.js';
 
 /**
  * @typedef {{id: string, names: () => string[], loose: () => string[],
@@ -381,37 +381,47 @@ $('presetExport').addEventListener('click', () => {
   render();
 });
 $('presetExpCancel').addEventListener('click', () => closeScreen('presetexp'));
+// Naming the file is its own screen too, so Android back steps from
+// the name to the ticks and from the ticks out of export. There is no
+// Back button anywhere here; the system has one.
 $('presetExpNext').addEventListener('click', () => {
   if (!pick || !box) return;
   if (!pick.presets.size && !pick.cats.size) return note('Tick something to export.');
   $in('presetFileName').value = fileName(box.id, new Date());
   $('presetFileRow').hidden = false;
   $('presetExpActions').hidden = true;
+  openScreen('presetname', () => {
+    $('presetFileRow').hidden = true;
+    $('presetExpActions').hidden = !exporting();
+  });
   $('presetFileName').focus();
 });
-$('presetFileCancel').addEventListener('click', () => {
-  $('presetFileRow').hidden = true;
-  $('presetExpActions').hidden = false;
-});
-$('presetFileOk').addEventListener('click', doExport);
+$('presetFileOk').addEventListener('click', () => finish('save'));
+$('presetShare').addEventListener('click', () => finish('share'));
 $('presetFileName').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   e.preventDefault();
-  doExport();
+  finish('save');
 });
 
 const note = (t) => ($('presetNote').textContent = t);
 
-async function doExport() {
+/**
+ * Write the file, or hand it to another app.
+ * @param {'save'|'share'} how
+ */
+async function finish(how) {
   if (!pick || !box) return;
   const name = cleanFileName($in('presetFileName').value);
   if (!name) return note('Name the file.');
   const { cats, items } = box.exportPicked([...pick.presets], [...pick.cats]);
-  const ok = await writeText(name, packLibrary(box.id, cats, items));
-  $('presetFileRow').hidden = true;
-  note(ok ? 'Saved ' + name : 'Could not save. Pick a folder in settings first.');
-  if (ok) closeScreen('presetexp');
-  else $('presetExpActions').hidden = false;
+  const text = packLibrary(box.id, cats, items);
+  const ok = how === 'share' ? await shareText(name, text) : await writeText(name, text);
+  if (!ok) {
+    return note(how === 'share' ? 'Could not share.' : 'Could not save. Pick a folder in settings first.');
+  }
+  if (how === 'save') note('Saved ' + name);
+  closeScreen('presetexp'); // pops the name screen with it
 }
 
 // ---- import: a file in, nothing overwritten ----

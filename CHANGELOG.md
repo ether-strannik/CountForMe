@@ -9,6 +9,8 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Share an export instead of saving it, through the usual Android
+  share sheet. Sharing needs no folder; only saving does.
 - Export and import live in the preset manager. Export ticks whatever
   should go in the file, categories included, and a category travels
   whole with its presets inside. Import adds and never overwrites: a
@@ -31,6 +33,9 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- Cadence no longer keeps what is on screen between launches. Both
+  tabs now load the preset they were last on, and Save is the only
+  thing that writes.
 - Each tab shows one preset row: the name, and Save. Save always
   writes the setup on screen to the named preset.
 - Naming a new preset opens a blank setup instead of copying the one

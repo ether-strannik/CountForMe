@@ -2,7 +2,6 @@
 // run screen that plays the expanded timeline.
 import { $, $in, $btn, MINUS_SVG, fitText } from './dom.js';
 import { fmt } from './format.js';
-import { load, save } from './storage.js';
 import { openKeypad } from './keypad.js';
 import { makeRunner } from './runner.js';
 import { makeLibrary } from './library.js';
@@ -10,11 +9,10 @@ import { IV2_DEFAULT, iv2Expand } from './iv2expand.js';
 import { intervals2Cues } from './cues.js';
 import { approachSec } from './settings.js';
 
-// The user's program (defaults to the sample), persisted.
+// The program on screen. It lives in memory only: Save is the one
+// thing that writes, so closing the app with unsaved edits loses them,
+// the same as Phases. On startup the last-used preset is loaded back.
 let iv2Prog = JSON.parse(JSON.stringify(IV2_DEFAULT));
-const iv2Saved = load('timer.iv2prog', null);
-if (iv2Saved && Array.isArray(iv2Saved.segs)) iv2Prog = iv2Saved;
-const iv2SaveProg = () => save('timer.iv2prog', iv2Prog);
 
 // ---- builder ----
 function iv2Over() {
@@ -69,7 +67,6 @@ export function iv2RenderSetup() {
     el.querySelector('.iv2to').addEventListener('click', () =>
       openKeypad('Range end', seg.to, (sec) => {
         seg.to = Math.min(iv2Prog.blockSec, Math.max(fromHere + 1, sec));
-        iv2SaveProg();
         iv2RenderSetup();
       }),
     );
@@ -77,7 +74,6 @@ export function iv2RenderSetup() {
     eEvery.value = String(seg.every);
     eEvery.addEventListener('input', () => {
       seg.every = Math.max(1, Math.round(+eEvery.value || 0));
-      iv2SaveProg();
       iv2Over();
     });
     const eReps = /** @type {HTMLInputElement} */ (el.querySelector('[data-k="reps"]'));
@@ -85,13 +81,11 @@ export function iv2RenderSetup() {
       eReps.value = String(seg.reps || 1);
       eReps.addEventListener('input', () => {
         seg.reps = Math.max(1, Math.round(+eReps.value || 1));
-        iv2SaveProg();
         iv2Over();
       });
     }
     el.querySelector('.iv2del').addEventListener('click', () => {
       iv2Prog.segs.splice(i, 1);
-      iv2SaveProg();
       iv2RenderSetup();
     });
     box.appendChild(el);
@@ -104,7 +98,6 @@ export function iv2RenderSetup() {
     const f = iv2Prog.segs.length ? iv2Prog.segs[iv2Prog.segs.length - 1].to : 0;
     if (f >= iv2Prog.blockSec) return; // block already full
     iv2Prog.segs.push({ to: iv2Prog.blockSec, every: 30 }); // fill to end
-    iv2SaveProg();
     iv2RenderSetup();
   });
   box.appendChild(add);
@@ -115,14 +108,12 @@ $('iv2block').addEventListener('click', () =>
   openKeypad('Block length', iv2Prog.blockSec, (sec) => {
     iv2Prog.blockSec = Math.max(1, sec);
     iv2Prog.segs.forEach((s) => (s.to = Math.min(s.to, iv2Prog.blockSec)));
-    iv2SaveProg();
     iv2RenderSetup();
   }),
 );
 $('iv2prep').addEventListener('click', () =>
   openKeypad('Prepare', iv2Prog.prepare, (sec) => {
     iv2Prog.prepare = Math.max(0, sec);
-    iv2SaveProg();
     iv2RenderSetup();
   }),
 );
@@ -130,18 +121,15 @@ $('iv2prep').addEventListener('click', () =>
 // Turning it on gives every range that has no count one rep.
 $('iv2repcount').addEventListener('click', () => {
   iv2Prog.showReps = !iv2Prog.showReps;
-  iv2SaveProg();
   iv2RenderSetup();
 });
 // Voice: the switch holds the setting and nothing reads it yet.
 $('iv2voice').addEventListener('click', () => {
   iv2Prog.voice = !iv2Prog.voice;
-  iv2SaveProg();
   iv2RenderSetup();
 });
 $('iv2rounds').addEventListener('input', () => {
   iv2Prog.rounds = Math.max(1, Math.round(+$in('iv2rounds').value || 1));
-  iv2SaveProg();
   iv2Over();
 });
 $('intervals2').addEventListener('keydown', (e) => {
@@ -153,9 +141,14 @@ $('intervals2').addEventListener('keydown', (e) => {
 });
 
 // ---- Intervals 2 program library (save/load) ----
-// The picker only selects on startup; the working program is its own
-// persisted copy (timer.iv2prog), so unsaved edits survive a reload.
-makeLibrary({
+/** put a saved program on screen; also guards what is already stored */
+function applyProg(p) {
+  if (!p || !Array.isArray(p.segs)) return;
+  iv2Prog = JSON.parse(JSON.stringify(p));
+  iv2RenderSetup();
+}
+
+const iv2Presets = makeLibrary({
   id: 'intervals2',
   label: 'Cadence', // what the transfer sheet shows; the id stays, it is in saved files
   ids: { name: 'iv2PresetName', save: 'iv2PresetSave' },
@@ -165,12 +158,7 @@ makeLibrary({
   blank: () => JSON.parse(JSON.stringify(IV2_DEFAULT)),
   // a program is its ranges; anything without them is not one
   valid: (p) => Array.isArray(p.segs),
-  apply(p) {
-    if (!p || !Array.isArray(p.segs)) return; // also guards what is already stored
-    iv2Prog = JSON.parse(JSON.stringify(p));
-    iv2SaveProg();
-    iv2RenderSetup();
-  },
+  apply: applyProg,
 });
 
 // ---- run: the shared engine keeps the clock and plays the cues;
@@ -280,6 +268,11 @@ async function iv2Start(prog) {
     cues,
   });
 }
+
+// startup: draw the builder and restore the last-used preset, the
+// same as Phases
+iv2RenderSetup();
+applyProg(iv2Presets.current());
 
 $('iv2start').addEventListener('click', () => iv2Start(iv2Prog));
 $('iv2stop').addEventListener('click', runner.stop);
