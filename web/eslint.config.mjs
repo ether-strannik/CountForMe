@@ -45,6 +45,11 @@ export default [
     rules: {
       'no-unused-vars': 'error',
       'no-undef': 'error',
+      // A parameter that hides a module-level name reads as that name
+      // and is not it. One of these cost an evening: a Set called
+      // `open` was shadowed by a callback parameter called `open`, and
+      // every category row threw on null.
+      'no-shadow': 'error',
       'no-restricted-imports': ['error', nobody(['app'], 'app.js composes the screens; nothing imports it')],
     },
   },

@@ -37,11 +37,13 @@ let naming = 'preset';
 /** null when not selecting; otherwise the picked rows */
 /** @type {{presets: Set<string>, cats: Set<string>} | null} */
 let sel = null;
-// Which sets are folded shut. Kept here rather than in the store: it
-// is how this phone is looking at the library right now, not part of
-// the library itself, and it must not travel in a shared set.
+// Which sets are OPEN, not which are shut: nothing is open when the
+// app starts, so every set begins folded and a long library is one
+// screen of names. Memory only — this is how the phone is looking at
+// the library right now, not part of it, and a shared set must not
+// carry someone else's idea of what should be unfolded.
 /** @type {Set<string>} */
-const shut = new Set();
+const unfolded = new Set();
 
 const LONG_MS = 450;
 
@@ -104,12 +106,12 @@ function row(kind, key, name, open, onDelete) {
     // name is still free for selecting, and for whatever a set's own
     // tap becomes later.
     const fold = /** @type {HTMLButtonElement} */ (el.querySelector('.prfold'));
-    const open2 = !shut.has(key);
-    fold.setAttribute('aria-expanded', String(open2));
-    el.classList.toggle('shut', !open2);
+    const isOpen = unfolded.has(key);
+    fold.setAttribute('aria-expanded', String(isOpen));
+    el.classList.toggle('shut', !isOpen);
     fold.addEventListener('click', () => {
-      if (shut.has(key)) shut.delete(key);
-      else shut.add(key);
+      if (isOpen) unfolded.delete(key);
+      else unfolded.add(key);
       render();
     });
   }
@@ -174,7 +176,7 @@ function render() {
     n.textContent = c.items.length ? String(c.items.length) : 'empty';
     el.insertBefore(n, el.querySelector('.prdel'));
     list.appendChild(el);
-    if (!shut.has(c.id)) c.items.forEach((name) => list.appendChild(presetRow(api, name, true)));
+    if (unfolded.has(c.id)) c.items.forEach((name) => list.appendChild(presetRow(api, name, true)));
   });
 
   // then the presets in no set, at the root

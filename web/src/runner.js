@@ -81,11 +81,11 @@ export function makeRunner(hooks) {
    * Arm audio on the user's gesture and decode everything the session
    * will play, before the clock starts. Nothing can be fetched later:
    * every sound is scheduled the moment the run begins.
-   * @param {{at: number, event: string, say?: number}[]} [cues]
+   * @param {{at: number, event: string, say?: number}[]} [list]
    */
-  function arm(cues = []) {
+  function arm(list = []) {
     audioCtx();
-    return Promise.all([ensureBuffers(), ensureCounts(cues.filter((c) => c.say).map((c) => c.say))]);
+    return Promise.all([ensureBuffers(), ensureCounts(list.filter((c) => c.say).map((c) => c.say))]);
   }
 
   /**
