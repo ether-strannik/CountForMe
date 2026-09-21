@@ -43,7 +43,7 @@ First release.
   for three seconds at each cue, then the counter comes back.
 - **Voice**, on a second switch. The number is spoken as well as shown.
 - **A sound for each cue** — prepare, work, halfway, last seconds, rest
-  and finish. Fifteen ship with the app; your own go in a folder you
+  and finish. Sixteen ship with the app; your own go in a folder you
   choose once and appear in the same lists.
 - **Keep screen on**, in settings, for as long as the app is in front.
 - **Presets** per tab, saved by name and picked from the top of the
