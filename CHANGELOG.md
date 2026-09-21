@@ -9,6 +9,9 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Delete several presets and categories at once from the selection
+  menu. The confirm counts the presets inside a chosen category, so
+  nothing goes without being named first.
 - Naming a new preset asks whether to add it to a category, and puts
   it there the first time you save.
 - Categories fold shut, and start that way, so a long library opens as

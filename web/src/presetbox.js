@@ -27,6 +27,7 @@ import { openScreen, closeScreen } from './nav.js';
  *            pick: (n: string) => void,
  *            create: (n: string, catId: string) => void,
  *            remove: (n: string) => void,
+ *            removeMany: (names: string[], catIds: string[]) => void,
  *            addCat: (name: string) => void,
  *            removeCat: (id: string) => void,
  *            move: (names: string[], catId: string) => void}} PresetApi
@@ -201,10 +202,14 @@ function drawBar() {
   $('presetSelActions').hidden = !on;
 }
 
-/** what can be done with what is picked; empty means the menu stays shut */
+/** what can be done with what is picked; empty means nothing applies */
 function actions() {
-  if (!sel || !sel.presets.size || sel.cats.size) return [];
-  return ['move']; // a set cannot go inside a set
+  if (!sel || !selCount()) return [];
+  const out = [];
+  // Move is presets only: a set cannot go inside a set.
+  if (sel.presets.size && !sel.cats.size) out.push('move');
+  out.push('delete'); // anything picked can go
+  return out;
 }
 
 /** one tappable line in the menu */
@@ -229,7 +234,46 @@ function openMenu() {
   const acts = actions();
   if (!acts.length) menuNote(menu, 'Nothing to do with this selection.', 'prnote');
   if (acts.includes('move')) menuItem(menu, 'Move', openMoveMenu);
+  if (acts.includes('delete')) menuItem(menu, 'Delete', deletePicked);
   menu.hidden = false;
+}
+
+/**
+ * What the confirm says. A category takes its presets with it, so the
+ * count has to include them — otherwise "delete 2 categories" quietly
+ * removes thirty presets.
+ */
+function deleteMsg(names, catIds, cats) {
+  const picked = cats.filter((c) => catIds.includes(c.id));
+  const inside = new Set(picked.flatMap((c) => c.items));
+  names.forEach((n) => inside.add(n));
+  const p = inside.size;
+  const plural = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
+  if (!picked.length) return 'Delete ' + (p === 1 ? '"' + names[0] + '"' : plural(p, 'preset')) + '?';
+  if (picked.length === 1 && !names.length) {
+    return 'Delete the category "' + picked[0].name + '"' + (p ? ' and its ' + plural(p, 'preset') : '') + '?';
+  }
+  return (
+    'Delete ' +
+    plural(picked.length, 'category').replace('categorys', 'categories') +
+    (p ? ' and ' + plural(p, 'preset') : '') +
+    '?'
+  );
+}
+
+/** delete everything picked, after saying what that comes to */
+function deletePicked() {
+  if (!box || !sel) return;
+  const names = [...sel.presets];
+  const catIds = [...sel.cats];
+  $('presetMenu').hidden = true;
+  askConfirm(deleteMsg(names, catIds, box.cats()), () => {
+    if (box) box.removeMany(names, catIds);
+    // The confirm closes itself through history, and so does leaving
+    // selection. Both in one task queue two navigations and the sheet
+    // goes with them, so this waits for the first to land.
+    setTimeout(endSel, 0);
+  });
 }
 
 /** the second step of Move: which set they go into */

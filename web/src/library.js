@@ -119,6 +119,21 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
         saveStore();
         if (current === n) setCurrent('');
       },
+      /** presets and whole sets at once, in one write */
+      removeMany(picked, catIds) {
+        picked.forEach((n) => {
+          const set = setOf(n);
+          delete (set ? set.items : store.items)[n];
+          if (current === n) setCurrent('');
+        });
+        (catIds || []).forEach((catId) => {
+          const i = store.cats.findIndex((c) => c.id === catId);
+          if (i < 0) return;
+          if (store.cats[i].items[current]) setCurrent(''); // it went with the set
+          store.cats.splice(i, 1);
+        });
+        saveStore();
+      },
       addCat(name) {
         store.cats.push({ id: 'c' + Date.now().toString(36), name, items: {} });
         saveStore();
