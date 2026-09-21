@@ -1,21 +1,14 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
+# Capacitor finds a plugin by reading its annotations at runtime:
+# @CapacitorPlugin(name = "Session") is how the page reaches
+# window.Capacitor.Plugins.Session, and @PluginMethod marks what it may
+# call. R8 keeps the classes — Capacitor ships consumerProguardFiles for
+# that — but it strips the annotation ATTRIBUTES, and the annotation
+# types with them.
 #
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
-
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# The failure is silent. The class is there, the methods are there, and
+# registerPlugin finds no name, so the plugin never appears on the
+# bridge. No crash, no log: the folder, the session notification and
+# keep-screen-on simply do nothing. Verified on device 2026-09-21.
+-keepattributes *Annotation*, RuntimeVisibleAnnotations, AnnotationDefault
+-keep @interface com.getcapacitor.** { *; }
+-keep @interface com.getcapacitor.annotation.** { *; }

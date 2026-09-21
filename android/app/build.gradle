@@ -18,8 +18,14 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // The dex is the bulk of this APK — the page is small, AndroidX
+            // and Capacitor are not. Capacitor ships consumerProguardFiles
+            // keeping @CapacitorPlugin classes and Plugin subclasses, which
+            // is what its reflection needs; the activity and the service are
+            // declared in the manifest and kept anyway.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
