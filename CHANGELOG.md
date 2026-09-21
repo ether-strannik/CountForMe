@@ -5,6 +5,28 @@ All notable changes documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [Unreleased]
+
+### Added
+
+- Categories fold shut, and start that way, so a long library opens as
+  one screen of names with a count beside each.
+- Presets sit nested under the category holding them. Presets in no
+  category stay at the root, below the categories.
+- Long-press a preset or a category to select several at once, then
+  move the selected presets into a category.
+- Categories, made with + Category in the preset manager. Deleting one
+  deletes the presets inside it, and says how many first.
+- A preset manager, opened by tapping the preset name. Picking, naming
+  and deleting all happen there instead of on the tab.
+
+### Changed
+
+- Each tab shows one preset row: the name, and Save. Save always
+  writes the setup on screen to the named preset.
+- Naming a new preset opens a blank setup instead of copying the one
+  on screen, and stores nothing until you press Save.
+
 ## [1.0.0] - 2026-09-20
 
 First release.
