@@ -64,7 +64,8 @@ export function planTime(c) {
 }
 
 /**
- * Standard: work, rest and a count, the way a tabata is written down.
+ * Standard: work, rest and a count — the shape most interval workouts
+ * are written in.
  * @param {object} c
  * @param {number} c.prepare     get-ready lead-in, seconds
  * @param {number} c.work        work, seconds

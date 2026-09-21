@@ -1,4 +1,4 @@
-// Timer board: tabs and startup. Each tab is its own module; this file
+// Count for me: tabs and startup. Each tab is its own module; this file
 // only decides which one is on screen.
 import './theme.js'; // paint the saved theme before anything draws
 import { $, $$ } from './dom.js';
@@ -7,7 +7,10 @@ import { renderTimers } from './timers.js';
 import { isRunning } from './intervals.js';
 import { iv2RenderSetup, isIv2Running } from './intervals2.js';
 
-// ---- tabs: Timers / Intervals / Intervals2 ----
+// ---- tabs: Timers / Phases / Cadence ----
+// The code keeps the older names `intervals` and `intervals2`: they are
+// the stored keys and the ids inside exported files, and moving them
+// would invalidate what users have saved.
 function showTab(t) {
   $$('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
   $('config').hidden = true;

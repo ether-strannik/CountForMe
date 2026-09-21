@@ -1,10 +1,10 @@
-// Lint config for the timer board. api.js and the modules beside it are
-// server-side (node globals); src/ is the page's own code, loaded as ES
-// modules in the browser.
+// Lint config for the page. Everything here runs in the browser as ES
+// modules; there is no server side and nothing is compiled.
 
-// The layering (development/building/03-architecture.md §1) as a gate:
-// nothing imports app.js, and a feature never imports a feature. A new
-// screen in src/ is added to FEATURES.
+// The layering, as a gate rather than a habit: app.js composes the
+// screens and nothing imports it, and one screen never imports another.
+// Anything two screens both need moves down into a module they can each
+// import. A new screen in src/ is added to FEATURES.
 const FEATURES = ['timers', 'intervals', 'intervals2'];
 const nobody = (names, message) => ({
   patterns: names.map((n) => ({ group: [`./${n}.js`, `**/${n}.js`], message })),
@@ -12,16 +12,7 @@ const nobody = (names, message) => ({
 
 export default [
   {
-    files: ['api.js'],
-    languageOptions: {
-      ecmaVersion: 2024,
-      sourceType: 'module',
-      globals: { globalThis: 'readonly', process: 'readonly' },
-    },
-    rules: { 'no-unused-vars': 'error' },
-  },
-  {
-    files: ['src/**/*.js'],
+    files: ['src/**/*.js', 'shared/*.js'],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'module',
@@ -32,6 +23,7 @@ export default [
         localStorage: 'readonly',
         fetch: 'readonly',
         Option: 'readonly',
+        Element: 'readonly',
         AudioContext: 'readonly',
         atob: 'readonly',
         btoa: 'readonly',
@@ -53,7 +45,7 @@ export default [
     rules: {
       'no-unused-vars': 'error',
       'no-undef': 'error',
-      'no-restricted-imports': ['error', nobody(['app'], 'app.js composes; nothing imports it (03 §1)')],
+      'no-restricted-imports': ['error', nobody(['app'], 'app.js composes the screens; nothing imports it')],
     },
   },
   // eslint rejects an empty `files`, so the block exists only once there is a feature to name.
@@ -64,7 +56,7 @@ export default [
           rules: {
             'no-restricted-imports': [
               'error',
-              nobody(['app', ...FEATURES], 'a feature never imports a feature; move the shared thing down (03 §1)'),
+              nobody(['app', ...FEATURES], 'a screen never imports a screen; move the shared thing down'),
             ],
           },
         },

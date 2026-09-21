@@ -1,4 +1,0 @@
-# Vendored, not ours. These are copies of tools/web/shared/, carried so
-# the packaged app is self-contained. Formatting them here would make
-# them differ from their source and hide a real drift behind a fake one.
-shared/

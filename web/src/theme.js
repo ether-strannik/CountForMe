@@ -1,8 +1,7 @@
-// The palette at runtime. A theme is a JSON file in `themes/`, the same
-// shape the terminal board uses: a name, and the tokens it sets. There
-// is no server here to scan that folder, so `themes/index.json` names
-// the files, numeric prefix giving the order. A theme that leaves a
-// token out keeps whatever `base.css` says for it.
+// The palette at runtime. A theme is a JSON file in `themes/`: a name,
+// and the tokens it sets. Nothing scans that folder, so
+// `themes/index.json` names the files, numeric prefix giving the order.
+// A theme that leaves a token out keeps whatever `base.css` says for it.
 //
 // The chosen colours are kept alongside the chosen file, so the theme is
 // painted the instant this module loads, before anything draws. The

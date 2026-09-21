@@ -1,5 +1,5 @@
 // The one seam to localStorage. Every read tolerates a missing or broken
-// value and every write tolerates a full or disabled store — the board
+// value and every write tolerates a full or disabled store — the app
 // keeps running on defaults either way.
 
 /** JSON value, or `fallback` when the key is absent, empty, or unparsable */
