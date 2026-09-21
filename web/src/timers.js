@@ -1,11 +1,12 @@
 // Countdown timers: named, one beep at zero (not a looping alarm).
 // Cards with a progress ring; an add/edit sheet with an h:mm:ss keypad.
-import { $, $in, $sel, MINUS_SVG } from './dom.js';
+import { $, $in, MINUS_SVG } from './dom.js';
 import { fmtClock } from './format.js';
 import { load, save } from './storage.js';
 import { askConfirm } from './confirm.js';
 import { makePad } from './keypad.js';
-import { audioCtx, playFile, buzz } from './sound.js';
+import { audioCtx, playFile, buzz, packList, TIMER_DEFAULT } from './sound.js';
+import { openSoundPicker, soundName } from './soundpick.js';
 import { listSounds } from './files.js';
 import { registerCollection } from './collections.js';
 import { openScreen, closeScreen } from './nav.js';
@@ -172,21 +173,25 @@ function secToDigits(sec) {
   const p = (n) => String(n).padStart(2, '0');
   return (p(Math.floor(sec / 3600)) + p(Math.floor((sec % 3600) / 60)) + p(sec % 60)).replace(/^0+/, '');
 }
-async function loadTaSounds(sel) {
-  const list = await listSounds();
-  const s = $sel('taSound');
-  s.innerHTML = '';
-  s.add(new Option('Beep (default)', ''));
-  list.forEach((f) => s.add(new Option(f, f)));
-  s.value = sel && list.includes(sel) ? sel : '';
-}
+// The sound this timer plays, held while the sheet is open: the button
+// only names it, and the picker is where it changes.
+let taSound = TIMER_DEFAULT;
+const drawTaSound = () => ($('taSound').textContent = soundName(taSound));
+$('taSound').addEventListener('click', async () => {
+  const [pack, mine] = await Promise.all([packList(), listSounds()]);
+  openSoundPicker('Sound', taSound, pack, mine, (v) => {
+    taSound = v;
+    drawTaSound();
+  });
+});
 function openTimerAdd(id) {
   taEditId = id;
   const t = id != null ? timers.find((x) => x.id === id) : null;
   $('taTitle').textContent = t ? 'Edit timer' : 'New timer';
   $in('taName').value = t ? t.name || '' : '';
   taPad.set(t ? secToDigits(t.sec) : '');
-  loadTaSounds(t ? t.sound : '');
+  taSound = (t && t.sound) || TIMER_DEFAULT;
+  drawTaSound();
   $('timerAdd').hidden = false;
   openScreen('timerAdd', () => ($('timerAdd').hidden = true));
 }
@@ -199,12 +204,11 @@ $('taName').addEventListener('keydown', (e) => {
 $('timerAdd').addEventListener('click', (e) => {
   if (e.target === $('timerAdd')) closeScreen('timerAdd'); // backdrop; Android back does the same
 });
-$('taPreview').addEventListener('click', () => playFile($sel('taSound').value));
 $('taSave').addEventListener('click', () => {
   const sec = taPad.sec();
   if (sec <= 0) return;
   const name = $in('taName').value.trim();
-  const sound = $sel('taSound').value;
+  const sound = taSound;
   if (taEditId != null) {
     const t = timers.find((x) => x.id === taEditId);
     t.name = name;

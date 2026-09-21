@@ -6,14 +6,20 @@
 // this file exists to prevent.
 //
 // Events:
+//   prepare   the lead-in has begun; get ready
 //   main      a rep, or the work phase of a cycle beginning
 //   turn      halfway through work
 //   rest      work gives way to rest
 //   approach  one knock per second before what comes next
 //   end       the session is over
 
-/** knocks over the last `approach` seconds of the lead-in */
+/**
+ * The lead-in: one cue the moment it starts, then knocks over its last
+ * `approach` seconds. No prepare, no cue — the session's own first cue
+ * is at the same instant and two at once is one muddle.
+ */
 function leadIn(prepare, approach, out) {
+  if (prepare > 0) out.push({ at: 0, event: 'prepare' });
   for (let k = Math.min(approach, prepare); k >= 1; k--) out.push({ at: prepare - k, event: 'approach' });
 }
 

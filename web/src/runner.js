@@ -15,6 +15,7 @@ import { sessionStart, sessionPause, sessionResume, sessionStop } from './sessio
 
 /** a cue key from `cues.js` → the buzz that goes with it */
 const BUZZ = {
+  prepare: 120,
   main: 180,
   turn: [60, 60, 60],
   rest: 120,

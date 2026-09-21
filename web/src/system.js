@@ -41,6 +41,22 @@ export async function openNotifications() {
   }
 }
 
+/**
+ * Hold the screen on while the app is in front, or let it sleep again.
+ * A window flag rather than a wake lock: Android drops it when the app
+ * leaves and restores it on return, so nothing has to be released.
+ * @param {boolean} on
+ */
+export async function keepAwake(on) {
+  const b = bridge();
+  if (!b) return;
+  try {
+    await b.keepAwake({ on });
+  } catch {
+    /* no bridge, no screen to hold */
+  }
+}
+
 /** the exemption dialog, or the list to undo it when already exempt */
 export async function openBattery() {
   const b = bridge();

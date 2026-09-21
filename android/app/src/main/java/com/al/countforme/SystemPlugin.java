@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.view.WindowManager;
 
 import androidx.core.app.NotificationManagerCompat;
 
@@ -22,6 +23,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  *   status()         -> { notifications, battery }
  *   notifications()  the app's own notification settings
  *   battery()        the exemption dialog, or the list to undo it
+ *   keepAwake({on})  hold the screen on while the app is in front
  *   "changed"        pushed whenever the app comes back to the front
  *
  * Both are read, never assumed: a permission granted once can be taken
@@ -68,6 +70,27 @@ public class SystemPlugin extends Plugin {
     }
     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     getContext().startActivity(i);
+    call.resolve();
+  }
+
+  /**
+   * Hold the screen on, or let it sleep again.
+   *
+   * A window flag, not a wake lock: Android drops it the moment the app
+   * leaves the front and restores it on return, so there is nothing to
+   * release and nothing left holding the screen if the app is killed.
+   * The window belongs to the UI thread, so the change is posted there.
+   */
+  @PluginMethod
+  public void keepAwake(PluginCall call) {
+    final boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+    getActivity()
+      .runOnUiThread(
+        () -> {
+          if (on) getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+          else getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+      );
     call.resolve();
   }
 

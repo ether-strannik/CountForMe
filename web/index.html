@@ -70,7 +70,7 @@
             <input id="cycles" class="setnum" inputmode="numeric" value="8" />
           </div>
           <div class="row">
-            <div class="label">Turnaround</div>
+            <div class="label">Halfway</div>
             <button id="turn" class="toggle" aria-pressed="false">OFF</button>
           </div>
         </div>
@@ -133,8 +133,7 @@
         <div class="keypad" id="taKeypad"></div>
         <div class="tasoundrow">
           <span>Sound</span>
-          <select id="taSound"></select>
-          <button id="taPreview" class="pbtn">▶</button>
+          <button id="taSound" class="pbtn sndbtn"></button>
         </div>
         <div class="catactions">
           <button id="taSave" class="pbtn save">Save</button>
@@ -280,6 +279,10 @@
           <div class="slabel">Theme</div>
           <select id="theme"></select>
         </div>
+        <div class="srow" id="rowAwake" hidden>
+          <div class="slabel">Keep screen on <small>while the app is in front</small></div>
+          <button id="awakeBtn" class="switch" role="switch" aria-checked="false"></button>
+        </div>
         <div class="srow" id="permNotif" hidden>
           <div class="slabel">Notifications <small id="permNotifState"></small></div>
           <button id="permNotifBtn" class="switch" role="switch" aria-checked="false"></button>
@@ -290,34 +293,43 @@
         </div>
       </div>
       <div id="sSounds" class="spage" hidden>
+        <!-- Last seconds is one setting in two rows: the sound, and how
+             many seconds of it. No rule between them. -->
         <div class="srow">
-          <div class="slabel">Approach <small>knock seconds before a cycle ends</small></div>
+          <div class="slabel">Last seconds <small>near the cycle end</small></div>
+          <button id="snd-approach" class="pbtn sndbtn"></button>
+        </div>
+        <div class="srow" id="rowApproach">
+          <div class="slabel">Number of last seconds</div>
           <input id="approach" class="setnum" inputmode="numeric" value="3" />
         </div>
         <div class="srow">
-          <div class="slabel">Main <small>interval start</small></div>
-          <select id="snd-main"></select>
-          <button id="prev-main" class="play" title="Preview">▶</button>
+          <div class="slabel">Prepare <small>the lead-in begins</small></div>
+          <button id="snd-prepare" class="pbtn sndbtn"></button>
         </div>
         <div class="srow">
-          <div class="slabel">Turnaround <small>halfway</small></div>
-          <select id="snd-turn"></select>
-          <button id="prev-turn" class="play" title="Preview">▶</button>
+          <div class="slabel">Work <small>work interval starts</small></div>
+          <button id="snd-main" class="pbtn sndbtn"></button>
         </div>
         <div class="srow">
-          <div class="slabel">Approaching <small>near the cycle end</small></div>
-          <select id="snd-approach"></select>
-          <button id="prev-approach" class="play" title="Preview">▶</button>
+          <div class="slabel">Halfway <small>halfway for work interval</small></div>
+          <button id="snd-turn" class="pbtn sndbtn"></button>
         </div>
         <div class="srow">
           <div class="slabel">Rest <small>rest phase starts</small></div>
-          <select id="snd-rest"></select>
-          <button id="prev-rest" class="play" title="Preview">▶</button>
+          <button id="snd-rest" class="pbtn sndbtn"></button>
         </div>
         <div class="srow">
           <div class="slabel">End <small>session done</small></div>
-          <select id="snd-end"></select>
-          <button id="prev-end" class="play" title="Preview">▶</button>
+          <button id="snd-end" class="pbtn sndbtn"></button>
+        </div>
+        <div class="srow snote">
+          <div class="slabel">
+            <small
+              >Every list above starts with the sounds that came with the app. To use your own, drop audio files into
+              the folder you pick under General and they appear below them.</small
+            >
+          </div>
         </div>
       </div>
     </div>
@@ -338,6 +350,20 @@
           <button id="xferBack" class="pbtn">Back</button>
           <button id="xferAll" class="pbtn">All</button>
           <button id="xferNext" class="pbtn save">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- sound picker: a row plays when tapped, only OK keeps it -->
+    <div id="sndOverlay" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle" id="sndTitle">Sound</div>
+        </div>
+        <div id="sndList" class="xlist"></div>
+        <div class="catactions">
+          <button id="sndCancel" class="pbtn">Cancel</button>
+          <button id="sndOk" class="pbtn save">OK</button>
         </div>
       </div>
     </div>

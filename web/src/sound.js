@@ -1,6 +1,14 @@
-// Sound engine: one AudioContext, a synth fallback per event, and the
-// user's chosen file per event, decoded once so it can be scheduled.
-// Choices persist in localStorage; the files come through files.js.
+// Sound engine: one AudioContext, and a decoded file per event.
+//
+// A choice names one of two places. `pack:<name>` is a sound shipped in
+// the app, under `sounds/`, listed by `sounds/index.json` because there
+// is no server here to scan the folder. Anything else is a file in the
+// folder the user picked, read through files.js. The prefix is what
+// keeps a shipped `gong.mp3` and the user's own `gong.mp3` apart.
+//
+// Every event has a shipped default, so the app makes real sounds out
+// of the box with no folder chosen. The synth below is the last resort
+// only: a device that cannot decode an MP3 still gets a cue.
 //
 // Everything a run plays goes on the audio clock in advance. The audio
 // thread keeps running when the page is hidden and the animation frame
@@ -43,10 +51,12 @@ export function tone(freq, dur, type, vol, at) {
   }
 }
 
-// Built-in fallback, one per event. Every note is placed on the audio
-// clock rather than chained with a timer, so a two-note cue scheduled
-// for later arrives whole even with no JavaScript running.
+// The last resort, one per event, reached only when the chosen file
+// cannot be decoded. Every note is placed on the audio clock rather
+// than chained with a timer, so a two-note cue scheduled for later
+// arrives whole even with no JavaScript running.
 const synth = {
+  prepare: (t) => [tone(520, 0.18, 'sine', 0.4, t)],
   main: (t) => [tone(1175, 0.12, 'triangle', 0.5, t), tone(1568, 0.26, 'triangle', 0.5, t + 0.11)],
   turn: (t) => [tone(700, 0.14, 'square', 0.4, t), tone(700, 0.14, 'square', 0.4, t + 0.15)],
   approach: (t) => [tone(880, 0.15, 'sine', 0.3, t)],
@@ -54,25 +64,44 @@ const synth = {
   end: (t) => [tone(440, 0.6, 'sine', 0.45, t)],
 };
 
-export const EVENTS = ['main', 'turn', 'approach', 'rest', 'end'];
-const choice = load('timer.sounds', {});
-const buffers = {
-  main: null,
-  turn: null,
-  approach: null,
-  rest: null,
-  end: null,
+export const EVENTS = ['approach', 'prepare', 'main', 'turn', 'rest', 'end'];
+
+/** a choice with this prefix is a sound shipped in the app */
+export const PACK = 'pack:';
+
+/** what each event plays when the user has never chosen for it */
+export const DEFAULTS = {
+  prepare: 'bell-1.mp3',
+  main: 'gong.mp3',
+  turn: 'bell-4.mp3',
+  approach: 'piano-3.mp3',
+  rest: 'wine-glass.mp3',
+  end: 'flute.mp3',
 };
 
+/** the shipped sounds, by the order of their names; [] if the index is gone */
+export async function packList() {
+  try {
+    const names = await (await fetch('sounds/index.json')).json();
+    return Array.isArray(names) ? names : [];
+  } catch {
+    return [];
+  }
+}
+
+const choice = load('timer.sounds', {});
 const saveChoice = () => save('timer.sounds', choice);
 
-/** the file chosen for an event; "" (or unset) means the built-in beep */
-export const chosen = (key) => choice[key];
+/**
+ * What an event plays: the user's choice, or its shipped default.
+ * An empty stored value is a choice never made — older versions wrote
+ * one to mean "the beep", and the beep is no longer an option.
+ */
+export const chosen = (key) => choice[key] || PACK + DEFAULTS[key];
 
-/** choose a file for an event ("" for the beep); decodes it right away */
+/** choose a sound for an event; decodes it right away */
 export function setChoice(key, file) {
   choice[key] = file;
-  buffers[key] = null;
   saveChoice();
   decode(key);
 }
@@ -80,21 +109,36 @@ export function setChoice(key, file) {
 // A choice is never dropped because the file cannot be found. A folder
 // that fails to list comes back empty, and forgetting all five over one
 // bad read would be silent and permanent. A missing file falls back to
-// the beep when it plays, and the settings say so beside its name.
+// the shipped default when it plays, and the settings say so beside it.
 
-// decode a chosen file into an AudioBuffer once; low-latency for playback
-async function decode(key) {
-  const file = choice[key];
-  if (!file) return (buffers[key] = null);
-  if (buffers[key]) return buffers[key];
-  try {
-    const bytes = await readFile(file);
-    buffers[key] = bytes ? await audioCtx().decodeAudioData(bytes) : null;
-  } catch {
-    buffers[key] = null;
+// ---- buffers, cached by the choice itself so the shipped sounds and
+// the folder's share one store and a sound decodes once ----
+/** @type {Record<string, AudioBuffer | null>} */
+const cache = {};
+
+/** the bytes behind a choice: out of the app for `pack:`, else the folder */
+async function loadBytes(value) {
+  if (value.startsWith(PACK)) {
+    const r = await fetch('sounds/' + value.slice(PACK.length));
+    return r.ok ? await r.arrayBuffer() : null;
   }
-  return buffers[key];
+  return readFile(value);
 }
+
+/** decode a choice once; null when it cannot be had */
+async function bufferFor(value) {
+  if (!value) return null;
+  if (cache[value] !== undefined) return cache[value];
+  try {
+    const bytes = await loadBytes(value);
+    cache[value] = bytes ? await audioCtx().decodeAudioData(bytes) : null;
+  } catch {
+    cache[value] = null;
+  }
+  return cache[value];
+}
+
+const decode = (key) => bufferFor(chosen(key));
 export const ensureBuffers = () => Promise.all(EVENTS.map(decode));
 
 /**
@@ -107,11 +151,12 @@ export const ensureBuffers = () => Promise.all(EVENTS.map(decode));
  * @returns {AudioScheduledSourceNode[]} the sources, so a caller can cancel them
  */
 export function playAt(key, at) {
-  if (buffers[key]) {
+  const buf = cache[chosen(key)];
+  if (buf) {
     try {
       const c = audioCtx();
       const s = c.createBufferSource();
-      s.buffer = buffers[key];
+      s.buffer = buf;
       s.connect(c.destination);
       s.start(at);
       return [s];
@@ -175,7 +220,13 @@ export async function preview(key) {
   play(key);
 }
 
-function playBuf(buf) {
+/** what a countdown timer plays when none was chosen for it */
+export const TIMER_DEFAULT = PACK + DEFAULTS.end;
+
+/** play a sound by choice (countdown timers), the shipped default when unset */
+export async function playFile(f) {
+  const buf = await bufferFor(f || TIMER_DEFAULT);
+  if (!buf) return tone(880, 0.3, 'sine', 0.45);
   try {
     const c = audioCtx();
     const s = c.createBufferSource();
@@ -183,21 +234,6 @@ function playBuf(buf) {
     s.connect(c.destination);
     s.start();
   } catch {
-    /* no audio on this device — silent */
+    tone(880, 0.3, 'sine', 0.45);
   }
-}
-const fileBuffers = {};
-/** play a file by name (countdown timers), the plain beep when unset */
-export async function playFile(f) {
-  if (!f) return tone(880, 0.3, 'sine', 0.45);
-  if (fileBuffers[f] === undefined) {
-    try {
-      const bytes = await readFile(f);
-      fileBuffers[f] = bytes ? await audioCtx().decodeAudioData(bytes) : null;
-    } catch {
-      fileBuffers[f] = null;
-    }
-  }
-  if (fileBuffers[f]) playBuf(fileBuffers[f]);
-  else tone(880, 0.3, 'sine', 0.45);
 }

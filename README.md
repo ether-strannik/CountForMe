@@ -34,6 +34,12 @@ The page itself is plain HTML, CSS and ES modules under `web/`, loaded
 by the browser as written. Nothing is transpiled or bundled, so what
 runs is what is in the repository.
 
+## Audio
+
+Sound effects from [Pixabay](https://pixabay.com), used under the
+[Pixabay Content License](https://pixabay.com/service/license-summary/).
+Attribution not required.
+
 ## Licence
 
 GPL-3.0-or-later. See `LICENSE`.

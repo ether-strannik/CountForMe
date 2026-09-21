@@ -42,8 +42,10 @@
   border-top: 1px solid var(--line);
 }
 /* the two permission rows are one section: a rule above the first, none
-   between them */
-#permBattery {
+   between them. Last seconds is the same shape: its sound and its
+   count belong together. */
+#permBattery,
+#rowApproach {
   border-top: none;
 }
 .slabel {
@@ -57,6 +59,10 @@
 /* a permission the app has not got: the state, not the label, goes amber */
 .slabel small.warn {
   color: var(--warn);
+}
+/* a row that only explains: no control beside it, so it spans the grid */
+.snote .slabel {
+  grid-column: 1 / -1;
 }
 .srow select {
   max-width: 45vw;
@@ -117,8 +123,10 @@
   background: var(--accent);
 }
 
-/* ---- the transfer sheet: a list of tabs, then a list of items ---- */
-#xferOverlay {
+/* ---- the transfer sheet, and the sound picker: both open OVER the
+   settings page (z 20), and the timer sheet the picker can open from ---- */
+#xferOverlay,
+#sndOverlay {
   position: fixed;
   inset: 0;
   z-index: 22;
@@ -160,6 +168,42 @@
   width: 22px;
   height: 22px;
   accent-color: var(--accent);
+}
+/* The picker is a column: title and buttons stay put, only the list
+   moves. Without this the sheet itself scrolls and OK leaves the
+   screen, which on a long list means it is never visible. */
+#sndOverlay .sheet {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#sndList {
+  flex: 1;
+  min-height: 0; /* a flex child will not shrink past its content without this */
+  overflow-y: auto;
+}
+#sndOverlay .catactions {
+  flex: none;
+  justify-content: flex-end;
+}
+/* a heading inside a list: which place these rows come from */
+.xgroup {
+  margin: 16px 0 2px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.xlist .xgroup:first-child {
+  margin-top: 4px;
+}
+/* the button that opens the sound picker: it names the current choice,
+   so it has to be allowed to run out of room and ellipsise */
+.sndbtn {
+  max-width: 45vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* A 32px circle inside a 44px button: the padding is clipped out of the
    fill, so the thing you see is small and the thing you hit is not. */

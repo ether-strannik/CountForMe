@@ -3,12 +3,13 @@
 // Android back closes it (nav.js); nothing is drawn for that.
 import { $, $$, $in, $sel, $btn } from './dom.js';
 import { loadStr, saveStr } from './storage.js';
-import { EVENTS, audioCtx, chosen, setChoice, preview } from './sound.js';
+import { EVENTS, audioCtx, chosen, setChoice, packList } from './sound.js';
+import { openSoundPicker, soundName } from './soundpick.js';
 import { hasBridge, folder, pickFolder, listSounds } from './files.js';
 import { unpackProfiles } from './profiles.js';
 import { openExport, openImport } from './xfer.js';
 import { themeFile, themeList, setTheme } from './theme.js';
-import { systemStatus, onSystemChange, openNotifications, openBattery } from './system.js';
+import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen } from './nav.js';
 
 let startTab = loadStr('timer.startTab', 'timer');
@@ -26,24 +27,23 @@ async function renderFolder() {
   const f = await folder();
   $('folderName').textContent = f.granted ? f.name : 'none picked';
 }
-async function loadSoundList() {
-  const list = await listSounds();
-  EVENTS.forEach((key) => {
-    const sel = $sel('snd-' + key);
-    const saved = chosen(key) || '';
-    sel.innerHTML = '';
-    sel.add(new Option('Default (beep)', ''));
-    list.forEach((f) => sel.add(new Option(f, f)));
-    // the choice is kept even when the folder has not got it: it says so
-    // rather than being forgotten, and plays the beep until it is back
-    if (saved && !list.includes(saved)) sel.add(new Option(saved + ' (missing)', saved));
-    sel.value = saved;
-  });
-}
+// Each cue is a button naming its sound; tapping opens the picker. The
+// lists are read when the picker opens, not held, so a file dropped in
+// the folder shows up without reopening settings.
+const LABELS = {
+  approach: 'Last seconds',
+  prepare: 'Prepare',
+  main: 'Work',
+  turn: 'Halfway',
+  rest: 'Rest',
+  end: 'End',
+};
+const drawSoundBtn = (key) => ($btn('snd-' + key).textContent = soundName(chosen(key)));
+const drawSoundBtns = () => EVENTS.forEach(drawSoundBtn);
 $('pickFolder').addEventListener('click', async () => {
   await pickFolder();
   await renderFolder();
-  loadSoundList();
+  drawSoundBtns();
 });
 
 // ---- profiles: a tab's items to a file, or a file's items into a tab ----
@@ -96,6 +96,23 @@ $('theme').addEventListener('change', () => {
   setTheme(t ? t.file : '', t ? t.ui : null);
 });
 
+// ---- keep the screen on ----
+// A setting the app owns, unlike the rows below it: this switch decides,
+// they only report. Applied at load, not when the sheet opens, so it
+// holds from the first screen the user sees.
+let awake = loadStr('timer.awake', '0') === '1';
+const renderAwake = () => {
+  $('rowAwake').hidden = !hasBridge();
+  $('awakeBtn').setAttribute('aria-checked', String(awake));
+};
+keepAwake(awake);
+$('awakeBtn').addEventListener('click', () => {
+  awake = !awake;
+  saveStr('timer.awake', awake ? '1' : '0');
+  keepAwake(awake);
+  renderAwake();
+});
+
 // ---- what Android is letting the app do ----
 // Each row is a switch showing the real state, not a control that sets
 // it: tapping opens the screen where Android decides. Read when the
@@ -132,15 +149,21 @@ $('gear').addEventListener('click', async () => {
   audioCtx();
   await renderFolder();
   await renderThemes();
+  renderAwake();
   await renderSystem();
-  await loadSoundList();
+  drawSoundBtns();
   $sel('startTab').value = startTab;
   showSettingsTab('general');
   $('settings').hidden = false;
   openScreen('settings', () => ($('settings').hidden = true));
 });
 EVENTS.forEach((key) => {
-  $sel('snd-' + key).addEventListener('change', () => setChoice(key, $sel('snd-' + key).value));
-  $('prev-' + key).addEventListener('click', () => preview(key));
+  $('snd-' + key).addEventListener('click', async () => {
+    const [pack, mine] = await Promise.all([packList(), listSounds()]);
+    openSoundPicker(LABELS[key], chosen(key), pack, mine, (v) => {
+      setChoice(key, v);
+      drawSoundBtn(key);
+    });
+  });
 });
 $sel('startTab').value = startTab;
