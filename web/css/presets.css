@@ -153,6 +153,17 @@
   color: var(--muted);
   font-size: 14px;
 }
+/* the tick that says a row goes in the export file */
+.prtick {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin-left: 6px;
+  accent-color: var(--accent);
+}
+#presetNote:empty {
+  display: none;
+}
 /* a question and its answers on one line */
 .prask {
   display: flex;

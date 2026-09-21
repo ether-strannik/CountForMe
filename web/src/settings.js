@@ -1,13 +1,11 @@
-// Settings page, two tabs. General: the opening tab, approach seconds,
-// the user's folder, profiles in and out. Sounds: a sound per event.
-// Android back closes it (nav.js); nothing is drawn for that.
+// Settings page, two tabs. General: the opening tab, the user's
+// folder, the theme, and what Android is allowing. Sounds: a sound
+// per cue. Android back closes it (nav.js); nothing is drawn for that.
 import { $, $$, $in, $sel, $btn } from './dom.js';
 import { loadStr, saveStr } from './storage.js';
 import { EVENTS, audioCtx, chosen, setChoice, packList } from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { hasBridge, folder, pickFolder, listSounds } from './files.js';
-import { unpackProfiles } from './profiles.js';
-import { openExport, openImport } from './xfer.js';
 import { themeFile, themeList, setTheme } from './theme.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen } from './nav.js';
@@ -18,10 +16,9 @@ export const getStartTab = () => startTab;
 /** knock seconds before an event, as set in the sheet; 0 = off */
 export const approachSec = () => Math.max(0, Math.round(+$in('approach').value || 0));
 
-// ---- the folder: sounds and profiles live there; the app only reads it ----
+// ---- the folder: sounds and preset files live there ----
 async function renderFolder() {
   const inApp = hasBridge();
-  $('exportProfiles').hidden = !inApp; // nowhere to export to without a folder
   $btn('pickFolder').disabled = !inApp;
   if (!inApp) return ($('folderName').textContent = 'in the app only');
   const f = await folder();
@@ -46,19 +43,9 @@ $('pickFolder').addEventListener('click', async () => {
   drawSoundBtns();
 });
 
-// ---- profiles: a tab's items to a file, or a file's items into a tab ----
-const profileNote = (text) => ($('profileNote').textContent = text);
-$('exportProfiles').addEventListener('click', openExport);
-$('importProfiles').addEventListener('click', () => $('profPick').click());
-$('profPick').addEventListener('change', async () => {
-  const file = ($in('profPick').files || [])[0];
-  $in('profPick').value = '';
-  if (!file) return;
-  const doc = unpackProfiles(await file.text());
-  if (!doc) return profileNote('not a profiles file');
-  profileNote('');
-  openImport(doc);
-});
+// Import and export live in the preset manager now. They belong beside
+// the categories they carry: a file is a set of presets, and this page
+// cannot show which ones are going.
 
 // ---- the rest of the sheet ----
 $('startTab').addEventListener('change', () => {

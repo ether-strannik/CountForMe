@@ -259,12 +259,6 @@
           <button id="pickFolder" class="pbtn">Choose</button>
         </div>
         <div class="srow">
-          <div class="slabel">Profiles <small id="profileNote">a tab's items, to or from a file</small></div>
-          <button id="exportProfiles" class="pbtn" hidden>Export</button>
-          <button id="importProfiles" class="pbtn">Import</button>
-          <input id="profPick" type="file" accept=".json,application/json" hidden />
-        </div>
-        <div class="srow">
           <div class="slabel">Theme</div>
           <select id="theme"></select>
         </div>
@@ -323,26 +317,6 @@
       </div>
     </div>
 
-    <!-- export / import: pick a tab, pick items, name the file -->
-    <div id="xferOverlay" hidden>
-      <div class="sheet">
-        <div class="sheethead">
-          <div class="stitle" id="xferTitle">Export</div>
-        </div>
-        <div id="xferKinds" class="xlist"></div>
-        <div id="xferItems" class="xlist" hidden></div>
-        <div id="xferNameRow" hidden>
-          <input id="xferName" class="catname" placeholder="file name" />
-        </div>
-        <div class="hint" id="xferNote"></div>
-        <div class="catactions">
-          <button id="xferBack" class="pbtn">Back</button>
-          <button id="xferAll" class="pbtn">All</button>
-          <button id="xferNext" class="pbtn save">Next</button>
-        </div>
-      </div>
-    </div>
-
     <!-- preset manager: pick one to load it, name a new one, delete -->
     <div id="presetOverlay" hidden>
       <div class="sheet">
@@ -356,12 +330,25 @@
           <button id="presetNameCancel" class="pbtn">Cancel</button>
         </div>
         <div id="presetMenu" class="prmenulist" hidden></div>
+        <div class="prnote" id="presetNote"></div>
+        <div id="presetFileRow" class="presetname" hidden>
+          <input id="presetFileName" placeholder="file name" />
+          <button id="presetFileOk" class="pbtn save">Export</button>
+          <button id="presetFileCancel" class="pbtn">Back</button>
+        </div>
+        <input id="presetFile" type="file" accept=".json,application/json" hidden />
         <div class="catactions" id="presetActions">
           <button id="presetAddCat" class="pbtn">+ Category</button>
-          <button id="presetAdd" class="pbtn save">+ Preset</button>
+          <button id="presetAdd" class="pbtn">+ Preset</button>
+          <button id="presetImport" class="pbtn">Import</button>
+          <button id="presetExport" class="pbtn save">Export</button>
         </div>
         <div class="catactions" id="presetSelActions" hidden>
           <button id="presetDots" class="pbtn prdots" title="Actions">⋮</button>
+        </div>
+        <div class="catactions" id="presetExpActions" hidden>
+          <button id="presetExpCancel" class="pbtn">Cancel</button>
+          <button id="presetExpNext" class="pbtn save">Next</button>
         </div>
       </div>
     </div>

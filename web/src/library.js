@@ -9,7 +9,6 @@
 // user saves it. An abandoned name leaves nothing behind.
 import { $, $btn } from './dom.js';
 import { load, save, loadStr, saveStr } from './storage.js';
-import { registerCollection } from './collections.js';
 import { openPresets } from './presetbox.js';
 
 /**
@@ -78,26 +77,9 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
     draw();
   };
 
-  // Export and import still see one flat list. Sets are the unit a
-  // creator will want to share, so this is redone once they hold
-  // presets; a file written today stays readable either way.
-  registerCollection(id, {
-    label,
-    entries: () => {
-      const all = flat();
-      return names().map((n) => ({ label: n, item: all[n] }));
-    },
-    put(name, item) {
-      if (!item || typeof item !== 'object') return false;
-      if (valid && !valid(item)) return false;
-      store.items[name] = item; // an imported preset arrives loose
-      saveStore();
-      return true;
-    },
-  });
-
   $(ids.name).addEventListener('click', () =>
     openPresets(label, {
+      id,
       names,
       // each set with the presets inside it, so the sheet can nest them
       cats: () => store.cats.map((c) => ({ id: c.id, name: c.name, items: sorted(c.items) })),
@@ -137,6 +119,69 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
       addCat(name) {
         store.cats.push({ id: 'c' + Date.now().toString(36), name, items: {} });
         saveStore();
+      },
+      /**
+       * What an export writes: the chosen categories with their
+       * presets inside, and the chosen loose presets alongside.
+       * @param {string[]} picked   loose preset names
+       * @param {string[]} catIds
+       */
+      exportPicked(picked, catIds) {
+        const all = flat();
+        const cats = store.cats.filter((c) => catIds.includes(c.id));
+        // A chosen category already carries these. Emitting them here
+        // too would put the same preset in the file twice, and an
+        // import would land it as both a member and a loose copy.
+        const inside = new Set(cats.flatMap((c) => Object.keys(c.items)));
+        return {
+          cats: cats.map((c) => ({
+            name: c.name,
+            items: sorted(c.items).map((n) => ({ label: n, item: c.items[n] })),
+          })),
+          items: picked
+            .filter((n) => !inside.has(n))
+            .map((n) => ({ label: n, item: all[n] }))
+            .filter((e) => e.item !== undefined),
+        };
+      },
+      /**
+       * Bring a file in. Nothing is overwritten: a preset whose name
+       * is taken arrives as "name (2)", and so does a category. What
+       * the user already has is never touched.
+       * @param {{cats: {name: string, items: {label: string, item: any}[]}[],
+       *          items: {label: string, item: any}[]}} doc
+       * @returns {{cats: number, items: number, skipped: number}}
+       */
+      importDoc(doc) {
+        let added = 0;
+        let skipped = 0;
+        const free = (want, taken) => {
+          if (!taken.has(want)) return want;
+          let n = 2;
+          while (taken.has(want + ' (' + n + ')')) n++;
+          return want + ' (' + n + ')';
+        };
+        const okItem = (it) => it && typeof it === 'object' && (!valid || valid(it));
+
+        (doc.cats || []).forEach((c) => {
+          const name = free(c.name, new Set(store.cats.map((x) => x.name)));
+          const items = {};
+          c.items.forEach((e) => {
+            if (!okItem(e.item)) return skipped++;
+            items[e.label] = e.item;
+            added++;
+          });
+          store.cats.push({ id: 'c' + Date.now().toString(36) + store.cats.length, name, items });
+        });
+
+        (doc.items || []).forEach((e) => {
+          if (!okItem(e.item)) return skipped++;
+          store.items[free(e.label, new Set(Object.keys(flat())))] = e.item;
+          added++;
+        });
+
+        saveStore();
+        return { cats: (doc.cats || []).length, items: added, skipped };
       },
       /** put presets into a set, taking them out of wherever they were */
       move(picked, catId) {

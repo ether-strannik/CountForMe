@@ -3,7 +3,7 @@
 // strings and objects out.
 
 const FORMAT = 'timer-profiles';
-const VERSION = 2;
+const VERSION = 3;
 
 /**
  * the file's text
@@ -14,9 +14,34 @@ export function packProfiles(kind, items) {
   return JSON.stringify({ format: FORMAT, version: VERSION, kind, items }, null, 2);
 }
 
+/**
+ * A library as a file: whole categories with their presets inside, and
+ * loose presets alongside. Version 3 — a category is the thing someone
+ * shares, so it travels as one rather than as a flattened list.
+ * @param {string} kind  the collection id
+ * @param {{name: string, items: {label: string, item: any}[]}[]} cats
+ * @param {{label: string, item: any}[]} items  presets in no category
+ */
+export function packLibrary(kind, cats, items) {
+  return JSON.stringify({ format: FORMAT, version: VERSION, kind, cats, items }, null, 2);
+}
+
 const isMap = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
-/** { kind, items } out of a file's text; null when it is not a profiles file */
+/** the {label, item} entries in a list, dropping anything malformed */
+const entries = (list) =>
+  (Array.isArray(list) ? list : [])
+    .filter((e) => isMap(e) && typeof e.label === 'string' && e.label.trim() && isMap(e.item))
+    .map((e) => ({ label: e.label.trim(), item: e.item }));
+
+/**
+ * A file's contents: the categories it carries and the presets in
+ * none. Only the current version is read — nothing else has ever been
+ * released, so an older file is a file from a development build.
+ * @returns {{kind: string, cats: {name: string, items: {label: string, item: any}[]}[],
+ *            items: {label: string, item: any}[]} | null}
+ *   null when it is not a profiles file
+ */
 export function unpackProfiles(text) {
   let doc;
   try {
@@ -24,11 +49,12 @@ export function unpackProfiles(text) {
   } catch {
     return null;
   }
-  if (!isMap(doc) || doc.format !== FORMAT || typeof doc.kind !== 'string' || !Array.isArray(doc.items)) return null;
-  const items = doc.items
-    .filter((e) => isMap(e) && typeof e.label === 'string' && e.label.trim() && isMap(e.item))
-    .map((e) => ({ label: e.label.trim(), item: e.item }));
-  return { kind: doc.kind, items };
+  if (!isMap(doc) || doc.format !== FORMAT || doc.version !== VERSION) return null;
+  if (typeof doc.kind !== 'string') return null;
+  const cats = (Array.isArray(doc.cats) ? doc.cats : [])
+    .filter((c) => isMap(c) && typeof c.name === 'string' && c.name.trim())
+    .map((c) => ({ name: c.name.trim(), items: entries(c.items) }));
+  return { kind: doc.kind, cats, items: entries(doc.items) };
 }
 
 /** two items are the same setup */

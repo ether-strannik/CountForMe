@@ -9,6 +9,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Export and import live in the preset manager. Export ticks whatever
+  should go in the file, categories included, and a category travels
+  whole with its presets inside. Import adds and never overwrites: a
+  name already taken arrives as "name (2)".
 - Delete several presets and categories at once from the selection
   menu. The confirm counts the presets inside a chosen category, so
   nothing goes without being named first.

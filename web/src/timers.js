@@ -8,7 +8,6 @@ import { makePad } from './keypad.js';
 import { audioCtx, playFile, buzz, packList, TIMER_DEFAULT } from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { listSounds } from './files.js';
-import { registerCollection } from './collections.js';
 import { openScreen, closeScreen } from './nav.js';
 
 let timers = load('timer.countdowns', []);
@@ -22,37 +21,6 @@ timers.forEach((t) => {
 const saveTimers = () => save('timer.countdowns', timers);
 let cdTicker = null;
 let taEditId = null;
-
-// export and import: a timer travels as {name, sec, sound}; an imported
-// one gets its own id and starts stopped. A label that is not the item's
-// own name is the import's rename ("name (2)") and becomes the name.
-const timerLabel = (name, sec) => name || fmtClock(sec);
-registerCollection('timers', {
-  label: 'Timers',
-  entries: () =>
-    timers.map((t) => ({
-      label: timerLabel(t.name, t.sec),
-      item: { name: t.name || '', sec: t.sec, sound: t.sound || '' },
-    })),
-  put(label, item) {
-    const sec = Math.floor(+(item && item.sec));
-    if (!(sec > 0)) return false;
-    const own = typeof item.name === 'string' ? item.name : '';
-    const name = label === timerLabel(own, sec) ? own : label;
-    const sound = typeof item.sound === 'string' ? item.sound : '';
-    timers.push({
-      id: 't' + Date.now() + Math.random().toString(36).slice(2, 6),
-      name,
-      sec,
-      sound,
-      rem: sec,
-      running: false,
-    });
-    saveTimers();
-    if (!$('timers').hidden) renderTimers();
-    return true;
-  },
-});
 
 const cdRemaining = (t) => (t.running ? (t.endAt - Date.now()) / 1000 : t.rem);
 const RING_C = 2 * Math.PI * 45;
