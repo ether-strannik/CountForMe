@@ -24,7 +24,8 @@ import { openScreen, closeScreen } from './nav.js';
 /**
  * @typedef {{names: () => string[], loose: () => string[],
  *            cats: () => {id: string, name: string, items: string[]}[],
- *            pick: (n: string) => void, create: (n: string) => void,
+ *            pick: (n: string) => void,
+ *            create: (n: string, catId: string) => void,
  *            remove: (n: string) => void,
  *            addCat: (name: string) => void,
  *            removeCat: (id: string) => void,
@@ -282,6 +283,51 @@ function nameRow(what) {
 $('presetAdd').addEventListener('click', () => nameRow('preset'));
 $('presetAddCat').addEventListener('click', () => nameRow('cat'));
 $('presetNameCancel').addEventListener('click', () => nameRow(''));
+/** make the preset and leave: it opens blank on the tab */
+function finishCreate(name, catId) {
+  if (!box) return;
+  const create = box.create;
+  closeScreen('presets');
+  create(name, catId);
+}
+
+/**
+ * After naming a preset, ask where it goes — but only when there is
+ * somewhere to put it. With no categories the question has one answer,
+ * so it is not asked.
+ */
+function askCategory(name) {
+  const cats = box ? box.cats() : [];
+  if (!cats.length) return finishCreate(name, '');
+  const menu = $('presetMenu');
+  menu.innerHTML = '';
+  const ask = document.createElement('div');
+  ask.className = 'prask';
+  ask.innerHTML =
+    '<span>Add to category?</span><button class="pbtn save">Yes</button><button class="pbtn">Skip</button>';
+  const [yes, skip] = ask.querySelectorAll('button');
+  yes.addEventListener('click', () => pickCategory(name));
+  skip.addEventListener('click', () => {
+    menu.hidden = true;
+    finishCreate(name, '');
+  });
+  menu.appendChild(ask);
+  menu.hidden = false;
+}
+
+/** the second step of Yes: which category it goes into */
+function pickCategory(name) {
+  const menu = $('presetMenu');
+  menu.innerHTML = '';
+  menuNote(menu, 'Add to', 'prgroup');
+  (box ? box.cats() : []).forEach((c) =>
+    menuItem(menu, c.name, () => {
+      menu.hidden = true;
+      finishCreate(name, c.id);
+    }),
+  );
+}
+
 $('presetNameOk').addEventListener('click', () => {
   const n = $in('presetNameInput').value.trim();
   if (!n || !box) return;
@@ -290,9 +336,8 @@ $('presetNameOk').addEventListener('click', () => {
     nameRow('');
     return render(); // a new set is made here; the manager stays open
   }
-  const create = box.create;
-  closeScreen('presets'); // a new preset opens on the tab, blank
-  create(n);
+  nameRow('');
+  askCategory(n);
 });
 $('presetNameInput').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;

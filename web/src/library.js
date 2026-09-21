@@ -65,9 +65,15 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
   let current = loadStr(lastKey, '');
   if (current && !flat()[current]) current = '';
 
+  // Where a newly named preset will land when it is first saved. It
+  // has no entry yet, so the tree cannot be asked; this remembers the
+  // set the user chose while naming it.
+  let pendingCat = '';
+
   const draw = () => ($btn(ids.name).textContent = current || 'none');
-  const setCurrent = (n) => {
+  const setCurrent = (n, catId) => {
     current = n;
+    pendingCat = catId || '';
     saveStr(lastKey, n);
     draw();
   };
@@ -103,8 +109,8 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
         setCurrent(n);
         apply(p);
       },
-      create(n) {
-        setCurrent(n); // unsaved until the tab's Save is pressed
+      create(n, catId) {
+        setCurrent(n, catId); // unsaved until the tab's Save is pressed
         apply(blank());
       },
       remove(n) {
@@ -147,9 +153,11 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
       // nothing named yet: the manager is where a name comes from
       return $(ids.name).click();
     }
-    // save back where it already lives, or loose if it is brand new
-    const set = setOf(current);
+    // back where it already lives; a brand new one goes to the set it
+    // was named into, or loose when it was named into none
+    const set = setOf(current) || store.cats.find((c) => c.id === pendingCat) || null;
     (set ? set.items : store.items)[current] = get();
+    pendingCat = '';
     saveStore();
     draw();
   });

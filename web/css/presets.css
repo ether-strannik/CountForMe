@@ -153,3 +153,15 @@
   color: var(--muted);
   font-size: 14px;
 }
+/* a question and its answers on one line */
+.prask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+}
+.prask span {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+}
