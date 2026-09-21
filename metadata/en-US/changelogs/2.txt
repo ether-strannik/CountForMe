@@ -1,0 +1,9 @@
+Presets are organised into categories.
+
+Tapping the preset name opens a manager: make categories, fold them
+shut, long-press to select several presets and move them into one.
+Export what you choose to a file or share it straight to another app,
+and import what someone sends you. A category travels whole, with its
+presets inside.
+
+Each tab now shows one preset row — the name, and Save.
