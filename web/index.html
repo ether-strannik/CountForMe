@@ -25,15 +25,9 @@
       </header>
       <div class="rows">
         <div class="presets">
-          <select id="presetSel"></select>
-          <button id="presetNew" class="pbtn">New</button>
-          <button id="presetSave" class="pbtn">Save</button>
-          <button id="presetDel" class="pbtn">Del</button>
-        </div>
-        <div id="presetName" class="presetname" hidden>
-          <input id="presetNameInput" placeholder="preset name" />
-          <button id="presetNameOk" class="pbtn">OK</button>
-          <button id="presetNameCancel" class="pbtn">Cancel</button>
+          <span class="preslab">Preset</span>
+          <button id="ivPresetName" class="presname">none</button>
+          <button id="ivPresetSave" class="pbtn">Save</button>
         </div>
         <div class="row">
           <div class="label">Mode</div>
@@ -171,15 +165,9 @@
       <header><div class="title">CADENCE</div></header>
       <div class="iv2setup">
         <div class="presets">
-          <select id="iv2sel"></select>
-          <button id="iv2new" class="pbtn">New</button>
-          <button id="iv2save" class="pbtn">Save</button>
-          <button id="iv2del" class="pbtn">Del</button>
-        </div>
-        <div id="iv2name" class="presetname" hidden>
-          <input id="iv2nameInput" placeholder="preset name" />
-          <button id="iv2nameOk" class="pbtn">OK</button>
-          <button id="iv2nameCancel" class="pbtn">Cancel</button>
+          <span class="preslab">Preset</span>
+          <button id="iv2PresetName" class="presname">none</button>
+          <button id="iv2PresetSave" class="pbtn">Save</button>
         </div>
         <div class="iv2field">
           <span>Prepare</span>
@@ -350,6 +338,25 @@
           <button id="xferBack" class="pbtn">Back</button>
           <button id="xferAll" class="pbtn">All</button>
           <button id="xferNext" class="pbtn save">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- preset manager: pick one to load it, name a new one, delete -->
+    <div id="presetOverlay" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle" id="presetTitle">Presets</div>
+        </div>
+        <div id="presetList" class="xlist"></div>
+        <div id="presetNameRow" class="presetname" hidden>
+          <input id="presetNameInput" placeholder="preset name" />
+          <button id="presetNameOk" class="pbtn save">OK</button>
+          <button id="presetNameCancel" class="pbtn">Cancel</button>
+        </div>
+        <div class="catactions" id="presetActions">
+          <button id="presetAddCat" class="pbtn">+ Category</button>
+          <button id="presetAdd" class="pbtn save">New preset</button>
         </div>
       </div>
     </div>

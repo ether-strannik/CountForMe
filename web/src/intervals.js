@@ -74,13 +74,13 @@ $('ivMode').addEventListener('change', () => {
   ivRenderCfg();
 });
 
-// Enter in a field must never start the timer — only START does.
+// Enter in a field must never start the timer — only START does. The
+// preset name box is not here any more; presetbox.js owns its Enter.
 $('config').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   e.preventDefault();
   const t = /** @type {HTMLElement} */ (e.target);
-  if (t === $('presetNameInput')) $('presetNameOk').click();
-  else if (t.tagName === 'INPUT') t.blur();
+  if (t.tagName === 'INPUT') t.blur();
 });
 
 // ---- run: the shared engine keeps the clock and plays the cues;
@@ -235,24 +235,29 @@ function setConfig(c) {
   ivRenderCfg();
 }
 
+/** what a newly named preset starts from: the tab's own defaults */
+const blankConfig = () => ({
+  mode: 'time',
+  prepare: 10,
+  block: 600,
+  cycle: 60,
+  work: 30,
+  rest: 15,
+  cycles: 8,
+  sets: 1,
+  roundRest: 0,
+  turn: false,
+});
+
 const presets = makeLibrary({
   id: 'intervals',
   label: 'Phases', // what the transfer sheet shows; the id stays, it is in saved files
-  ids: {
-    sel: 'presetSel',
-    nw: 'presetNew',
-    save: 'presetSave',
-    del: 'presetDel',
-    name: 'presetName',
-    input: 'presetNameInput',
-    ok: 'presetNameOk',
-    cancel: 'presetNameCancel',
-  },
+  ids: { name: 'ivPresetName', save: 'ivPresetSave' },
   storeKey: 'timer.presets',
   lastKey: 'timer.lastPreset',
-  placeholder: '— presets —',
   get: getConfig,
   apply: setConfig,
+  blank: blankConfig,
 });
 
 // startup: draw the config and restore the last-used preset

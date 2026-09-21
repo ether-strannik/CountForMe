@@ -123,10 +123,11 @@
   background: var(--accent);
 }
 
-/* ---- the transfer sheet, and the sound picker: both open OVER the
-   settings page (z 20), and the timer sheet the picker can open from ---- */
+/* ---- the sheets that open over a page: the transfer sheet, the sound
+   picker and the preset manager. z 22 clears the settings page at 20 ---- */
 #xferOverlay,
-#sndOverlay {
+#sndOverlay,
+#presetOverlay {
   position: fixed;
   inset: 0;
   z-index: 22;
@@ -172,19 +173,71 @@
 /* The picker is a column: title and buttons stay put, only the list
    moves. Without this the sheet itself scrolls and OK leaves the
    screen, which on a long list means it is never visible. */
-#sndOverlay .sheet {
+#sndOverlay .sheet,
+#presetOverlay .sheet {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-#sndList {
+#sndList,
+#presetList {
   flex: 1;
   min-height: 0; /* a flex child will not shrink past its content without this */
   overflow-y: auto;
 }
-#sndOverlay .catactions {
+#sndOverlay .catactions,
+#presetOverlay .catactions {
   flex: none;
   justify-content: flex-end;
+}
+/* a preset row: the name takes the width, delete sits at the end. No
+   rule between them — the list is short and the names separate it. */
+#presetList .xrow {
+  border-top: none;
+}
+.prname {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 17px;
+  text-align: left;
+  padding: 10px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prdel {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+}
+/* a set: a heading over the presets it holds, so it reads as the thing
+   that contains rather than another row in the same list */
+.prcat .prname {
+  font-weight: 700;
+}
+.prcat .prname:disabled {
+  color: var(--text);
+  opacity: 1;
+}
+.prcount {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 0 4px;
+}
+/* a loose preset sits under the sets, indented by nothing yet — that
+   comes when a preset can be inside one */
+.prpreset .prname {
+  font-size: 17px;
+}
+#presetActions {
+  justify-content: space-between;
 }
 /* a heading inside a list: which place these rows come from */
 .xgroup {

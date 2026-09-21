@@ -158,20 +158,11 @@ $('intervals2').addEventListener('keydown', (e) => {
 makeLibrary({
   id: 'intervals2',
   label: 'Cadence', // what the transfer sheet shows; the id stays, it is in saved files
-  ids: {
-    sel: 'iv2sel',
-    nw: 'iv2new',
-    save: 'iv2save',
-    del: 'iv2del',
-    name: 'iv2name',
-    input: 'iv2nameInput',
-    ok: 'iv2nameOk',
-    cancel: 'iv2nameCancel',
-  },
+  ids: { name: 'iv2PresetName', save: 'iv2PresetSave' },
   storeKey: 'timer.iv2programs',
   lastKey: 'timer.iv2lastprog',
-  placeholder: '— presets —', // the same word on both tabs; the key stays
   get: () => JSON.parse(JSON.stringify(iv2Prog)),
+  blank: () => JSON.parse(JSON.stringify(IV2_DEFAULT)),
   // a program is its ranges; anything without them is not one
   valid: (p) => Array.isArray(p.segs),
   apply(p) {
