@@ -5,6 +5,14 @@ All notable changes documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [Unreleased]
+
+### Fixed
+
+- A countdown timer shows the second it is in. A 5:00 timer holds
+  5:00 for its first second, where it used to drop to 4:59 almost at
+  once.
+
 ## [1.1.2] - 2026-09-22
 
 ### Added
