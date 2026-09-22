@@ -20,6 +20,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- A Cadence file edited by hand with a bad number in it, such as no
+  rounds or a cadence that is not a number, now loads the way the
+  setup would have set it. Before, it ran an empty session or one with
+  cues past the end.
 - Sound and screen drifted apart by seconds a minute on programs with
   long gaps between cues. Android closed the audio stream during the
   silence and its clock fell behind. The run now keeps the stream open

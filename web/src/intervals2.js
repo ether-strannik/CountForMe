@@ -5,7 +5,7 @@ import { fmt } from './format.js';
 import { openKeypad } from './keypad.js';
 import { makeRunner } from './runner.js';
 import { makeLibrary } from './library.js';
-import { IV2_DEFAULT, iv2Expand } from './iv2expand.js';
+import { IV2_DEFAULT, iv2Clean, iv2Expand } from './iv2expand.js';
 import { intervals2Cues } from './cues.js';
 import { approachSec } from './prefs.js';
 
@@ -141,10 +141,14 @@ $('intervals2').addEventListener('keydown', (e) => {
 });
 
 // ---- Intervals 2 program library (save/load) ----
-/** put a saved program on screen; also guards what is already stored */
+/**
+ * Put a saved program on screen. The handlers above keep a program in
+ * shape as it is typed; one that arrives whole, from the library or a
+ * file, is put in shape here, at the door, and nowhere later.
+ */
 function applyProg(p) {
   if (!p || !Array.isArray(p.segs)) return;
-  iv2Prog = JSON.parse(JSON.stringify(p));
+  iv2Prog = iv2Clean(JSON.parse(JSON.stringify(p)));
   iv2RenderSetup();
 }
 

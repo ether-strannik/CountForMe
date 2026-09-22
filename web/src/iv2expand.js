@@ -17,8 +17,36 @@ export const IV2_DEFAULT = {
   ],
 };
 
+/** a whole number no smaller than `min`; anything unreadable is `min` */
+const atLeast = (min, v) => Math.max(min, Math.round(+v || 0));
+
+/**
+ * A program in the shape the expansion takes it: whole seconds, rounds
+ * at least one, every range ending inside the block and no earlier
+ * than the one before, a cadence of at least a second. The builder
+ * holds a program to this as it is typed. This is the same rule for
+ * one that arrives whole, from the library or a file, applied once at
+ * the door. Anything else on the program passes through untouched.
+ */
+export function iv2Clean(p) {
+  const blockSec = atLeast(1, p.blockSec);
+  let from = 0;
+  const segs = (p.segs || []).map((s) => {
+    const to = Math.min(blockSec, Math.max(from, atLeast(0, s.to)));
+    from = to;
+    const seg = { ...s, to, every: atLeast(1, s.every) };
+    if (s.reps !== undefined) seg.reps = atLeast(1, s.reps);
+    return seg;
+  });
+  return { ...p, blockSec, prepare: atLeast(0, p.prepare), rounds: atLeast(1, p.rounds), segs };
+}
+
 // Expand into a flat list of DINGS at absolute times, plus totals and
 // how much of the block the segments cover. A ding is one cue.
+//
+// The numbers are taken as given, in the shape `iv2Clean` makes. The
+// arithmetic here has no guard of its own: a cadence of zero would
+// never end.
 //
 // `reps` is the count the cue announces on screen, and it is zero
 // unless the program has rep counting switched on. That switch is the
@@ -27,7 +55,7 @@ export const IV2_DEFAULT = {
 // rep whether or not it says so.
 export function iv2Expand(prog) {
   const dings = [];
-  const block = Math.max(1, Math.round(prog.blockSec || 0));
+  const block = prog.blockSec;
   const segs = prog.segs || [];
   const counting = !!prog.showReps;
   let rep = 0;
@@ -35,19 +63,17 @@ export function iv2Expand(prog) {
     const base = r * block;
     let from = 0;
     segs.forEach((seg) => {
-      const to = Math.min(block, Math.max(from, Math.round(seg.to)));
-      const every = Math.max(1, Math.round(seg.every));
-      const reps = counting ? Math.max(1, Math.round(seg.reps || 1)) : 0;
-      const n = Math.floor((to - from) / every);
+      const reps = counting ? seg.reps || 1 : 0;
+      const n = Math.floor((seg.to - from) / seg.every);
       for (let k = 0; k < n; k++) {
-        rep += Math.max(1, reps);
-        dings.push({ start: base + from + k * every, round: r, rep, reps });
+        rep += reps || 1;
+        dings.push({ start: base + from + k * seg.every, round: r, rep, reps });
       }
-      from = to;
+      from = seg.to;
     });
   }
   let covered = 0;
-  for (const seg of segs) covered = Math.min(block, Math.max(covered, Math.round(seg.to)));
+  for (const seg of segs) covered = Math.max(covered, seg.to);
   return {
     prog,
     dings,
