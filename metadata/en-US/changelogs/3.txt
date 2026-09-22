@@ -1,0 +1,7 @@
+Sound and screen stay together.
+
+On programs with long gaps between cues, the sound fell behind what
+was on screen by seconds a minute. Both now run off one clock.
+
+The Cadence run screen counts cycles in the round, like Phases. The
+preset manager lists categories and presets by name.
