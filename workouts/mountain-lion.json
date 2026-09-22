@@ -1,0 +1,162 @@
+{
+  "format": "timer-profiles",
+  "version": 3,
+  "kind": "intervals2",
+  "cats": [
+    {
+      "name": "Mountain Lion L1",
+      "items": [
+        {
+          "label": "Level 1.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 60,
+                "reps": 4
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        },
+        {
+          "label": "Level 1.1",
+          "item": {
+            "prepare": 10,
+            "blockSec": 120,
+            "rounds": 15,
+            "segs": [
+              {
+                "to": 60,
+                "every": 60,
+                "reps": 5
+              },
+              {
+                "to": 120,
+                "every": 60,
+                "reps": 4
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mountain Lion L2",
+      "items": [
+        {
+          "label": "Level 2.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 60,
+                "reps": 5
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        },
+        {
+          "label": "Level 2.1",
+          "item": {
+            "prepare": 10,
+            "blockSec": 120,
+            "rounds": 15,
+            "segs": [
+              {
+                "to": 60,
+                "every": 60,
+                "reps": 6
+              },
+              {
+                "to": 120,
+                "every": 60,
+                "reps": 5
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mountain Lion L3",
+      "items": [
+        {
+          "label": "Level 3.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 60,
+                "reps": 6
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        },
+        {
+          "label": "Level 3.1",
+          "item": {
+            "prepare": 10,
+            "blockSec": 120,
+            "rounds": 15,
+            "segs": [
+              {
+                "to": 60,
+                "every": 60,
+                "reps": 7
+              },
+              {
+                "to": 120,
+                "every": 60,
+                "reps": 6
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mountain Lion L4",
+      "items": [
+        {
+          "label": "Level 4.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 60,
+                "reps": 7
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        }
+      ]
+    }
+  ],
+  "items": []
+}

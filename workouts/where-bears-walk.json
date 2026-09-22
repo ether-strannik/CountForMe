@@ -1,0 +1,162 @@
+{
+  "format": "timer-profiles",
+  "version": 3,
+  "kind": "intervals2",
+  "cats": [
+    {
+      "name": "Bears Walk L1",
+      "items": [
+        {
+          "label": "Level 1.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 60,
+                "reps": 1
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        },
+        {
+          "label": "Level 1.1",
+          "item": {
+            "prepare": 10,
+            "blockSec": 180,
+            "rounds": 10,
+            "segs": [
+              {
+                "to": 60,
+                "every": 60,
+                "reps": 2
+              },
+              {
+                "to": 180,
+                "every": 60,
+                "reps": 1
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        },
+        {
+          "label": "Level 1.2",
+          "item": {
+            "prepare": 10,
+            "blockSec": 180,
+            "rounds": 10,
+            "segs": [
+              {
+                "to": 120,
+                "every": 60,
+                "reps": 2
+              },
+              {
+                "to": 180,
+                "every": 60,
+                "reps": 1
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bears Walk L2",
+      "items": [
+        {
+          "label": "Level 2.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 60,
+                "reps": 2
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        },
+        {
+          "label": "Level 2.1",
+          "item": {
+            "prepare": 10,
+            "blockSec": 180,
+            "rounds": 10,
+            "segs": [
+              {
+                "to": 60,
+                "every": 60,
+                "reps": 3
+              },
+              {
+                "to": 180,
+                "every": 60,
+                "reps": 2
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        },
+        {
+          "label": "Level 2.2",
+          "item": {
+            "prepare": 10,
+            "blockSec": 180,
+            "rounds": 10,
+            "segs": [
+              {
+                "to": 120,
+                "every": 60,
+                "reps": 3
+              },
+              {
+                "to": 180,
+                "every": 60,
+                "reps": 2
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bears Walk L3",
+      "items": [
+        {
+          "label": "Level 3.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 60,
+                "reps": 3
+              }
+            ],
+            "showReps": true,
+            "voice": false
+          }
+        }
+      ]
+    }
+  ],
+  "items": []
+}

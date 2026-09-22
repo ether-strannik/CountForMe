@@ -1,0 +1,281 @@
+{
+  "format": "timer-profiles",
+  "version": 3,
+  "kind": "intervals2",
+  "cats": [
+    {
+      "name": "SB Berserker L1",
+      "items": [
+        {
+          "label": "Level 1.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 60
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 1.1",
+          "item": {
+            "prepare": 10,
+            "blockSec": 300,
+            "rounds": 6,
+            "segs": [
+              {
+                "to": 60,
+                "every": 30
+              },
+              {
+                "to": 300,
+                "every": 60
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 1.2",
+          "item": {
+            "prepare": 10,
+            "blockSec": 180,
+            "rounds": 10,
+            "segs": [
+              {
+                "to": 60,
+                "every": 30
+              },
+              {
+                "to": 180,
+                "every": 60
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 1.3",
+          "item": {
+            "prepare": 10,
+            "blockSec": 120,
+            "rounds": 15,
+            "segs": [
+              {
+                "to": 60,
+                "every": 30
+              },
+              {
+                "to": 120,
+                "every": 60
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 1.4",
+          "item": {
+            "prepare": 10,
+            "blockSec": 180,
+            "rounds": 10,
+            "segs": [
+              {
+                "to": 120,
+                "every": 30
+              },
+              {
+                "to": 180,
+                "every": 60
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 1.5",
+          "item": {
+            "prepare": 10,
+            "blockSec": 300,
+            "rounds": 6,
+            "segs": [
+              {
+                "to": 240,
+                "every": 30
+              },
+              {
+                "to": 300,
+                "every": 60
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 1.6",
+          "item": {
+            "prepare": 10,
+            "blockSec": 600,
+            "rounds": 3,
+            "segs": [
+              {
+                "to": 540,
+                "every": 30
+              },
+              {
+                "to": 600,
+                "every": 60
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SB Berserker L2",
+      "items": [
+        {
+          "label": "Level 2.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 30
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 2.1",
+          "item": {
+            "prepare": 10,
+            "blockSec": 300,
+            "rounds": 6,
+            "segs": [
+              {
+                "to": 60,
+                "every": 20
+              },
+              {
+                "to": 300,
+                "every": 30
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 2.2",
+          "item": {
+            "prepare": 10,
+            "blockSec": 180,
+            "rounds": 10,
+            "segs": [
+              {
+                "to": 60,
+                "every": 20
+              },
+              {
+                "to": 180,
+                "every": 30
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 2.3",
+          "item": {
+            "prepare": 10,
+            "blockSec": 120,
+            "rounds": 15,
+            "segs": [
+              {
+                "to": 60,
+                "every": 20
+              },
+              {
+                "to": 120,
+                "every": 30
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 2.4",
+          "item": {
+            "prepare": 10,
+            "blockSec": 180,
+            "rounds": 10,
+            "segs": [
+              {
+                "to": 120,
+                "every": 20
+              },
+              {
+                "to": 180,
+                "every": 30
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 2.5",
+          "item": {
+            "prepare": 10,
+            "blockSec": 300,
+            "rounds": 6,
+            "segs": [
+              {
+                "to": 240,
+                "every": 20
+              },
+              {
+                "to": 300,
+                "every": 30
+              }
+            ]
+          }
+        },
+        {
+          "label": "Level 2.6",
+          "item": {
+            "prepare": 10,
+            "blockSec": 600,
+            "rounds": 3,
+            "segs": [
+              {
+                "to": 540,
+                "every": 20
+              },
+              {
+                "to": 600,
+                "every": 30
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SB Berserker L3",
+      "items": [
+        {
+          "label": "Level 3.0",
+          "item": {
+            "prepare": 10,
+            "blockSec": 1800,
+            "rounds": 1,
+            "segs": [
+              {
+                "to": 1800,
+                "every": 20
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "items": []
+}
