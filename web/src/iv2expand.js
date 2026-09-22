@@ -41,6 +41,47 @@ export function iv2Clean(p) {
   return { ...p, blockSec, prepare: atLeast(0, p.prepare), rounds: atLeast(1, p.rounds), segs };
 }
 
+/**
+ * The first range whose length is not a whole number of its cadence,
+ * or null when every range divides.
+ *
+ * Such a range has no honest answer. A range of 5:00 at a cue every
+ * 45s holds six and two thirds of them: the seventh cue either falls
+ * 30s short of the end or 15s past it, and whichever is chosen, every
+ * range after it starts its own grid at the wrong moment. So the app
+ * refuses the number rather than picking one and calling it 5:00.
+ *
+ * Only the first is reported. Range ends chain, so moving this one
+ * moves where the next begins, and what the next needs cannot be
+ * known until this is settled.
+ *
+ * @returns {{index: number, every: number, from: number, to: number,
+ *            lower: number, higher: number} | null}
+ *   `lower` and `higher` are the nearest ends that do divide. Either
+ *   can be out of reach: `lower` equals `from` when the range is
+ *   shorter than one cue, and `higher` can fall past the end of the
+ *   block. The caller decides which are worth offering.
+ */
+function ragged(segs) {
+  let from = 0;
+  for (let i = 0; i < segs.length; i++) {
+    const { to, every } = segs[i];
+    const len = to - from;
+    if (len % every) {
+      return {
+        index: i + 1,
+        every,
+        from,
+        to,
+        lower: from + Math.floor(len / every) * every,
+        higher: from + Math.ceil(len / every) * every,
+      };
+    }
+    from = to;
+  }
+  return null;
+}
+
 // Expand into a flat list of DINGS at absolute times, plus totals and
 // how much of the block the segments cover. A ding is one cue.
 //
@@ -77,6 +118,7 @@ export function iv2Expand(prog) {
   return {
     prog,
     dings,
+    ragged: ragged(segs),
     sessionSec: prog.rounds * block,
     totalReps: rep,
     // Cues in one round — the work intervals. Not the same as reps

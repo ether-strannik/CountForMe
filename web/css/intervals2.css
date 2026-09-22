@@ -136,3 +136,8 @@
 #iv2start:disabled {
   opacity: 0.35;
 }
+/* the line under the builder when the program cannot run as entered */
+.iv2warn {
+  color: var(--warn);
+  font-size: 16px;
+}

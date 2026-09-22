@@ -41,6 +41,11 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Cadence no longer runs a range that is not a whole number of its
+  cadence. A range of 5:00 at a cue every 45 seconds has no honest
+  answer, and the app used to drop a cue silently, leaving a 75
+  second gap and putting every later range out of step. It now names
+  the range and the two ends that would fit, and START waits.
 - A Cadence file edited by hand with a bad number in it, such as no
   rounds or a cadence that is not a number, now loads the way the
   setup would have set it. Before, it ran an empty session or one with

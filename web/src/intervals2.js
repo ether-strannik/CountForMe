@@ -18,9 +18,35 @@ let iv2Prog = JSON.parse(JSON.stringify(IV2_DEFAULT));
 /** "1 cycle" or "12 cycles" */
 const count = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
 
+const warn = (t) => "<span class='iv2warn'>" + t + '</span>';
+
+/**
+ * A range that does not divide, said plainly, with the ends that
+ * would. The app never picks one: it names them and waits.
+ *
+ * An end is only offered if it can be reached. Below the range's own
+ * start is a range of no length, and past the block is a number the
+ * keypad will clamp straight back.
+ */
+function raggedNote(r, blockSec) {
+  const ends = [];
+  if (r.lower > r.from) ends.push(fmt(r.lower));
+  if (r.higher <= blockSec) ends.push(fmt(r.higher));
+  const head = 'Range ' + r.index + ': ' + fmt(r.to) + ' is not a whole number of ' + r.every + 's. ';
+  if (!ends.length) return warn(head + 'Nothing fits inside the block at that cadence.');
+  return warn(head + 'Use ' + ends.join(' or ') + '.');
+}
+
 function iv2Over() {
   const x = iv2Expand(iv2Prog);
-  if (x.complete) {
+  const ok = x.complete && !x.ragged;
+  if (x.ragged) {
+    // Wrong the moment it is typed, and it moves every range after it,
+    // so it is said before anything about coverage.
+    $('iv2over').innerHTML = raggedNote(x.ragged, x.blockSec);
+  } else if (!x.complete) {
+    $('iv2over').innerHTML = warn(fmt(x.blockSec - x.covered) + ' of the block still undefined');
+  } else {
     // Cycles and rounds, the same two the run screen counts and the
     // same two Phases shows. Reps only while they are being counted:
     // with that switch off a rep is a cue, and the line would print
@@ -28,11 +54,8 @@ function iv2Over() {
     const bits = [count(x.perRound, 'cycle'), count(iv2Prog.rounds, 'round')];
     if (iv2Prog.showReps) bits.push(count(x.totalReps, 'rep'));
     $('iv2over').innerHTML = '<b>' + fmt(x.sessionSec) + '</b> · ' + bits.join(' · ');
-  } else {
-    $('iv2over').innerHTML =
-      "<span style='color:var(--warn)'>" + fmt(x.blockSec - x.covered) + ' of the block still undefined</span>';
   }
-  $btn('iv2start').disabled = !x.complete;
+  $btn('iv2start').disabled = !ok;
 }
 
 export function iv2RenderSetup() {
