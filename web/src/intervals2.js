@@ -221,7 +221,8 @@ const runner = makeRunner({
     }
     $('iv2phase').textContent = 'NEXT';
     $('iv2big').textContent = String(shown);
-    setCount(d.round + 1 + '/' + s.prog.rounds + ' · ' + d.rep + '/' + s.totalReps);
+    const inRound = s.perRound ? (idx % s.perRound) + 1 : 1;
+    setCount(d.round + 1 + '/' + s.prog.rounds + ' · ' + inRound + '/' + s.perRound);
     $('iv2total').textContent = fmt(s.sessionSec - elapsed);
   },
   done() {
@@ -229,7 +230,9 @@ const runner = makeRunner({
     $('iv2run').classList.add('done');
     $('iv2phase').textContent = 'DONE';
     $('iv2big').textContent = '✓';
-    setCount(iv2Session.totalReps + '/' + iv2Session.totalReps);
+    setCount(
+      iv2Session.prog.rounds + '/' + iv2Session.prog.rounds + ' · ' + iv2Session.perRound + '/' + iv2Session.perRound,
+    );
     $('iv2total').textContent = '0:00';
   },
   reset() {

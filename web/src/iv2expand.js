@@ -53,6 +53,10 @@ export function iv2Expand(prog) {
     dings,
     sessionSec: prog.rounds * block,
     totalReps: rep,
+    // Cues in one round — the work intervals. Not the same as reps
+    // once a range asks for more than one rep per cue, which is why
+    // the run screen counts these and not the reps.
+    perRound: prog.rounds ? dings.length / prog.rounds : 0,
     blockSec: block,
     covered,
     complete: covered >= block,
