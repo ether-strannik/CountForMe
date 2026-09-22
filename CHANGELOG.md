@@ -31,6 +31,8 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- The settings button is a drawn gear rather than a text character,
+  so it looks the same on every device.
 - The Cadence run screen counts cycles in the round, like Phases,
   instead of reps. Thirty work intervals a round now read 1/30 to
   30/30.

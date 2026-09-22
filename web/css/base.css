@@ -53,9 +53,17 @@ header {
   border-radius: 50%;
   background: transparent;
   color: var(--muted);
-  font-size: 26px;
-  line-height: 1;
+  /* the mark is 24px inside a 44px target: small to look at, big to hit */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+}
+/* the icon strokes itself in the button's colour, so the theme and the
+   press state reach it with nothing else to set */
+.gear svg {
+  width: 24px;
+  height: 24px;
 }
 .gear:active {
   color: var(--text);
