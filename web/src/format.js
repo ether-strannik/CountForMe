@@ -17,23 +17,3 @@ export function fmtClock(sec) {
   const ss = String(s).padStart(2, '0');
   return h > 0 ? h + ':' + mm + ':' + ss : m + ':' + ss;
 }
-
-/** "1h05" above an hour, else "5m" (calendar chips) */
-export function fmtShort(sec) {
-  sec = Math.floor(sec);
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  return h > 0 ? h + 'h' + String(m).padStart(2, '0') : m + 'm';
-}
-
-/** wall-clock HH:MM of a ms timestamp, local time */
-export function fmtTime(ms) {
-  const d = new Date(ms);
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-}
-
-/** YYYY-MM-DD of a ms timestamp, local time */
-export function fmtDate(ms) {
-  const d = new Date(ms);
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}

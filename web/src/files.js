@@ -59,7 +59,7 @@ export async function pickFolder() {
 }
 
 /** every file name in the folder, sorted; [] when there is no folder */
-export async function listFiles() {
+async function listFiles() {
   const b = bridge();
   if (!b) return [];
   try {
@@ -85,7 +85,7 @@ export async function readFile(name) {
 }
 
 /** write bytes under a name; false when it could not be kept */
-export async function writeFile(name, bytes) {
+async function writeFile(name, bytes) {
   const b = bridge();
   if (!b || !NAME.test(name)) return false;
   try {
@@ -94,12 +94,6 @@ export async function writeFile(name, bytes) {
   } catch {
     return false;
   }
-}
-
-/** a text file as a string, or null */
-export async function readText(name) {
-  const buf = await readFile(name);
-  return buf ? new TextDecoder().decode(buf) : null;
 }
 
 /** write a string as a text file */

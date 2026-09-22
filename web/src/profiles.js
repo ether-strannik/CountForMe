@@ -1,18 +1,8 @@
-// Profiles file: one collection's items as one JSON document, and the
-// merge rules for bringing such a file in. Pure: strings and objects in,
-// strings and objects out.
+// Profiles file: a library as one JSON document, and reading such a
+// file back. Pure: strings and objects in, strings and objects out.
 
 const FORMAT = 'timer-profiles';
 const VERSION = 3;
-
-/**
- * the file's text
- * @param {string} kind  the collection id
- * @param {{label: string, item: any}[]} items
- */
-export function packProfiles(kind, items) {
-  return JSON.stringify({ format: FORMAT, version: VERSION, kind, items }, null, 2);
-}
 
 /**
  * A library as a file: whole categories with their presets inside, and
@@ -55,39 +45,6 @@ export function unpackProfiles(text) {
     .filter((c) => isMap(c) && typeof c.name === 'string' && c.name.trim())
     .map((c) => ({ name: c.name.trim(), items: entries(c.items) }));
   return { kind: doc.kind, cats, items: entries(doc.items) };
-}
-
-/** two items are the same setup */
-export const sameItem = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-
-/**
- * What an import would do, item by item, with nothing overwritten:
- * a new label is added; the same label with the same setup is skipped;
- * the same label with a different setup comes in as "label (2)".
- * @param {{label: string, item: any}[]} existing
- * @param {{label: string, item: any}[]} incoming
- * @param {Set<number>} picked   indexes into `incoming` the user kept
- * @returns {{label: string, item: any, action: 'add'|'skip'|'rename', as: string}[]}
- */
-export function planMerge(existing, incoming, picked) {
-  const taken = new Set(existing.map((e) => e.label));
-  const have = new Map(existing.map((e) => [e.label, e.item]));
-  return incoming
-    .map((e, i) => ({ ...e, i }))
-    .filter((e) => picked.has(e.i))
-    .map(({ label, item }) => {
-      if (!have.has(label)) {
-        taken.add(label);
-        return { label, item, action: 'add', as: label };
-      }
-      if (sameItem(have.get(label), item)) return { label, item, action: 'skip', as: label };
-      let n = 2;
-      let as = `${label} (${n})`;
-      while (taken.has(as)) as = `${label} (${++n})`;
-      taken.add(as);
-      have.set(as, item);
-      return { label, item, action: 'rename', as };
-    });
 }
 
 /** a default file name: timer-<kind>-YYYYMMDD.json */

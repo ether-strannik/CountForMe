@@ -31,7 +31,7 @@ export function audioCtx() {
  *                       ahead puts the sound on the audio thread, which
  *                       does not need JavaScript to be running to play it.
  */
-export function tone(freq, dur, type, vol, at) {
+function tone(freq, dur, type, vol, at) {
   try {
     const c = audioCtx();
     const o = c.createOscillator();
@@ -70,7 +70,7 @@ export const EVENTS = ['approach', 'prepare', 'main', 'turn', 'rest', 'end'];
 export const PACK = 'pack:';
 
 /** what each event plays when the user has never chosen for it */
-export const DEFAULTS = {
+const DEFAULTS = {
   prepare: 'clock-ticking.mp3',
   main: 'gong.mp3',
   turn: 'bell-4.mp3',
@@ -257,12 +257,6 @@ export function releaseClock() {
 
 /** vibrate; Android ignores this while the page is hidden */
 export const buzz = (ms) => navigator.vibrate && navigator.vibrate(ms);
-
-/** decode the chosen file if needed, then play the event */
-export async function preview(key) {
-  await decode(key);
-  play(key);
-}
 
 /** what a countdown timer plays when none was chosen for it */
 export const TIMER_DEFAULT = PACK + DEFAULTS.end;

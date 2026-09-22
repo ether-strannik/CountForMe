@@ -55,7 +55,7 @@ function session(cycle, work, rest, cycles, c) {
  * @param {boolean} c.turnaround one cue halfway through work
  * @param {number} c.approach    knock seconds before a cycle ends
  */
-export function planTime(c) {
+function planTime(c) {
   const cycle = Math.max(1, Math.round(c.cycle));
   let work = Math.max(1, Math.round(c.work));
   if (work > cycle) work = cycle; // work can't exceed the cycle
@@ -76,7 +76,7 @@ export function planTime(c) {
  * @param {boolean} c.turnaround one cue halfway through work
  * @param {number} c.approach    knock seconds before a cycle ends
  */
-export function planStandard(c) {
+function planStandard(c) {
   const work = Math.max(1, Math.round(c.work));
   const rest = Math.max(0, Math.round(c.rest || 0));
   return session(work + rest, work, rest, Math.max(1, Math.round(c.cycles || 1)), c);
