@@ -5,6 +5,13 @@ All notable changes documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [Unreleased]
+
+### Fixed
+
+- The spoken rep counts were quieter than the cue sounds. They now
+  play loud enough to sit with them.
+
 ## [1.1.1] - 2026-09-22
 
 ### Added

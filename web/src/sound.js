@@ -191,6 +191,12 @@ export async function ensureCounts(nums) {
   );
 }
 
+// The numbers were recorded quieter than the cue sounds, so they are
+// lifted to sit with them. One number for all of them: the recordings
+// are level with each other, and the cue is whatever the user picked,
+// so no per-file tuning would hold anyway.
+const VOICE_GAIN = 2.5;
+
 /**
  * Put a spoken number on the audio clock.
  * @param {number} n @param {number} at
@@ -203,7 +209,10 @@ export function sayAt(n, at) {
     const c = audioCtx();
     const s = c.createBufferSource();
     s.buffer = buf;
-    s.connect(c.destination);
+    const g = c.createGain();
+    g.gain.value = VOICE_GAIN;
+    s.connect(g);
+    g.connect(c.destination);
     s.start(at);
     return [s];
   } catch {
