@@ -1,17 +1,21 @@
-// The palette at runtime. A theme is a JSON file in `themes/`: a name,
-// and the tokens it sets. Nothing scans that folder, so
-// `themes/index.json` names the files, numeric prefix giving the order.
-// A theme that leaves a token out keeps whatever `base.css` says for it.
+// The theme in use. The app ships one, in `theme/`: its colours, its
+// sounds and its spoken counts, the shape `themepack.js` describes.
+// Other themes will come from the folder the user chose, whole or not
+// at all. Nothing is overridden from anywhere else.
 //
-// The chosen colours are kept alongside the chosen file, so the theme is
-// painted the instant this module loads, before anything draws. The
-// files themselves are only read when the settings page wants the list.
+// The shipped theme's colours are also the stylesheet's, so the first
+// frame is right without waiting for a fetch. A theme from the folder
+// paints its colours over the stylesheet, and they are kept alongside
+// the choice so the next launch paints them before anything draws.
 import { load, save } from './storage.js';
 import { TOKENS } from './themepack.js';
 
 const KEY = 'timer.theme';
 
-/** @param {Record<string, string> | null} ui  null puts base.css back */
+/** the id of the theme the app ships with */
+export const SHIPPED = 'shipped';
+
+/** @param {Record<string, string> | null} ui  null puts the stylesheet back */
 function paint(ui) {
   const s = document.documentElement.style;
   for (const t of TOKENS) {
@@ -21,38 +25,42 @@ function paint(ui) {
   }
 }
 
-let chosen = load(KEY, { file: '', ui: null });
+/** @type {{id: string, ui: Record<string, string> | null}} */
+let chosen = load(KEY, { id: SHIPPED, ui: null });
+// A choice made before themes were whole units named a file that no
+// longer exists. It is dropped, and the app is on the shipped theme.
+if (!chosen || chosen.id !== SHIPPED) {
+  chosen = { id: SHIPPED, ui: null };
+  save(KEY, chosen);
+}
 paint(chosen.ui);
 
-/** the file of the theme in use; "" means none was ever chosen */
-export const themeFile = () => chosen.file;
+/** the id of the theme in use */
+export const themeId = () => chosen.id;
 
 /**
- * Every theme, read from disk.
- * @returns {Promise<{file: string, name: string, ui: Record<string, string>}[]>}
+ * The shipped theme, read from its folder.
+ * @returns {Promise<any>} the parsed theme.json
+ */
+export const shippedTheme = async () => (await fetch('theme/theme.json')).json();
+
+/**
+ * Every theme that can be picked. Only the shipped one, until the
+ * folder is read.
+ * @returns {Promise<{id: string, name: string, ui: Record<string, string>}[]>}
  */
 export async function themeList() {
-  let names;
   try {
-    names = await (await fetch('themes/index.json')).json();
+    const t = await shippedTheme();
+    return [{ id: SHIPPED, name: t.name, ui: t.ui }];
   } catch {
-    return []; // no index is a valid state: the stylesheet is the look
+    return [{ id: SHIPPED, name: 'Nord', ui: {} }]; // the file is in the app; this is not reached
   }
-  const out = [];
-  for (const file of Array.isArray(names) ? names : []) {
-    try {
-      const t = await (await fetch('themes/' + file)).json();
-      out.push({ file, name: t.name || file, ui: t.ui || {} });
-    } catch {
-      /* one bad theme costs that theme, not the list */
-    }
-  }
-  return out;
 }
 
 /** use a theme and remember it, colours included */
-export function setTheme(file, ui) {
-  chosen = { file, ui: file ? ui : null };
+export function setTheme(id, ui) {
+  chosen = { id, ui: id === SHIPPED ? null : ui };
   save(KEY, chosen);
   paint(chosen.ui);
 }

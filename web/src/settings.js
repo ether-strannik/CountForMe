@@ -17,7 +17,7 @@ import {
 import { SOUND_KEYS, audioCtx, chosen, setChoice, packList, setVolumes, testCue, testVoice } from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { hasBridge, folder, pickFolder, listSounds } from './files.js';
-import { themeFile, themeList, setTheme } from './theme.js';
+import { themeId, themeList, setTheme } from './theme.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen } from './nav.js';
 
@@ -66,23 +66,20 @@ $('approach').addEventListener('keydown', (e) => {
     $('approach').blur();
   }
 });
-// ---- the theme: the files in themes/, by the order of their names ----
-/** @type {{file: string, name: string, ui: Record<string, string>}[]} */
+// ---- the theme: the shipped one, and later the folder's ----
+/** @type {{id: string, name: string, ui: Record<string, string>}[]} */
 let themes = [];
 async function renderThemes() {
   themes = await themeList();
   const sel = $sel('theme');
-  const now = themeFile();
+  const now = themeId();
   sel.innerHTML = '';
-  themes.forEach((t) => sel.add(new Option(t.name, t.file)));
-  if (!themes.length) sel.add(new Option('Default', ''));
-  // nothing chosen yet shows the first, which the 00- prefix makes the
-  // default; it is what base.css already draws, so nothing is applied
-  sel.value = themes.some((t) => t.file === now) ? now : themes.length ? themes[0].file : '';
+  themes.forEach((t) => sel.add(new Option(t.name, t.id)));
+  sel.value = themes.some((t) => t.id === now) ? now : themes[0].id;
 }
 $('theme').addEventListener('change', () => {
-  const t = themes.find((x) => x.file === $sel('theme').value);
-  setTheme(t ? t.file : '', t ? t.ui : null);
+  const t = themes.find((x) => x.id === $sel('theme').value) || themes[0];
+  setTheme(t.id, t.ui);
 });
 
 // ---- keep the screen on ----

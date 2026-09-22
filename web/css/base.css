@@ -1,23 +1,28 @@
 /* tokens, reset, page chrome shared by every screen */
+
+/* The shipped theme's colours, the same values as theme/theme.json.
+   Set here as well so the first frame is already right: a theme file
+   is fetched, and a page that waited for it would flash. A theme from
+   the folder paints over these; the shipped one paints nothing. */
 :root {
-  --bg: #12161a;
-  --card: #191f26;
-  --line: #232b34;
-  --text: #e6e6e6;
-  --muted: #8b98a5;
-  --accent: #64b5f6;
-  --warn: #d8a657;
-  --bad: #ef6b6b;
-  --go: #66bb6a;
+  --bg: #2e3440;
+  --card: #3b4252;
+  --line: #4c566a;
+  --text: #eceff4;
+  --muted: #9aa7bd;
+  --accent: #88c0d0;
+  --warn: #ebcb8b;
+  --bad: #bf616a;
+  --go: #a3be8c;
 
   /* The rest of what a theme has to reach. Named for what they mean, so
      a theme sets them without knowing which control uses which. */
-  --on-accent: #06121f; /* ink on an accent-filled control */
-  --accent-soft: rgba(100, 181, 246, 0.4); /* accent as a track behind a knob */
-  --action: #eef1f4; /* the loudest button on a screen: START */
-  --on-action: #0b0f14;
-  --scrim: rgba(0, 0, 0, 0.6); /* the dim behind a sheet */
-  --glyph: #5b6672; /* a drawn mark that is not text: the delete circle */
+  --on-accent: #2e3440; /* ink on an accent-filled control */
+  --accent-soft: rgba(136, 192, 208, 0.35); /* accent as a track behind a knob */
+  --action: #e5e9f0; /* the loudest button on a screen: START */
+  --on-action: #2e3440;
+  --scrim: rgba(0, 0, 0, 0.55); /* the dim behind a sheet */
+  --glyph: #4c566a; /* a drawn mark that is not text: the delete circle */
 }
 * {
   box-sizing: border-box;

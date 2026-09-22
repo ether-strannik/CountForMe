@@ -7,6 +7,12 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- The app ships one theme, Nord, and looks like it from the first
+  frame. Default, Gruvbox and Light are no longer in the app; they
+  return as complete sets to load from the chosen folder.
+
 ## [1.1.3] - 2026-09-22
 
 ### Changed
