@@ -7,7 +7,7 @@ import { makeRunner } from './runner.js';
 import { makeLibrary } from './library.js';
 import { IV2_DEFAULT, iv2Expand } from './iv2expand.js';
 import { intervals2Cues } from './cues.js';
-import { approachSec } from './settings.js';
+import { approachSec } from './prefs.js';
 
 // The program on screen. It lives in memory only: Save is the one
 // thing that writes, so closing the app with unsaved edits loses them,

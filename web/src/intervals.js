@@ -8,7 +8,7 @@ import { makeLibrary } from './library.js';
 import { plan } from './ivplan.js';
 import { intervalsCues } from './cues.js';
 import { loadStr, saveStr } from './storage.js';
-import { approachSec } from './settings.js';
+import { approachSec } from './prefs.js';
 
 // ---- config: the time fields (seconds) live here; the counts and the
 // Turnaround toggle are form controls, read when the domain needs them.

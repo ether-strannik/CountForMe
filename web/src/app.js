@@ -2,7 +2,8 @@
 // only decides which one is on screen.
 import './theme.js'; // paint the saved theme before anything draws
 import { $, $$ } from './dom.js';
-import { getStartTab } from './settings.js';
+import './settings.js'; // the gear, and the sheet behind it
+import { getStartTab } from './prefs.js';
 import { renderTimers } from './timers.js';
 import { isRunning } from './intervals.js';
 import { iv2RenderSetup, isIv2Running } from './intervals2.js';

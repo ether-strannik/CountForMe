@@ -5,7 +5,7 @@
 // screens and nothing imports it, and one screen never imports another.
 // Anything two screens both need moves down into a module they can each
 // import. A new screen in src/ is added to FEATURES.
-const FEATURES = ['timers', 'intervals', 'intervals2'];
+const FEATURES = ['timers', 'intervals', 'intervals2', 'settings'];
 const nobody = (names, message) => ({
   patterns: names.map((n) => ({ group: [`./${n}.js`, `**/${n}.js`], message })),
 });

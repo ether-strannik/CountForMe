@@ -2,19 +2,13 @@
 // folder, the theme, and what Android is allowing. Sounds: a sound
 // per cue. Android back closes it (nav.js); nothing is drawn for that.
 import { $, $$, $in, $sel, $btn } from './dom.js';
-import { loadStr, saveStr } from './storage.js';
+import { getStartTab, setStartTab, approachSec, setApproach, keepScreenOn, setKeepScreenOn } from './prefs.js';
 import { EVENTS, audioCtx, chosen, setChoice, packList } from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { hasBridge, folder, pickFolder, listSounds } from './files.js';
 import { themeFile, themeList, setTheme } from './theme.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen } from './nav.js';
-
-let startTab = loadStr('timer.startTab', 'timer');
-/** the tab to show on launch */
-export const getStartTab = () => startTab;
-/** knock seconds before an event, as set in the sheet; 0 = off */
-export const approachSec = () => Math.max(0, Math.round(+$in('approach').value || 0));
 
 // ---- the folder: sounds and preset files live there ----
 async function renderFolder() {
@@ -48,16 +42,12 @@ $('pickFolder').addEventListener('click', async () => {
 // cannot show which ones are going.
 
 // ---- the rest of the sheet ----
-$('startTab').addEventListener('change', () => {
-  startTab = $sel('startTab').value;
-  saveStr('timer.startTab', startTab);
-});
-// Approach is a remembered setting now, not a per-run stepper
-const savedApproach = loadStr('timer.approach', null);
-if (savedApproach !== null) $in('approach').value = savedApproach;
-$('approach').addEventListener('input', () => {
-  saveStr('timer.approach', $in('approach').value);
-});
+$('startTab').addEventListener('change', () => setStartTab($sel('startTab').value));
+// The field is drawn from the store and read back on every keystroke.
+// It is not rewritten while typing: a half-typed value would be
+// clamped under the user's thumb.
+$in('approach').value = String(approachSec());
+$('approach').addEventListener('input', () => setApproach(+$in('approach').value));
 $('approach').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -87,16 +77,14 @@ $('theme').addEventListener('change', () => {
 // A setting the app owns, unlike the rows below it: this switch decides,
 // they only report. Applied at load, not when the sheet opens, so it
 // holds from the first screen the user sees.
-let awake = loadStr('timer.awake', '0') === '1';
 const renderAwake = () => {
   $('rowAwake').hidden = !hasBridge();
-  $('awakeBtn').setAttribute('aria-checked', String(awake));
+  $('awakeBtn').setAttribute('aria-checked', String(keepScreenOn()));
 };
-keepAwake(awake);
+keepAwake(keepScreenOn());
 $('awakeBtn').addEventListener('click', () => {
-  awake = !awake;
-  saveStr('timer.awake', awake ? '1' : '0');
-  keepAwake(awake);
+  setKeepScreenOn(!keepScreenOn());
+  keepAwake(keepScreenOn());
   renderAwake();
 });
 
@@ -139,7 +127,8 @@ $('gear').addEventListener('click', async () => {
   renderAwake();
   await renderSystem();
   drawSoundBtns();
-  $sel('startTab').value = startTab;
+  $sel('startTab').value = getStartTab();
+  $in('approach').value = String(approachSec());
   showSettingsTab('general');
   $('settings').hidden = false;
   openScreen('settings', () => ($('settings').hidden = true));
@@ -153,4 +142,4 @@ EVENTS.forEach((key) => {
     });
   });
 });
-$sel('startTab').value = startTab;
+$sel('startTab').value = getStartTab();
