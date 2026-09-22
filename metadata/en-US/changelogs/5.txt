@@ -1,0 +1,11 @@
+Countdown timers sound with the app in the background or the screen
+off, and knock through their last seconds like the interval tabs do.
+A timer left running when the app closed picks up where it was.
+
+A session with a quiet minute in it no longer stops counting off
+screen.
+
+The spoken count says seven. Its file was silent.
+
+A countdown shows the second it is in, and its reset button is a
+drawn mark.
