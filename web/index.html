@@ -252,12 +252,12 @@
       <button class="tab" data-tab="intervals2" aria-selected="false">Cadence</button>
     </nav>
 
-    <!-- SETTINGS: a page, two tabs; Android back closes it -->
+    <!-- SETTINGS: a page, three tabs; Android back closes it -->
     <div id="settings" hidden>
       <header><div class="title">SETTINGS</div></header>
       <nav class="stabs">
         <button class="stab" data-stab="general" aria-selected="true">General</button>
-        <button class="stab" data-stab="sounds" aria-selected="false">Sounds</button>
+        <button class="stab" data-stab="themes" aria-selected="false">Themes</button>
         <button class="stab" data-stab="volume" aria-selected="false">Volume</button>
       </nav>
       <div id="sGeneral" class="spage">
@@ -273,9 +273,9 @@
           <div class="slabel">Folder <small id="folderName">none picked</small></div>
           <button id="pickFolder" class="pbtn">Choose</button>
         </div>
-        <div class="srow">
-          <div class="slabel">Theme</div>
-          <select id="theme"></select>
+        <div class="srow" id="rowApproach">
+          <div class="slabel">Last seconds <small>knocks before a cycle or a timer ends; 0 is off</small></div>
+          <input id="approach" class="setnum" inputmode="numeric" />
         </div>
         <div class="srow" id="rowAwake" hidden>
           <div class="slabel">Keep screen on <small>while the app is in front</small></div>
@@ -290,49 +290,51 @@
           <button id="permBatteryBtn" class="switch" role="switch" aria-checked="false"></button>
         </div>
       </div>
-      <div id="sSounds" class="spage" hidden>
-        <!-- Last seconds is one setting in two rows: the sound, and how
-             many seconds of it. No rule between them. -->
+      <!-- Themes: which theme, then what it holds, in two tabs. A theme
+           is its colours and its sounds together; nothing here changes
+           one without the other. -->
+      <div id="sThemes" class="spage" hidden>
         <div class="srow">
-          <div class="slabel">Last seconds <small>before a cycle or a timer ends</small></div>
-          <button id="snd-approach" class="pbtn sndbtn"></button>
+          <div class="slabel">Theme</div>
+          <select id="theme"></select>
         </div>
-        <div class="srow" id="rowApproach">
-          <div class="slabel">Number of last seconds</div>
-          <input id="approach" class="setnum" inputmode="numeric" />
-        </div>
-        <div class="srow">
-          <div class="slabel">Prepare <small>the lead-in begins</small></div>
-          <button id="snd-prepare" class="pbtn sndbtn"></button>
-        </div>
-        <div class="srow">
-          <div class="slabel">Work <small>work interval starts</small></div>
-          <button id="snd-main" class="pbtn sndbtn"></button>
-        </div>
-        <div class="srow">
-          <div class="slabel">Halfway <small>halfway for work interval</small></div>
-          <button id="snd-turn" class="pbtn sndbtn"></button>
-        </div>
-        <div class="srow">
-          <div class="slabel">Rest <small>rest phase starts</small></div>
-          <button id="snd-rest" class="pbtn sndbtn"></button>
-        </div>
-        <div class="srow">
-          <div class="slabel">End <small>session done</small></div>
-          <button id="snd-end" class="pbtn sndbtn"></button>
-        </div>
-        <!-- Not a cue: what a new countdown timer starts with. A timer
-             already made keeps the sound it was saved with. -->
-        <div class="srow">
-          <div class="slabel">Timer <small>what a new countdown timer starts with</small></div>
-          <button id="snd-timer" class="pbtn sndbtn"></button>
-        </div>
-        <div class="srow snote">
-          <div class="slabel">
-            <small
-              >Every list above starts with the sounds that came with the app. To use your own, drop audio files into
-              the folder you pick under General and they appear below them.</small
-            >
+        <nav class="ttabs">
+          <button class="ttab" data-ttab="colours" aria-selected="true">Colours</button>
+          <button class="ttab" data-ttab="sounds" aria-selected="false">Sounds</button>
+        </nav>
+        <div id="tColours" class="swatches"></div>
+        <div id="tSounds" hidden>
+          <div class="srow">
+            <div class="slabel">Last seconds <small>a knock through each of the last seconds</small></div>
+            <button id="snd-approach" class="pbtn sndbtn"></button>
+          </div>
+          <div class="srow">
+            <div class="slabel">Prepare <small>the lead-in begins</small></div>
+            <button id="snd-prepare" class="pbtn sndbtn"></button>
+          </div>
+          <div class="srow">
+            <div class="slabel">Work <small>work interval starts</small></div>
+            <button id="snd-main" class="pbtn sndbtn"></button>
+          </div>
+          <div class="srow">
+            <div class="slabel">Halfway <small>halfway for work interval</small></div>
+            <button id="snd-turn" class="pbtn sndbtn"></button>
+          </div>
+          <div class="srow">
+            <div class="slabel">Rest <small>rest phase starts</small></div>
+            <button id="snd-rest" class="pbtn sndbtn"></button>
+          </div>
+          <div class="srow">
+            <div class="slabel">End <small>session done</small></div>
+            <button id="snd-end" class="pbtn sndbtn"></button>
+          </div>
+          <div class="srow">
+            <div class="slabel">Timer <small>what a countdown timer plays</small></div>
+            <button id="snd-timer" class="pbtn sndbtn"></button>
+          </div>
+          <div class="srow crow">
+            <div class="slabel">Counts <small>the spoken rep numbers</small></div>
+            <div class="counts" id="counts"></div>
           </div>
         </div>
       </div>
@@ -399,20 +401,6 @@
         <div class="catactions" id="presetExpActions" hidden>
           <button id="presetExpCancel" class="pbtn">Cancel</button>
           <button id="presetExpNext" class="pbtn save">Next</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- sound picker: a row plays when tapped, only OK keeps it -->
-    <div id="sndOverlay" hidden>
-      <div class="sheet">
-        <div class="sheethead">
-          <div class="stitle" id="sndTitle">Sound</div>
-        </div>
-        <div id="sndList" class="xlist"></div>
-        <div class="catactions">
-          <button id="sndCancel" class="pbtn">Cancel</button>
-          <button id="sndOk" class="pbtn save">OK</button>
         </div>
       </div>
     </div>

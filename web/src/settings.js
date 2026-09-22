@@ -15,8 +15,8 @@ import {
   voiceVolume,
   setVoiceVolume,
 } from './prefs.js';
-import { audioCtx, ensureSound, play, soundName, setVolumes, testCue, testVoice } from './sound.js';
-import { SOUNDS } from './themepack.js';
+import { audioCtx, ensureSound, play, playCount, soundName, setVolumes, testCue, testVoice } from './sound.js';
+import { TOKENS, SOUNDS, COUNTS } from './themepack.js';
 import { hasBridge, folder, pickFolder } from './files.js';
 import { themeId, themeList, setTheme } from './theme.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
@@ -61,18 +61,54 @@ $('approach').addEventListener('keydown', (e) => {
 // ---- the theme: the shipped one, and later the folder's ----
 /** @type {{id: string, name: string, ui: Record<string, string>}[]} */
 let themes = [];
+
+/** the Colours tab: every token the theme in use sets, as a chip */
+function drawSwatches(ui) {
+  const box = $('tColours');
+  box.innerHTML = '';
+  for (const t of TOKENS) {
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.style.background = ui[t] || '';
+    s.append(chip, t);
+    box.appendChild(s);
+  }
+}
+
 async function renderThemes() {
   themes = await themeList();
   const sel = $sel('theme');
   const now = themeId();
   sel.innerHTML = '';
   themes.forEach((t) => sel.add(new Option(t.name, t.id)));
-  sel.value = themes.some((t) => t.id === now) ? now : themes[0].id;
+  const t = themes.find((x) => x.id === now) || themes[0];
+  sel.value = t.id;
+  drawSwatches(t.ui);
 }
 $('theme').addEventListener('change', () => {
   const t = themes.find((x) => x.id === $sel('theme').value) || themes[0];
   setTheme(t.id, t.ui);
+  drawSwatches(t.ui);
 });
+
+// the two tabs inside Themes
+function showThemeTab(t) {
+  $$('.ttab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.ttab === t)));
+  $('tColours').hidden = t !== 'colours';
+  $('tSounds').hidden = t !== 'sounds';
+}
+$$('.ttab').forEach((b) => b.addEventListener('click', () => showThemeTab(b.dataset.ttab)));
+
+// the counts row: nine numbers, each played on a tap
+for (const n of COUNTS) {
+  const b = document.createElement('button');
+  b.className = 'cnt';
+  b.textContent = n;
+  b.addEventListener('click', () => playCount(+n));
+  $('counts').appendChild(b);
+}
 
 // ---- keep the screen on ----
 // A setting the app owns, unlike the rows below it: this switch decides,
@@ -148,7 +184,7 @@ onSystemChange(() => {
 function showSettingsTab(t) {
   $$('.stab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.stab === t)));
   $('sGeneral').hidden = t !== 'general';
-  $('sSounds').hidden = t !== 'sounds';
+  $('sThemes').hidden = t !== 'themes';
   $('sVolume').hidden = t !== 'volume';
 }
 $$('.stab').forEach((b) => b.addEventListener('click', () => showSettingsTab(b.dataset.stab)));
@@ -163,6 +199,7 @@ $('gear').addEventListener('click', async () => {
   $in('approach').value = String(approachSec());
   renderVolumes();
   showSettingsTab('general');
+  showThemeTab('colours');
   $('settings').hidden = false;
   openScreen('settings', () => ($('settings').hidden = true));
 });

@@ -208,6 +208,12 @@ export async function ensureCounts(nums) {
   await Promise.all([...new Set(nums)].map((n) => bufferFor(countFile(n))));
 }
 
+/** a spoken number, now, decoding it if need be */
+export async function playCount(n) {
+  await ensureCounts([n]);
+  sayAt(n, audioCtx().currentTime);
+}
+
 /**
  * Put a spoken number on the audio clock.
  * @param {number} n @param {number} at
@@ -287,7 +293,4 @@ export const buzz = (ms) => navigator.vibrate && navigator.vibrate(ms);
 export const testCue = () => play('main');
 
 /** a spoken number, the same way */
-export async function testVoice() {
-  await ensureCounts([3]);
-  sayAt(3, audioCtx().currentTime);
-}
+export const testVoice = () => playCount(3);

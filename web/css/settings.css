@@ -1,4 +1,4 @@
-/* the settings page: General and Sounds tabs under the header */
+/* the settings page: General, Themes and Volume tabs under the header */
 #settings {
   position: fixed;
   inset: 0;
@@ -125,8 +125,7 @@
 
 /* ---- the sheets that open over a page. z 22 clears the settings
    page at 20. The preset manager has its own file ---- */
-#xferOverlay,
-#sndOverlay {
+#xferOverlay {
   position: fixed;
   inset: 0;
   z-index: 22;
@@ -169,44 +168,81 @@
   height: 22px;
   accent-color: var(--accent);
 }
-/* The picker is a column: title and buttons stay put, only the list
-   moves. Without this the sheet itself scrolls and OK leaves the
-   screen, which on a long list means it is never visible. */
-/* The picker is a column: title and buttons stay put, only the list
-   moves. Without this the sheet itself scrolls and OK leaves the
-   screen, which on a long list means it is never visible. */
-#sndOverlay .sheet {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-#sndList {
-  flex: 1;
-  min-height: 0; /* a flex child will not shrink past its content without this */
-  overflow-y: auto;
-}
-#sndOverlay .catactions {
-  flex: none;
-  justify-content: flex-end;
-}
-/* a heading inside a list: which place these rows come from */
-.xgroup {
-  margin: 16px 0 2px;
-  color: var(--muted);
-  font-size: 13px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.xlist .xgroup:first-child {
-  margin-top: 4px;
-}
-/* the button that opens the sound picker: it names the current choice,
-   so it has to be allowed to run out of room and ellipsise */
+/* the button that names a theme's sound and plays it: a file name can
+   run out of room, so it ellipsises */
 .sndbtn {
   max-width: 45vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ---- the Themes tab ---- */
+/* The two tabs inside it, lighter than the page's own so the two rows
+   of tabs read as levels. */
+.ttabs {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+.ttab {
+  flex: 1;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ttab[aria-selected='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+/* Colours: every token the theme sets, as a chip with its name. Three
+   across fits fifteen in five rows on a phone. */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 4px 0;
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.swatch .chip {
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+/* Counts: nine numbers on one row, each a small play button */
+.crow {
+  grid-template-columns: 1fr;
+}
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cnt {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cnt:active {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 /* A 32px circle inside a 44px button: the padding is clipped out of the
    fill, so the thing you see is small and the thing you hit is not. */
