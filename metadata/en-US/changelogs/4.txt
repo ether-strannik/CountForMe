@@ -1,12 +1,11 @@
-A Volume tab in settings: one fader for the cues, one for the spoken
-counts, each with a Test button. The spoken counts are louder to
-begin with, so they sit level with the cues.
+A Volume tab in settings: a fader for the cues, one for the spoken
+counts, each with a Test button. The counts are louder to begin with,
+so they sit level with the cues.
 
-Sounds gains a Timer row, setting what a new countdown timer starts
-with.
+Sounds gains a Timer row, setting what a new timer starts with.
 
 Cadence refuses a range that is not a whole number of its cadence. A
-range of 5:00 at a cue every 45 seconds used to lose one silently.
-The setup line also counts cycles now, like the run screen.
+5:00 range at a cue every 45s used to lose one silently. The setup
+line counts cycles now, like the run screen.
 
 Phases keeps the last cycle of a block instead of dropping it.
