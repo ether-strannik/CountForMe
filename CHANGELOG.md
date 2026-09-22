@@ -11,23 +11,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - A Timer row under Sounds, setting what a new countdown timer starts
   with. Timers already made keep their own sound.
-
 - A Volume tab in settings, with a fader for the cues and one for the
   spoken counts. Zero is the level the app ships at, and each has a
   Test button so a level can be heard while it is set. A fader moved
   during a session takes effect at once.
-
-### Fixed
-
-- The spoken rep counts were quieter than the cue sounds. They now
-  play loud enough to sit with them.
-
-## [1.1.1] - 2026-09-22
-
-### Added
-
-- The preset manager lists categories, and the presets inside them,
-  by name. A view order only: nothing in the library moves.
 
 ### Changed
 
@@ -35,9 +22,6 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   are drawn marks rather than text characters, so they look the same
   on every device. Delete now sits in the same bordered button as
   edit.
-- The Cadence run screen counts cycles in the round, like Phases,
-  instead of reps. Thirty work intervals a round now read 1/30 to
-  30/30.
 - The Cadence setup line counts cycles and rounds, the same two the
   run screen shows. Reps join it only while rep counting is on.
 
@@ -52,6 +36,24 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   answer, and the app used to drop a cue silently, leaving a 75
   second gap and putting every later range out of step. It now names
   the range and the two ends that would fit, and START waits.
+- The spoken rep counts were quieter than the cue sounds. They now
+  play loud enough to sit with them.
+
+## [1.1.1] - 2026-09-22
+
+### Added
+
+- The preset manager lists categories, and the presets inside them,
+  by name. A view order only: nothing in the library moves.
+
+### Changed
+
+- The Cadence run screen counts cycles in the round, like Phases,
+  instead of reps. Thirty work intervals a round now read 1/30 to
+  30/30.
+
+### Fixed
+
 - A Cadence file edited by hand with a bad number in it, such as no
   rounds or a cadence that is not a number, now loads the way the
   setup would have set it. Before, it ran an empty session or one with
