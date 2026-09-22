@@ -5,10 +5,11 @@ import { fmtClock } from './format.js';
 import { load, save } from './storage.js';
 import { askConfirm } from './confirm.js';
 import { makePad } from './keypad.js';
-import { audioCtx, playFile, buzz, packList, timerSound } from './sound.js';
+import { audioCtx, play, playFile, buzz, packList, timerSound, ensureBuffers } from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { listSounds } from './files.js';
 import { openScreen, closeScreen } from './nav.js';
+import { approachSec } from './prefs.js';
 
 let timers = load('timer.countdowns', []);
 // a timer that already elapsed while away comes back stopped, no beep
@@ -23,6 +24,28 @@ let cdTicker = null;
 let taEditId = null;
 
 const cdRemaining = (t) => (t.running ? (t.endAt - Date.now()) / 1000 : t.rem);
+
+// The last seconds of a countdown, one knock each, using the same
+// setting Phases and Cadence read. Zero there turns it off here too.
+//
+// Which second has already been announced, by timer id. Memory only:
+// it belongs to this run of this timer, not to the timer, and writing
+// it would put run state in the saved list.
+/** @type {Map<string, number>} */
+const knocked = new Map();
+
+/** knock once as the countdown enters each of its last seconds */
+function lastSeconds(t, rem) {
+  const n = approachSec();
+  if (!n) return;
+  // The same rounding the card uses, from the same value on the same
+  // tick, so the knock and the number can never disagree.
+  const s = Math.ceil(rem);
+  if (s < 1 || s > n || knocked.get(t.id) === s) return;
+  knocked.set(t.id, s);
+  play('approach');
+  buzz(60);
+}
 const RING_C = 2 * Math.PI * 45;
 function updateCard(card, t) {
   const rem = Math.max(0, cdRemaining(t));
@@ -60,6 +83,7 @@ export function renderTimers() {
     updateCard(card, t);
     card.querySelector('.tcdel').addEventListener('click', () => {
       askConfirm('Delete this timer?', () => {
+        knocked.delete(t.id);
         timers = timers.filter((x) => x.id !== t.id);
         saveTimers();
         renderTimers();
@@ -72,6 +96,7 @@ export function renderTimers() {
     const rsEl = card.querySelector('.reset');
     if (rsEl)
       rsEl.addEventListener('click', () => {
+        knocked.delete(t.id);
         t.running = false;
         t.rem = t.sec;
         saveTimers();
@@ -95,7 +120,11 @@ function renderTimersTimes() {
 function toggleTimer(id) {
   const t = timers.find((x) => x.id === id);
   if (!t) return;
-  audioCtx(); // arm audio on this gesture so the beep can fire later
+  // Arm audio on this gesture and decode the cues, so the knocks in
+  // the last seconds are ready rather than fetched when they are due.
+  audioCtx();
+  ensureBuffers();
+  knocked.delete(t.id); // a stop or a restart begins the count again
   if (t.running) {
     t.rem = Math.max(0, (t.endAt - Date.now()) / 1000);
     t.running = false;
@@ -119,13 +148,15 @@ function syncCdTicker() {
 function cdTick() {
   let changed = false;
   timers.forEach((t) => {
-    if (t.running && t.endAt - Date.now() <= 0) {
-      t.running = false;
-      t.rem = t.sec; // reset to the set duration, ready to run again
-      changed = true;
-      playFile(t.sound); // ONE beep, no loop
-      buzz(300);
-    }
+    if (!t.running) return;
+    const rem = (t.endAt - Date.now()) / 1000;
+    if (rem > 0) return lastSeconds(t, rem);
+    t.running = false;
+    t.rem = t.sec; // reset to the set duration, ready to run again
+    changed = true;
+    knocked.delete(t.id);
+    playFile(t.sound); // ONE beep, no loop
+    buzz(300);
   });
   if (changed) {
     saveTimers();

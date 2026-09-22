@@ -7,6 +7,13 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Countdown timers knock through their last seconds, the way Phases
+  and Cadence do. The count and the sound come from Last seconds
+  under Sounds, so all three tabs share one setting and zero still
+  turns it off.
+
 ### Fixed
 
 - A countdown timer shows the second it is in. A 5:00 timer holds
