@@ -58,6 +58,22 @@ export async function themeList() {
   }
 }
 
+/**
+ * Where the theme in use is read from: its manifest, and the bytes of
+ * a file beside it. The sound engine goes through this and knows no
+ * folder. Only the shipped theme, until the folder is read.
+ * @returns {{manifest: () => Promise<any>, bytes: (file: string) => Promise<ArrayBuffer | null>}}
+ */
+export function themeSource() {
+  return {
+    manifest: shippedTheme,
+    bytes: async (file) => {
+      const r = await fetch('theme/' + file);
+      return r.ok ? r.arrayBuffer() : null;
+    },
+  };
+}
+
 /** use a theme and remember it, colours included */
 export function setTheme(id, ui) {
   chosen = { id, ui: id === SHIPPED ? null : ui };

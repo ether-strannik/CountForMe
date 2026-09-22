@@ -8,17 +8,15 @@ import { makePad } from './keypad.js';
 import {
   audioCtx,
   playAt,
-  playFileAt,
+  play,
   buzz,
-  packList,
   timerSound,
+  soundName,
   ensureBuffers,
-  ensureFile,
+  ensureSound,
   holdClock,
   releaseClock,
 } from './sound.js';
-import { openSoundPicker, soundName } from './soundpick.js';
-import { listSounds } from './files.js';
 import { openScreen, closeScreen } from './nav.js';
 import { approachSec } from './prefs.js';
 import { timersRunning, timersDone } from './session.js';
@@ -74,7 +72,7 @@ async function start(t) {
   if (starting.has(t.id)) return;
   starting.add(t.id);
   audioCtx(); // armed on the gesture that got us here
-  await Promise.all([ensureBuffers(), ensureFile(t.sound)]);
+  await Promise.all([ensureBuffers(), ensureSound(t.sound)]);
   starting.delete(t.id);
   if (t.running || !timers.includes(t)) return;
   if (t.rem <= 0) t.rem = t.sec;
@@ -90,7 +88,7 @@ async function start(t) {
   for (let k = approachSec(); k >= 1; k--) {
     if (zero - k > c.currentTime) out.push(...playAt('approach', zero - k));
   }
-  out.push(...playFileAt(t.sound, zero));
+  out.push(...playAt(t.sound, zero));
   scheduled.set(t.id, out);
   saveTimers();
   renderTimers();
@@ -260,17 +258,16 @@ function secToDigits(sec) {
   const p = (n) => String(n).padStart(2, '0');
   return (p(Math.floor(sec / 3600)) + p(Math.floor((sec % 3600) / 60)) + p(sec % 60)).replace(/^0+/, '');
 }
-// The sound this timer plays, held while the sheet is open: the button
-// only names it, and the picker is where it changes.
+// The sound this timer plays, one of the theme's, held while the sheet
+// is open. The button names it and plays it on a tap. A timer saved
+// before sounds were the theme's names a file the theme does not
+// have; it plays the theme's timer sound, and is saved so on next edit.
 let taSound = timerSound();
-const drawTaSound = () => ($('taSound').textContent = soundName(taSound));
-$('taSound').addEventListener('click', async () => {
-  const [pack, mine] = await Promise.all([packList(), listSounds()]);
-  openSoundPicker('Sound', taSound, pack, mine, (v) => {
-    taSound = v;
-    drawTaSound();
-  });
-});
+const drawTaSound = async () => {
+  await ensureSound(taSound); // the manifest, so the name is in
+  $('taSound').textContent = soundName(taSound);
+};
+$('taSound').addEventListener('click', () => play(taSound));
 function openTimerAdd(id) {
   taEditId = id;
   const t = id != null ? timers.find((x) => x.id === id) : null;

@@ -1,9 +1,8 @@
-// The user's files: sounds and profiles, in one folder the user picked
-// once through the system picker (a scoped grant, no storage permission).
-// A native bridge lists and reads it; the page never touches storage
-// itself. Without the bridge — the page in a plain browser — there is
-// no folder: the lists are empty and every event plays its shipped
-// default.
+// The user's files: presets, and soon themes, in one folder the user
+// picked once through the system picker (a scoped grant, no storage
+// permission). A native bridge lists and reads it; the page never
+// touches storage itself. Without the bridge — the page in a plain
+// browser — there is no folder and the lists are empty.
 //
 // The bridge contract, the native side's Folder plugin:
 //   status()            → { granted, name }
@@ -14,7 +13,6 @@
 //   remove({ name })
 //   share({ name, base64 })  the system share sheet
 
-const AUDIO = /\.(mp3|wav|ogg|m4a|aac)$/i;
 const NAME = /^[^/\\]{1,120}$/;
 const NONE = { granted: false, name: '' };
 
@@ -23,13 +21,7 @@ const bridge = () => /** @type {any} */ (window).Capacitor?.Plugins?.Folder || n
 /** true inside the app, false in a plain browser */
 export const hasBridge = () => !!bridge();
 
-// ---- base64 <-> bytes, the bridge's wire format ----
-function fromB64(b64) {
-  const bin = atob(b64);
-  const u = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-  return u.buffer;
-}
+// ---- bytes as base64, the bridge's wire format ----
 function toB64(buf) {
   const u = new Uint8Array(buf);
   let s = '';
@@ -56,32 +48,6 @@ export async function pickFolder() {
     return await b.pick();
   } catch {
     return folder();
-  }
-}
-
-/** every file name in the folder, sorted; [] when there is no folder */
-async function listFiles() {
-  const b = bridge();
-  if (!b) return [];
-  try {
-    const names = (await b.list()).names || [];
-    return names.filter((n) => NAME.test(n)).sort((a, c) => a.localeCompare(c));
-  } catch {
-    return [];
-  }
-}
-
-/** the sound files among them */
-export const listSounds = async () => (await listFiles()).filter((f) => AUDIO.test(f));
-
-/** the bytes of one file, or null */
-export async function readFile(name) {
-  const b = bridge();
-  if (!b || !NAME.test(name)) return null;
-  try {
-    return fromB64((await b.read({ name })).base64);
-  } catch {
-    return null;
   }
 }
 

@@ -9,9 +9,18 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- Sounds are part of the theme. The Sounds tab under Settings shows
+  what the theme plays for each cue and plays it on a tap. A
+  countdown timer plays the theme's timer sound; one that had a sound
+  of its own picked plays that too.
 - The app ships one theme, Nord, and looks like it from the first
   frame. Default, Gruvbox and Light are no longer in the app; they
   return as complete sets to load from the chosen folder.
+
+### Removed
+
+- Choosing a sound per cue, and the sound picker. A different set of
+  sounds is a different theme, and soon one of your own.
 
 ## [1.1.3] - 2026-09-22
 

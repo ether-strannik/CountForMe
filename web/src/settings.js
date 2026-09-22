@@ -1,6 +1,7 @@
-// Settings page, two tabs. General: the opening tab, the user's
-// folder, the theme, and what Android is allowing. Sounds: a sound
-// per cue. Android back closes it (nav.js); nothing is drawn for that.
+// Settings page, three tabs. General: the opening tab, the user's
+// folder, the theme, and what Android is allowing. Sounds: what the
+// theme plays for each cue, to hear, not to change. Volume: a fader
+// per bus. Android back closes it (nav.js); nothing is drawn for that.
 import { $, $$, $in, $sel, $btn } from './dom.js';
 import {
   getStartTab,
@@ -14,9 +15,9 @@ import {
   voiceVolume,
   setVoiceVolume,
 } from './prefs.js';
-import { SOUND_KEYS, audioCtx, chosen, setChoice, packList, setVolumes, testCue, testVoice } from './sound.js';
-import { openSoundPicker, soundName } from './soundpick.js';
-import { hasBridge, folder, pickFolder, listSounds } from './files.js';
+import { audioCtx, ensureSound, play, soundName, setVolumes, testCue, testVoice } from './sound.js';
+import { SOUNDS } from './themepack.js';
+import { hasBridge, folder, pickFolder } from './files.js';
 import { themeId, themeList, setTheme } from './theme.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen } from './nav.js';
@@ -29,24 +30,15 @@ async function renderFolder() {
   const f = await folder();
   $('folderName').textContent = f.granted ? f.name : 'none picked';
 }
-// Each cue is a button naming its sound; tapping opens the picker. The
-// lists are read when the picker opens, not held, so a file dropped in
-// the folder shows up without reopening settings.
-const LABELS = {
-  approach: 'Last seconds',
-  prepare: 'Prepare',
-  main: 'Work',
-  turn: 'Halfway',
-  rest: 'Rest',
-  end: 'End',
-  timer: 'Timer',
-};
-const drawSoundBtn = (key) => ($btn('snd-' + key).textContent = soundName(chosen(key)));
-const drawSoundBtns = () => SOUND_KEYS.forEach(drawSoundBtn);
+// Each cue is a button naming the theme's sound for it; tapping plays
+// it. Nothing here changes a sound: that is a different theme.
+async function drawSoundBtns() {
+  await ensureSound('timer'); // reads the manifest, so the names are in
+  SOUNDS.forEach((key) => ($btn('snd-' + key).textContent = soundName(key)));
+}
 $('pickFolder').addEventListener('click', async () => {
   await pickFolder();
   await renderFolder();
-  drawSoundBtns();
 });
 
 // Import and export live in the preset manager now. They belong beside
@@ -174,13 +166,5 @@ $('gear').addEventListener('click', async () => {
   $('settings').hidden = false;
   openScreen('settings', () => ($('settings').hidden = true));
 });
-SOUND_KEYS.forEach((key) => {
-  $('snd-' + key).addEventListener('click', async () => {
-    const [pack, mine] = await Promise.all([packList(), listSounds()]);
-    openSoundPicker(LABELS[key], chosen(key), pack, mine, (v) => {
-      setChoice(key, v);
-      drawSoundBtn(key);
-    });
-  });
-});
+SOUNDS.forEach((key) => $('snd-' + key).addEventListener('click', () => play(key)));
 $sel('startTab').value = getStartTab();

@@ -1,21 +1,18 @@
-// Sound engine: one AudioContext, and a decoded file per event.
+// Sound engine: one AudioContext, and a decoded file per sound.
 //
-// A choice names one of two places. `pack:<name>` is a sound shipped in
-// the app, under `sounds/`, listed by `sounds/index.json` because there
-// is no server here to scan the folder. Anything else is a file in the
-// folder the user picked, read through files.js. The prefix is what
-// keeps a shipped `gong.mp3` and the user's own `gong.mp3` apart.
-//
-// Every event has a shipped default, so the app makes real sounds out
-// of the box with no folder chosen. The synth below is the last resort
-// only: a device that cannot decode an MP3 still gets a cue.
+// Every sound comes from the theme in use: a file for each cue, one
+// for a countdown timer, one for each spoken count. `theme.js` says
+// where the theme is and hands over its files; nothing here knows a
+// folder. There is no choice of sound apart from the theme, so there
+// is nothing to store. The synth below is the last resort only: a
+// device that cannot decode an MP3 still gets a cue.
 //
 // Everything a run plays goes on the audio clock in advance. The audio
 // thread keeps running when the page is hidden and the animation frame
 // loop does not, so a cue that was scheduled still sounds while the
 // user is in another app. Nothing here waits for a timer to fire.
-import { load, save } from './storage.js';
-import { readFile } from './files.js';
+import { themeSource } from './theme.js';
+import { SOUNDS } from './themepack.js';
 
 let ac = null;
 export function audioCtx() {
@@ -98,7 +95,7 @@ function tone(freq, dur, type, vol, at) {
   }
 }
 
-// The last resort, one per event, reached only when the chosen file
+// The last resort, one per sound, reached only when the theme's file
 // cannot be decoded. Every note is placed on the audio clock rather
 // than chained with a timer, so a two-note cue scheduled for later
 // arrives whole even with no JavaScript running.
@@ -109,105 +106,71 @@ const synth = {
   approach: (t) => [tone(880, 0.15, 'sine', 0.3, t)],
   rest: (t) => [tone(660, 0.14, 'sine', 0.4, t), tone(520, 0.2, 'sine', 0.4, t + 0.12)],
   end: (t) => [tone(440, 0.6, 'sine', 0.45, t)],
+  timer: (t) => [tone(880, 0.3, 'sine', 0.45, t)],
 };
 
 /** the cues a session plays, and the only sounds it decodes up front */
 export const EVENTS = ['approach', 'prepare', 'main', 'turn', 'rest', 'end'];
 
-/**
- * Everything the settings page offers a sound for. `timer` is not a
- * cue: it is what a NEW countdown timer starts with, and a timer keeps
- * whatever it was saved with once it exists.
- */
-export const SOUND_KEYS = [...EVENTS, 'timer'];
-
-/** a choice with this prefix is a sound shipped in the app */
-export const PACK = 'pack:';
-
-/** what each event plays when the user has never chosen for it */
-const DEFAULTS = {
-  prepare: 'clock-ticking.mp3',
-  main: 'gong.mp3',
-  turn: 'bell-4.mp3',
-  approach: 'piano-3.mp3',
-  rest: 'wine-glass.mp3',
-  end: 'flute.mp3',
-  timer: 'flute.mp3',
-};
-
-/** the shipped sounds, by the order of their names; [] if the index is gone */
-export async function packList() {
-  try {
-    const names = await (await fetch('sounds/index.json')).json();
-    return Array.isArray(names) ? names : [];
-  } catch {
-    return [];
-  }
-}
-
-const choice = load('timer.sounds', {});
-const saveChoice = () => save('timer.sounds', choice);
-
-/**
- * What an event plays: the user's choice, or its shipped default.
- * An empty stored value is a choice never made — older versions wrote
- * one to mean "the beep", and the beep is no longer an option.
- */
-export const chosen = (key) => choice[key] || PACK + DEFAULTS[key];
-
-/** choose a sound for an event; decodes it right away */
-export function setChoice(key, file) {
-  choice[key] = file;
-  saveChoice();
-  decode(key);
-}
-
-// A choice is never dropped because the file cannot be found. A folder
-// that fails to list comes back empty, and forgetting all five over one
-// bad read would be silent and permanent. A missing file falls back to
-// the shipped default when it plays, and the settings say so beside it.
-
-// ---- buffers, cached by the choice itself so the shipped sounds and
-// the folder's share one store and a sound decodes once ----
+// ---- the theme's files, decoded once each ----
+// The manifest is read once and kept, because placing a sound on the
+// clock is synchronous and has to know which file a key names. Buffers
+// are cached by file name; two keys naming one file decode it once.
+/** @type {{sounds: Record<string, string>, counts: Record<string, string>} | null} */
+let manifest = null;
 /** @type {Record<string, AudioBuffer | null>} */
 const cache = {};
 
-/** the bytes behind a choice: out of the app for `pack:`, else the folder */
-async function loadBytes(value) {
-  if (value.startsWith(PACK)) {
-    const r = await fetch('sounds/' + value.slice(PACK.length));
-    return r.ok ? await r.arrayBuffer() : null;
-  }
-  return readFile(value);
+/** the theme's manifest, read on first use */
+async function ready() {
+  if (!manifest) manifest = await themeSource().manifest();
+  return manifest;
 }
 
-/** decode a choice once; null when it cannot be had */
-async function bufferFor(value) {
-  if (!value) return null;
-  if (cache[value] !== undefined) return cache[value];
+/** decode one of the theme's files once; null when it cannot be had */
+async function bufferFor(file) {
+  if (!file) return null;
+  if (cache[file] !== undefined) return cache[file];
   try {
-    const bytes = await loadBytes(value);
-    cache[value] = bytes ? await audioCtx().decodeAudioData(bytes) : null;
+    const bytes = await themeSource().bytes(file);
+    cache[file] = bytes ? await audioCtx().decodeAudioData(bytes) : null;
   } catch {
-    cache[value] = null;
+    cache[file] = null;
   }
-  return cache[value];
+  return cache[file];
 }
 
-const decode = (key) => bufferFor(chosen(key));
-export const ensureBuffers = () => Promise.all(EVENTS.map(decode));
+/** a sound key the theme has; anything else is what a timer plays */
+const soundKey = (key) => (SOUNDS.includes(key) ? key : 'timer');
+
+/** the file behind a sound key, once the manifest is in */
+const fileFor = (key) => (manifest ? manifest.sounds[soundKey(key)] : '');
+
+/** the name a sound shows under: its file, without the extension */
+export const soundName = (key) => fileFor(key).replace(/\.mp3$/i, '');
+
+/** decode a sound so it can be put on the clock later; cached after */
+export async function ensureSound(key) {
+  await ready();
+  return bufferFor(fileFor(key));
+}
+
+/** decode every cue a session plays */
+export const ensureBuffers = () => Promise.all(EVENTS.map(ensureSound));
 
 /**
- * Put an event's sound on the audio clock at time `at`. Once scheduled
- * it belongs to the audio thread and plays whether or not JavaScript is
- * still running, which is how a cue reaches the user while the app is
- * in the background.
- * @param {string} key  main | turn | approach | rest | end
+ * Put a sound on the audio clock at time `at`. Once scheduled it belongs
+ * to the audio thread and plays whether or not JavaScript is still
+ * running, which is how a cue reaches the user while the app is in the
+ * background. Decoded first by `ensureSound`: nothing is fetched here,
+ * because a sound that has to be fetched when it is due is a sound that
+ * arrives late, or not at all once the page is in the background.
+ * @param {string} key  approach | prepare | main | turn | rest | end | timer
  * @param {number} at   a time on the AudioContext clock
  * @returns {AudioScheduledSourceNode[]} the sources, so a caller can cancel them
  */
 export function playAt(key, at) {
-  const buf = cache[chosen(key)];
+  const buf = cache[fileFor(key)];
   if (buf) {
     try {
       const c = audioCtx();
@@ -220,31 +183,29 @@ export function playAt(key, at) {
       /* fall through to the synth */
     }
   }
-  return synth[key](at).filter(Boolean);
+  return synth[soundKey(key)](at).filter(Boolean);
 }
 
-/** the event's sound, now */
-export const play = (key) => playAt(key, audioCtx().currentTime);
+/** a sound, now, decoding it if need be */
+export async function play(key) {
+  await ensureSound(key);
+  playAt(key, audioCtx().currentTime);
+}
 
-// The spoken numbers, shipped in counts/. Decoded up front like the
-// chosen files, because a cue that has to be fetched or synthesised at
-// the moment it is due is a cue that arrives late, or not at all once
-// the page is in the background.
-const counts = {};
+/** what a new countdown timer starts with: the theme's timer sound */
+export const timerSound = () => 'timer';
+
+// The spoken numbers. Decoded up front like the cues, because a count
+// that has to be fetched at the moment it is due is a count that
+// arrives late, or not at all once the page is in the background.
+
+/** the file behind a spoken count, once the manifest is in */
+const countFile = (n) => (manifest ? manifest.counts[String(n)] : '');
 
 /** decode the numbers a session will speak; anything missing stays silent */
 export async function ensureCounts(nums) {
-  await Promise.all(
-    [...new Set(nums)].map(async (n) => {
-      if (counts[n] !== undefined) return;
-      try {
-        const r = await fetch('counts/' + n + '.mp3');
-        counts[n] = await audioCtx().decodeAudioData(await r.arrayBuffer());
-      } catch {
-        counts[n] = null; // no file for that number; say nothing
-      }
-    }),
-  );
+  await ready();
+  await Promise.all([...new Set(nums)].map((n) => bufferFor(countFile(n))));
 }
 
 /**
@@ -253,7 +214,7 @@ export async function ensureCounts(nums) {
  * @returns {AudioScheduledSourceNode[]}
  */
 export function sayAt(n, at) {
-  const buf = counts[n];
+  const buf = cache[countFile(n)];
   if (!buf) return [];
   try {
     const s = audioCtx().createBufferSource();
@@ -320,49 +281,10 @@ export function releaseClock() {
 /** vibrate; Android ignores this while the page is hidden */
 export const buzz = (ms) => navigator.vibrate && navigator.vibrate(ms);
 
-/** what a new countdown timer starts with, as set under Sounds */
-export const timerSound = () => chosen('timer');
-
-/** decode a choice so it can be put on the clock later; cached after */
-export const ensureFile = (f) => bufferFor(f || timerSound());
-
-/**
- * Put a chosen file on the audio clock at `at`. Decoded first by
- * `ensureFile`: nothing is fetched here, because a sound that has to
- * be fetched when it is due is a sound that arrives late, or not at
- * all once the page is in the background.
- * @param {string} f @param {number} at
- * @returns {AudioScheduledSourceNode[]} the source, so a caller can cancel it
- */
-export function playFileAt(f, at) {
-  const buf = cache[f || timerSound()];
-  if (buf) {
-    try {
-      const s = audioCtx().createBufferSource();
-      s.buffer = buf;
-      s.connect(buses().cue);
-      s.start(at);
-      return [s];
-    } catch {
-      /* fall through to the tone */
-    }
-  }
-  return [tone(880, 0.3, 'sine', 0.45, at)].filter(Boolean);
-}
-
-/** play a sound by choice, now, decoding it if need be */
-export async function playFile(f) {
-  await ensureFile(f);
-  playFileAt(f, audioCtx().currentTime);
-}
-
 // ---- the Volume tab's test buttons ----
 
 /** the Work cue, at the level set, so a slider can be heard while moved */
-export async function testCue() {
-  await decode('main');
-  play('main');
-}
+export const testCue = () => play('main');
 
 /** a spoken number, the same way */
 export async function testVoice() {
