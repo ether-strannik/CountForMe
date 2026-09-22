@@ -36,6 +36,8 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - The Cadence run screen counts cycles in the round, like Phases,
   instead of reps. Thirty work intervals a round now read 1/30 to
   30/30.
+- The Cadence setup line counts cycles and rounds, the same two the
+  run screen shows. Reps join it only while rep counting is on.
 
 ### Fixed
 

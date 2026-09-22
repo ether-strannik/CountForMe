@@ -15,17 +15,19 @@ import { approachSec } from './prefs.js';
 let iv2Prog = JSON.parse(JSON.stringify(IV2_DEFAULT));
 
 // ---- builder ----
+/** "1 cycle" or "12 cycles" */
+const count = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
+
 function iv2Over() {
   const x = iv2Expand(iv2Prog);
   if (x.complete) {
-    $('iv2over').innerHTML =
-      '<b>' +
-      fmt(x.sessionSec) +
-      '</b> · ' +
-      x.totalReps +
-      ' reps · ' +
-      iv2Prog.rounds +
-      (iv2Prog.rounds > 1 ? ' rounds' : ' round');
+    // Cycles and rounds, the same two the run screen counts and the
+    // same two Phases shows. Reps only while they are being counted:
+    // with that switch off a rep is a cue, and the line would print
+    // one number twice under two names.
+    const bits = [count(x.perRound, 'cycle'), count(iv2Prog.rounds, 'round')];
+    if (iv2Prog.showReps) bits.push(count(x.totalReps, 'rep'));
+    $('iv2over').innerHTML = '<b>' + fmt(x.sessionSec) + '</b> · ' + bits.join(' · ');
   } else {
     $('iv2over').innerHTML =
       "<span style='color:var(--warn)'>" + fmt(x.blockSec - x.covered) + ' of the block still undefined</span>';
