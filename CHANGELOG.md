@@ -41,6 +41,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Phases time based mode keeps the last cycle of a block instead of
+  dropping it. A 10:00 block at a 45 second cycle now runs 14 cycles
+  over 10:30, where it used to run 13 over 9:45. The line under the
+  setup has always shown the real length.
 - Cadence no longer runs a range that is not a whole number of its
   cadence. A range of 5:00 at a cue every 45 seconds has no honest
   answer, and the app used to drop a cue silently, leaving a 75

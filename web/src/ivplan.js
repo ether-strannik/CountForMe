@@ -6,10 +6,17 @@
 // used.
 //
 //   time      Block, Cycle and Work are given. The cycle count is
-//             DERIVED: cycles = floor(block / cycle), so the block snaps
-//             down to a whole number of cycles and the header shows the
-//             real length it will run. Work can't exceed the cycle; the
-//             remainder of the cycle is rest.
+//             DERIVED: cycles = ceil(block / cycle), so a block that is
+//             not a whole number of cycles rounds UP to one and the
+//             header shows the real length it will run. Work can't
+//             exceed the cycle; the remainder of the cycle is rest.
+//
+//             Rounding up rather than down keeps the last cycle whole
+//             instead of dropping it, and there are no ranges here to
+//             be pushed out of step by the extra time: one cycle length
+//             runs the whole block, and rounds repeat whatever the
+//             block came to. Time is the metric being converted, not
+//             the thing being promised.
 //
 //   standard  Work, Rest and Cycles are given. The cycle length and the
 //             block are DERIVED: cycle = work + rest, block = cycles ×
@@ -60,7 +67,9 @@ function planTime(c) {
   let work = Math.max(1, Math.round(c.work));
   if (work > cycle) work = cycle; // work can't exceed the cycle
   const block = Math.max(1, Math.round(c.block));
-  return session(cycle, work, cycle - work, Math.max(1, Math.floor(block / cycle)), c);
+  // No clamp to 1 needed: both are at least 1, so the ceiling is too.
+  // Under floor it was, which was the tell that floor was wrong.
+  return session(cycle, work, cycle - work, Math.ceil(block / cycle), c);
 }
 
 /**
