@@ -5,7 +5,7 @@ import { fmtClock } from './format.js';
 import { load, save } from './storage.js';
 import { askConfirm } from './confirm.js';
 import { makePad } from './keypad.js';
-import { audioCtx, playFile, buzz, packList, TIMER_DEFAULT } from './sound.js';
+import { audioCtx, playFile, buzz, packList, timerSound } from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { listSounds } from './files.js';
 import { openScreen, closeScreen } from './nav.js';
@@ -143,7 +143,7 @@ function secToDigits(sec) {
 }
 // The sound this timer plays, held while the sheet is open: the button
 // only names it, and the picker is where it changes.
-let taSound = TIMER_DEFAULT;
+let taSound = timerSound();
 const drawTaSound = () => ($('taSound').textContent = soundName(taSound));
 $('taSound').addEventListener('click', async () => {
   const [pack, mine] = await Promise.all([packList(), listSounds()]);
@@ -158,7 +158,9 @@ function openTimerAdd(id) {
   $('taTitle').textContent = t ? 'Edit timer' : 'New timer';
   $in('taName').value = t ? t.name || '' : '';
   taPad.set(t ? secToDigits(t.sec) : '');
-  taSound = (t && t.sound) || TIMER_DEFAULT;
+  // an existing timer keeps its own sound; a new one starts at the
+  // default, read now so a change under Sounds is picked up
+  taSound = (t && t.sound) || timerSound();
   drawTaSound();
   $('timerAdd').hidden = false;
   openScreen('timerAdd', () => ($('timerAdd').hidden = true));

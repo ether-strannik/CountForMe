@@ -9,6 +9,9 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A Timer row under Sounds, setting what a new countdown timer starts
+  with. Timers already made keep their own sound.
+
 - A Volume tab in settings, with a fader for the cues and one for the
   spoken counts. Zero is the level the app ships at, and each has a
   Test button so a level can be heard while it is set. A fader moved

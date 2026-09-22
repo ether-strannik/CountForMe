@@ -14,7 +14,7 @@ import {
   voiceVolume,
   setVoiceVolume,
 } from './prefs.js';
-import { EVENTS, audioCtx, chosen, setChoice, packList, setVolumes, testCue, testVoice } from './sound.js';
+import { SOUND_KEYS, audioCtx, chosen, setChoice, packList, setVolumes, testCue, testVoice } from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { hasBridge, folder, pickFolder, listSounds } from './files.js';
 import { themeFile, themeList, setTheme } from './theme.js';
@@ -39,9 +39,10 @@ const LABELS = {
   turn: 'Halfway',
   rest: 'Rest',
   end: 'End',
+  timer: 'Timer',
 };
 const drawSoundBtn = (key) => ($btn('snd-' + key).textContent = soundName(chosen(key)));
-const drawSoundBtns = () => EVENTS.forEach(drawSoundBtn);
+const drawSoundBtns = () => SOUND_KEYS.forEach(drawSoundBtn);
 $('pickFolder').addEventListener('click', async () => {
   await pickFolder();
   await renderFolder();
@@ -176,7 +177,7 @@ $('gear').addEventListener('click', async () => {
   $('settings').hidden = false;
   openScreen('settings', () => ($('settings').hidden = true));
 });
-EVENTS.forEach((key) => {
+SOUND_KEYS.forEach((key) => {
   $('snd-' + key).addEventListener('click', async () => {
     const [pack, mine] = await Promise.all([packList(), listSounds()]);
     openSoundPicker(LABELS[key], chosen(key), pack, mine, (v) => {

@@ -111,7 +111,15 @@ const synth = {
   end: (t) => [tone(440, 0.6, 'sine', 0.45, t)],
 };
 
+/** the cues a session plays, and the only sounds it decodes up front */
 export const EVENTS = ['approach', 'prepare', 'main', 'turn', 'rest', 'end'];
+
+/**
+ * Everything the settings page offers a sound for. `timer` is not a
+ * cue: it is what a NEW countdown timer starts with, and a timer keeps
+ * whatever it was saved with once it exists.
+ */
+export const SOUND_KEYS = [...EVENTS, 'timer'];
 
 /** a choice with this prefix is a sound shipped in the app */
 export const PACK = 'pack:';
@@ -124,6 +132,7 @@ const DEFAULTS = {
   approach: 'piano-3.mp3',
   rest: 'wine-glass.mp3',
   end: 'flute.mp3',
+  timer: 'flute.mp3',
 };
 
 /** the shipped sounds, by the order of their names; [] if the index is gone */
@@ -304,12 +313,12 @@ export function releaseClock() {
 /** vibrate; Android ignores this while the page is hidden */
 export const buzz = (ms) => navigator.vibrate && navigator.vibrate(ms);
 
-/** what a countdown timer plays when none was chosen for it */
-export const TIMER_DEFAULT = PACK + DEFAULTS.end;
+/** what a new countdown timer starts with, as set under Sounds */
+export const timerSound = () => chosen('timer');
 
-/** play a sound by choice (countdown timers), the shipped default when unset */
+/** play a sound by choice (countdown timers), the default when unset */
 export async function playFile(f) {
-  const buf = await bufferFor(f || TIMER_DEFAULT);
+  const buf = await bufferFor(f || timerSound());
   if (!buf) return tone(880, 0.3, 'sine', 0.45);
   try {
     const s = audioCtx().createBufferSource();
