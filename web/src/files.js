@@ -1,10 +1,11 @@
 // The user's files: sounds and profiles, in one folder the user picked
 // once through the system picker (a scoped grant, no storage permission).
 // A native bridge lists and reads it; the page never touches storage
-// itself. Without the bridge — the page in a plain WebView — there is no
-// folder: the lists are empty and every event falls back to the beep.
+// itself. Without the bridge — the page in a plain browser — there is
+// no folder: the lists are empty and every event plays its shipped
+// default.
 //
-// The bridge contract, a Capacitor plugin named Folder:
+// The bridge contract, the native side's Folder plugin:
 //   status()            → { granted, name }
 //   pick()              → { granted, name }   opens the system folder picker
 //   list()              → { names }
@@ -19,7 +20,7 @@ const NONE = { granted: false, name: '' };
 
 const bridge = () => /** @type {any} */ (window).Capacitor?.Plugins?.Folder || null;
 
-/** true inside the app, false in a plain WebView */
+/** true inside the app, false in a plain browser */
 export const hasBridge = () => !!bridge();
 
 // ---- base64 <-> bytes, the bridge's wire format ----
