@@ -1,8 +1,9 @@
 Tabler Icons
 https://tabler.io/icons
 
-The settings icon in this app is taken from Tabler Icons, unchanged
-apart from the removal of attributes the app does not use.
+The settings, edit and delete icons in this app are taken from Tabler
+Icons, unchanged apart from the removal of attributes the app does not
+use.
 
 MIT License
 

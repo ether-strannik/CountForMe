@@ -49,7 +49,7 @@ under the [Pixabay Content
 License](https://pixabay.com/service/license-summary/). Attribution
 not required.
 
-**Icons.** The settings icon is from [Tabler
+**Icons.** The settings, edit and delete icons are from [Tabler
 Icons](https://tabler.io/icons) by Paweł Kuna, MIT licensed. The full
 notice is in `licenses/tabler-icons.txt`.
 

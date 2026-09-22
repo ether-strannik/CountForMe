@@ -23,14 +23,6 @@
   text-align: center;
   word-break: break-word;
 }
-.tcdel {
-  border: none;
-  background: transparent;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
 .tcring {
   position: relative;
   width: 108px;
@@ -80,7 +72,11 @@
   align-items: center;
   gap: 8px;
 }
+/* inline-flex so a drawn mark centres the same way the characters do */
 .tcbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 44px;
   min-width: 44px;
   padding: 0 12px;
