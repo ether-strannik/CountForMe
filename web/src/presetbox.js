@@ -61,6 +61,17 @@ const exporting = () => pick !== null;
 
 const LONG_MS = 450;
 
+// How the list is ordered. A view choice, not a stored one: nothing in
+// the library moves, so a second order is one more entry here and a
+// way to pick it. Categories always come before loose presets — that
+// is the shape of the list, not a sort.
+const ORDERS = {
+  name: (a, b) => a.localeCompare(b),
+};
+let order = 'name';
+/** @param {string[]} names */
+const inOrder = (names) => [...names].sort(ORDERS[order]);
+
 /** the preset names inside one category */
 const catItems = (catId) => {
   const c = box ? box.cats().find((x) => x.id === catId) : null;
@@ -201,7 +212,7 @@ function render() {
 
   // A set, then what is inside it, indented. The nesting is the whole
   // point of a set: it is a programme, not a label on a flat list.
-  const cats = api.cats();
+  const cats = [...api.cats()].sort((a, b) => ORDERS[order](a.name, b.name));
   cats.forEach((c) => {
     const el = row('cat', c.id, c.name, null, () =>
       askConfirm(
@@ -220,11 +231,11 @@ function render() {
     // A ticked category carries its presets, so they are not offered
     // separately while exporting — the set goes whole.
     const show = exporting() ? !pick.cats.has(c.id) && unfolded.has(c.id) : unfolded.has(c.id);
-    if (show) c.items.forEach((name) => list.appendChild(presetRow(api, name, true)));
+    if (show) inOrder(c.items).forEach((name) => list.appendChild(presetRow(api, name, true)));
   });
 
   // then the presets in no set, at the root
-  const loose = api.loose();
+  const loose = inOrder(api.loose());
   loose.forEach((n) => list.appendChild(presetRow(api, n, false)));
 
   if (!loose.length && !cats.length) {
