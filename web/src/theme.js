@@ -7,27 +7,9 @@
 // painted the instant this module loads, before anything draws. The
 // files themselves are only read when the settings page wants the list.
 import { load, save } from './storage.js';
+import { TOKENS } from './themepack.js';
 
 const KEY = 'timer.theme';
-
-/** every token a theme may set */
-const TOKENS = [
-  'bg',
-  'card',
-  'line',
-  'text',
-  'muted',
-  'accent',
-  'warn',
-  'bad',
-  'go',
-  'on-accent',
-  'accent-soft',
-  'action',
-  'on-action',
-  'scrim',
-  'glyph',
-];
 
 /** @param {Record<string, string> | null} ui  null puts base.css back */
 function paint(ui) {

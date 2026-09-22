@@ -1,0 +1,113 @@
+# Themes
+
+A theme is everything the app looks and sounds like: its colours, the
+sound of every cue, the sound a timer plays, and the spoken counts.
+One unit. A theme is whole or it cannot be used, and nothing in it is
+overridden from anywhere else. To sound different, use a different
+theme, or make your own from a copy.
+
+The app ships one theme, Nord. Others live in this repository under
+`themes/`, each a full set, and load from the folder chosen in
+Settings.
+
+## The folder
+
+A theme is a folder holding `theme.json` and the files it names.
+
+```
+nord/
+  theme.json
+  piano-3.mp3      approach
+  clock-ticking.mp3
+  gong.mp3
+  bell-4.mp3
+  wine-glass.mp3
+  flute.mp3        end, and the timer
+  1.mp3 … 9.mp3    the spoken counts
+```
+
+Two keys may name the same file. A file the JSON does not name is
+ignored.
+
+## theme.json
+
+```json
+{
+  "name": "Nord",
+  "ui": {
+    "bg": "#2e3440",
+    "card": "#3b4252",
+    "line": "#4c566a",
+    "text": "#eceff4",
+    "muted": "#9aa7bd",
+    "accent": "#88c0d0",
+    "warn": "#ebcb8b",
+    "bad": "#bf616a",
+    "go": "#a3be8c",
+    "on-accent": "#2e3440",
+    "accent-soft": "rgba(136, 192, 208, 0.35)",
+    "action": "#e5e9f0",
+    "on-action": "#2e3440",
+    "scrim": "rgba(0, 0, 0, 0.55)",
+    "glyph": "#4c566a"
+  },
+  "sounds": {
+    "approach": "piano-3.mp3",
+    "prepare": "clock-ticking.mp3",
+    "main": "gong.mp3",
+    "turn": "bell-4.mp3",
+    "rest": "wine-glass.mp3",
+    "end": "flute.mp3",
+    "timer": "flute.mp3"
+  },
+  "counts": {
+    "1": "1.mp3",
+    "2": "2.mp3",
+    "3": "3.mp3",
+    "4": "4.mp3",
+    "5": "5.mp3",
+    "6": "6.mp3",
+    "7": "7.mp3",
+    "8": "8.mp3",
+    "9": "9.mp3"
+  }
+}
+```
+
+- `name`: what the picker shows.
+- `ui`: all 15 colour tokens, any CSS colour. The names match the
+  custom properties in `web/base.css`.
+- `sounds`: a file for each of the six cues and for `timer`, what a
+  new countdown timer starts with.
+- `counts`: a file for each number one to nine.
+
+Every key is required. Every named file must exist beside the JSON.
+
+## The gate
+
+`web/src/themepack.js` holds the rule, once. `themeCheck(manifest,
+files)` takes the parsed JSON and the names of the files in the
+folder, and answers `{ok, missing}` with every gap named:
+
+```
+name
+colour accent
+sound main
+file gong.mp3 for sound main
+count 7
+```
+
+The app runs it wherever a theme comes in: listing the folder,
+picking, importing, exporting. A theme that fails is listed greyed
+with its gaps and cannot be picked. There is no partial theme.
+
+## Where themes live on the phone
+
+Under the folder chosen in Settings, in `themes/`, one folder per
+theme. Copy a set from this repository's `themes/` in there and it
+appears in the picker.
+
+## Making sounds
+
+The spoken counts in the shipped theme were rendered as described in
+`spoken-counts.md`. A theme of your own can use any recording.
