@@ -277,11 +277,18 @@ export function sayAt(n, at) {
 //
 // Not zeros. The silence check is for samples that are exactly zero,
 // and a looping empty buffer was tried first and changed nothing.
+//
+// And not too quiet. A hidden page that has not been audible for sixty
+// seconds has its output stopped, to the millisecond, and audible means
+// over -72 dBFS. A hold at -80 dBFS passed the zero check and failed
+// this one: a countdown timer left for the other screen stopped
+// counting exactly a minute later. The hold is a constant, not a wave,
+// so it makes no sound at any level; it only has to measure as one.
 /** @type {AudioBufferSourceNode | null} */
 let hold = null;
 
-/** 80 dB under full scale: below anything a speaker can make audible */
-const HOLD_LEVEL = 1e-4;
+/** 60 dB under full scale: audible to the meter, not to anyone */
+const HOLD_LEVEL = 1e-3;
 
 /** keep the audio clock running for the length of a session */
 export function holdClock() {

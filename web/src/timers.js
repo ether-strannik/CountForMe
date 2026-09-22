@@ -21,6 +21,7 @@ import { openSoundPicker, soundName } from './soundpick.js';
 import { listSounds } from './files.js';
 import { openScreen, closeScreen } from './nav.js';
 import { approachSec } from './prefs.js';
+import { timersRunning, timersDone } from './session.js';
 
 let timers = load('timer.countdowns', []);
 const saveTimers = () => save('timer.countdowns', timers);
@@ -207,13 +208,24 @@ function toggleTimer(id) {
   renderTimers();
   syncCdTicker();
 }
+// Called whenever the set of running timers changes. Two things follow
+// it: the tick that draws the cards, and the foreground service that
+// keeps the process alive while the user is in another app. Without
+// the service Android freezes the app within seconds of it leaving
+// the screen, and the audio clock, with every sound placed on it,
+// stops with the process: a timer came back a minute behind the wall.
 function syncCdTicker() {
-  const any = timers.some((t) => t.running);
-  if (any && !cdTicker) cdTicker = setInterval(cdTick, 250);
-  else if (!any && cdTicker) {
+  const running = timers.filter((t) => t.running);
+  if (running.length && !cdTicker) cdTicker = setInterval(cdTick, 250);
+  else if (!running.length && cdTicker) {
     clearInterval(cdTicker);
     cdTicker = null;
   }
+  if (!running.length) return timersDone();
+  // the notification counts down to whichever ends soonest
+  const next = running.reduce((a, t) => (cdRemaining(t) < cdRemaining(a) ? t : a));
+  const more = running.length - 1;
+  timersRunning(cdRemaining(next), (next.name || fmtClock(next.sec)) + (more ? ' +' + more : ''));
 }
 function cdTick() {
   let changed = false;

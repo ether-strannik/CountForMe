@@ -26,6 +26,11 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- A run with a quiet minute in it no longer stops counting when the
+  app is off screen. Android stops the sound output of a hidden app
+  after sixty silent seconds, and the clock every cue sits on stopped
+  with it. The app now stays audible to the system for as long as
+  something is running, at a level no one can hear.
 - A countdown timer shows the second it is in. A 5:00 timer holds
   5:00 for its first second, where it used to drop to 4:59 almost at
   once.
