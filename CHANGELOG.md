@@ -26,6 +26,8 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- The spoken count says seven. The file shipped for it was silent, so
+  a range set to 7 reps showed the number and said nothing.
 - A run with a quiet minute in it no longer stops counting when the
   app is off screen. Android stops the sound output of a hidden app
   after sixty silent seconds, and the clock every cue sits on stopped
