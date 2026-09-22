@@ -32,8 +32,8 @@ import java.util.List;
  *
  *   status()            -> { granted, name }
  *   pick()              -> { granted, name }
- *   list()              -> { names }
- *   read({ name })      -> { base64 }
+ *   list({ path? })     -> { names, dirs }   files and subfolders of a folder
+ *   read({ name })      -> { base64 }        name may be a path: "themes/x/y.mp3"
  *   write({ name, base64 })
  *   remove({ name })
  *   share({ name, base64 })  hand the bytes to another app
@@ -102,9 +102,9 @@ public class FolderPlugin extends Plugin {
     call.resolve(status(tree()));
   }
 
-  /** the document id of a top-level file by display name, or null */
-  private String docId(Uri t, String name) {
-    Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(t, DocumentsContract.getTreeDocumentId(t));
+  /** the id of the child of `parent` with this display name, or null */
+  private String childId(Uri t, String parent, String name) {
+    Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(t, parent);
     String[] cols = { DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME };
     try (Cursor c = getContext().getContentResolver().query(children, cols, null, null, null)) {
       while (c != null && c.moveToNext()) {
@@ -114,26 +114,53 @@ public class FolderPlugin extends Plugin {
     return null;
   }
 
+  /**
+   * The document id at a path under the tree, or null. A path is display
+   * names joined by "/"; "" is the tree itself. Each segment is one
+   * child lookup, which is how a theme's folder is reached.
+   */
+  private String docId(Uri t, String path) {
+    String id = DocumentsContract.getTreeDocumentId(t);
+    if (path == null || path.isEmpty()) return id;
+    for (String seg : path.split("/")) {
+      if (seg.isEmpty() || seg.equals(".") || seg.equals("..")) return null;
+      id = childId(t, id, seg);
+      if (id == null) return null;
+    }
+    return id;
+  }
+
+  /**
+   * What a folder holds: `names` are its files, `dirs` its subfolders.
+   * `path` picks the folder; left out, the tree itself. A path that does
+   * not exist lists as empty.
+   */
   @PluginMethod
   public void list(PluginCall call) {
     Uri t = tree();
     JSArray names = new JSArray();
-    if (t != null) {
-      Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(t, DocumentsContract.getTreeDocumentId(t));
+    JSArray dirs = new JSArray();
+    String id = t == null ? null : docId(t, call.getString("path", ""));
+    if (id != null) {
+      Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(t, id);
       String[] cols = { DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE };
-      List<String> out = new ArrayList<>();
+      List<String> files = new ArrayList<>();
+      List<String> folders = new ArrayList<>();
       try (Cursor c = getContext().getContentResolver().query(children, cols, null, null, null)) {
         while (c != null && c.moveToNext()) {
-          if (!DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(1))) out.add(c.getString(0));
+          if (DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(1))) folders.add(c.getString(0));
+          else files.add(c.getString(0));
         }
       } catch (Exception e) {
         call.reject("cannot list: " + e.getMessage());
         return;
       }
-      for (String n : out) names.put(n);
+      for (String n : files) names.put(n);
+      for (String n : folders) dirs.put(n);
     }
     JSObject r = new JSObject();
     r.put("names", names);
+    r.put("dirs", dirs);
     call.resolve(r);
   }
 

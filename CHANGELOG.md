@@ -7,6 +7,15 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Themes from your folder. Put a theme folder under `themes/` inside
+  the folder chosen under General and it appears in the picker. A
+  theme missing a colour is listed greyed with what it lacks and
+  cannot be picked. One missing a sound can be picked, and that cue is
+  silent; the picker says which. A theme that loses a colour after
+  being picked is left, and the Themes tab says so.
+
 ### Changed
 
 - Settings has a Themes tab in place of Sounds: the theme picker, then

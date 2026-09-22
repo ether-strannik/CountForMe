@@ -87,7 +87,8 @@ Every key is required. Every named file must exist beside the JSON.
 
 `web/src/themepack.js` holds the rule, once. `themeCheck(manifest,
 files)` takes the parsed JSON and the names of the files in the
-folder, and answers `{ok, missing}` with every gap named:
+folder, and answers `{ok, whole, missing, silent}`. `missing` names
+every gap:
 
 ```
 name
@@ -97,9 +98,20 @@ file gong.mp3 for sound main
 count 7
 ```
 
-The app runs it wherever a theme comes in: listing the folder,
-picking, importing, exporting. A theme that fails is listed greyed
-with its gaps and cannot be picked. There is no partial theme.
+Two lines are drawn, because a theme is built step by step and seen
+live as it goes.
+
+- `ok`: the name and every colour are there. The theme can be picked
+  and put on. A colour missing would leave a screen nobody can work
+  in, so this line is hard. A sound or count still blank is silence
+  for that cue, and `silent` lists which; the picker shows them.
+- `whole`: everything is there. Only a whole theme is exported or
+  imported, so what is handed on is the complete thing.
+
+The app runs the check wherever a theme comes in: listing the folder,
+picking, at launch, importing, exporting. A theme that is not `ok` is
+listed greyed with its gaps and cannot be picked. Nothing falls back
+to anything outside the theme.
 
 ## Where themes live on the phone
 

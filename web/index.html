@@ -298,6 +298,19 @@
           <div class="slabel">Theme</div>
           <select id="theme"></select>
         </div>
+        <!-- shown once, when the theme in use had to be left: its folder
+             went, or lost a file -->
+        <div class="srow snote" id="themeNote" hidden>
+          <div class="slabel"><small class="warn" id="themeNoteText"></small></div>
+        </div>
+        <div class="srow snote">
+          <div class="slabel">
+            <small
+              >More themes go in a <b>themes</b> folder inside the folder chosen under General, one folder each. A theme
+              is its colours and its sounds together, and is listed only when it is whole.</small
+            >
+          </div>
+        </div>
         <nav class="ttabs">
           <button class="ttab" data-ttab="colours" aria-selected="true">Colours</button>
           <button class="ttab" data-ttab="sounds" aria-selected="false">Sounds</button>

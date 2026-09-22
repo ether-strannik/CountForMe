@@ -1,0 +1,40 @@
+{
+  "name": "Blue",
+  "ui": {
+    "bg": "#12161a",
+    "card": "#191f26",
+    "line": "#232b34",
+    "text": "#e6e6e6",
+    "muted": "#8b98a5",
+    "accent": "#64b5f6",
+    "warn": "#d8a657",
+    "bad": "#ef6b6b",
+    "go": "#66bb6a",
+    "on-accent": "#06121f",
+    "accent-soft": "rgba(100, 181, 246, 0.4)",
+    "action": "#eef1f4",
+    "on-action": "#0b0f14",
+    "scrim": "rgba(0, 0, 0, 0.6)",
+    "glyph": "#5b6672"
+  },
+  "sounds": {
+    "approach": "piano-3.mp3",
+    "prepare": "clock-ticking.mp3",
+    "main": "gong.mp3",
+    "turn": "bell-4.mp3",
+    "rest": "wine-glass.mp3",
+    "end": "flute.mp3",
+    "timer": "flute.mp3"
+  },
+  "counts": {
+    "1": "1.mp3",
+    "2": "2.mp3",
+    "3": "3.mp3",
+    "4": "4.mp3",
+    "5": "5.mp3",
+    "6": "6.mp3",
+    "7": "7.mp3",
+    "8": "8.mp3",
+    "9": "9.mp3"
+  }
+}

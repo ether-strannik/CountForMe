@@ -1,19 +1,28 @@
 // The theme in use. The app ships one, in `theme/`: its colours, its
 // sounds and its spoken counts, the shape `themepack.js` describes.
-// Other themes will come from the folder the user chose, whole or not
-// at all. Nothing is overridden from anywhere else.
+// Others come from the folder the user chose, one folder each under
+// `themes/`, and only whole: one with a gap is listed with what it
+// lacks and cannot be picked. Nothing is overridden from anywhere else.
 //
 // The shipped theme's colours are also the stylesheet's, so the first
 // frame is right without waiting for a fetch. A theme from the folder
 // paints its colours over the stylesheet, and they are kept alongside
 // the choice so the next launch paints them before anything draws.
 import { load, save } from './storage.js';
-import { TOKENS } from './themepack.js';
+import { listDir, readFile } from './files.js';
+import { TOKENS, themeCheck } from './themepack.js';
 
 const KEY = 'timer.theme';
 
 /** the id of the theme the app ships with */
 export const SHIPPED = 'shipped';
+
+/** where the folder's themes live, under the folder the user picked */
+const DIR = 'themes';
+
+/** a folder theme's id carries its folder name */
+const FOLDER = 'folder:';
+const folderOf = (id) => (id.startsWith(FOLDER) ? id.slice(FOLDER.length) : '');
 
 /** @param {Record<string, string> | null} ui  null puts the stylesheet back */
 function paint(ui) {
@@ -25,12 +34,12 @@ function paint(ui) {
   }
 }
 
-/** @type {{id: string, ui: Record<string, string> | null}} */
-let chosen = load(KEY, { id: SHIPPED, ui: null });
+/** @type {{id: string, name: string, ui: Record<string, string> | null}} */
+let chosen = load(KEY, { id: SHIPPED, name: '', ui: null });
 // A choice made before themes were whole units named a file that no
 // longer exists. It is dropped, and the app is on the shipped theme.
-if (!chosen || chosen.id !== SHIPPED) {
-  chosen = { id: SHIPPED, ui: null };
+if (!chosen || !(chosen.id === SHIPPED || chosen.id.startsWith(FOLDER))) {
+  chosen = { id: SHIPPED, name: '', ui: null };
   save(KEY, chosen);
 }
 paint(chosen.ui);
@@ -44,39 +53,97 @@ export const themeId = () => chosen.id;
  */
 export const shippedTheme = async () => (await fetch('theme/theme.json')).json();
 
+const text = new TextDecoder();
+
+/** a folder theme's parsed theme.json, or null when it cannot be read */
+async function folderManifest(dir) {
+  const bytes = await readFile(DIR + '/' + dir + '/theme.json');
+  if (!bytes) return null;
+  try {
+    return JSON.parse(text.decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Every theme that can be picked. Only the shipped one, until the
- * folder is read.
- * @returns {Promise<{id: string, name: string, ui: Record<string, string>}[]>}
+ * Every theme that can be shown: the shipped one, then each folder
+ * under `themes/`, checked. One that cannot be used is still listed,
+ * so the picker can say what it lacks, but `ok` is false and it
+ * cannot be picked. One that can be used but is not whole is picked
+ * with its blank sounds silent, and `silent` names them.
+ * @returns {Promise<{id: string, name: string, ui: Record<string, string>,
+ *   ok: boolean, whole: boolean, missing: string[], silent: string[]}[]>}
  */
 export async function themeList() {
+  const out = [];
+  const fine = { ok: true, whole: true, missing: [], silent: [] };
   try {
     const t = await shippedTheme();
-    return [{ id: SHIPPED, name: t.name, ui: t.ui }];
+    out.push({ id: SHIPPED, name: t.name, ui: t.ui, ...fine });
   } catch {
-    return [{ id: SHIPPED, name: 'Nord', ui: {} }]; // the file is in the app; this is not reached
+    out.push({ id: SHIPPED, name: 'Nord', ui: {}, ...fine }); // in the app; not reached
   }
+  for (const dir of (await listDir(DIR)).dirs) {
+    const m = await folderManifest(dir);
+    const check = themeCheck(m, (await listDir(DIR + '/' + dir)).names);
+    out.push({ id: FOLDER + dir, name: (m && m.name) || dir, ui: (m && m.ui) || {}, ...check });
+  }
+  return out;
 }
 
 /**
  * Where the theme in use is read from: its manifest, and the bytes of
  * a file beside it. The sound engine goes through this and knows no
- * folder. Only the shipped theme, until the folder is read.
+ * folder. A folder theme that cannot be read any more resolves its
+ * manifest to null; the engine then falls back through `lose()`.
  * @returns {{manifest: () => Promise<any>, bytes: (file: string) => Promise<ArrayBuffer | null>}}
  */
 export function themeSource() {
+  const dir = folderOf(chosen.id);
+  if (!dir) {
+    return {
+      manifest: shippedTheme,
+      bytes: async (file) => {
+        const r = await fetch('theme/' + file);
+        return r.ok ? r.arrayBuffer() : null;
+      },
+    };
+  }
   return {
-    manifest: shippedTheme,
-    bytes: async (file) => {
-      const r = await fetch('theme/' + file);
-      return r.ok ? r.arrayBuffer() : null;
+    // usable, or nothing: a colour gone since the theme was picked is
+    // the same as the theme gone. A sound gone is that sound silent.
+    manifest: async () => {
+      const m = await folderManifest(dir);
+      return themeCheck(m, (await listDir(DIR + '/' + dir)).names).ok ? m : null;
     },
+    bytes: (file) => readFile(DIR + '/' + dir + '/' + file),
   };
 }
 
 /** use a theme and remember it, colours included */
-export function setTheme(id, ui) {
-  chosen = { id, ui: id === SHIPPED ? null : ui };
+export function setTheme(id, name, ui) {
+  lost = '';
+  chosen = { id, name, ui: id === SHIPPED ? null : ui };
   save(KEY, chosen);
   paint(chosen.ui);
+}
+
+// The one state the app cannot refuse. A folder theme was picked,
+// then its folder went, or lost a file, or the folder grant itself is
+// gone. There is nothing to paint or play from, so the app runs on the
+// shipped theme and says so, once, in the Themes tab. Not a fallback
+// rule: a theme is whole or unusable, and this one became unusable
+// after it was chosen.
+let lost = '';
+
+/** the folder theme the app had to leave, named; "" when none */
+export const lostTheme = () => lost;
+
+/** the chosen folder theme cannot be read: back to the shipped one */
+export function lose() {
+  if (chosen.id === SHIPPED) return;
+  const name = chosen.name || folderOf(chosen.id);
+  setTheme(SHIPPED, '', null);
+  lost = name; // after setTheme, which clears it: this is the one case it stays
 }

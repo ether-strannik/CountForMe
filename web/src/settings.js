@@ -18,7 +18,7 @@ import {
 import { audioCtx, ensureSound, play, playCount, soundName, setVolumes, testCue, testVoice } from './sound.js';
 import { TOKENS, SOUNDS, COUNTS } from './themepack.js';
 import { hasBridge, folder, pickFolder } from './files.js';
-import { themeId, themeList, setTheme } from './theme.js';
+import { themeId, themeList, setTheme, lostTheme } from './theme.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen } from './nav.js';
 
@@ -59,7 +59,7 @@ $('approach').addEventListener('keydown', (e) => {
   }
 });
 // ---- the theme: the shipped one, and later the folder's ----
-/** @type {{id: string, name: string, ui: Record<string, string>}[]} */
+/** @type {Awaited<ReturnType<typeof themeList>>} */
 let themes = [];
 
 /** the Colours tab: every token the theme in use sets, as a chip */
@@ -77,20 +77,42 @@ function drawSwatches(ui) {
   }
 }
 
+// The list is the shipped theme and every folder under themes/ in the
+// user's folder. One that is not whole is listed greyed with what it
+// lacks, the way Cadence names the range that does not fit, and it
+// cannot be picked. The note under the picker says when the theme in
+// use had to be left because its folder went.
 async function renderThemes() {
   themes = await themeList();
   const sel = $sel('theme');
   const now = themeId();
   sel.innerHTML = '';
-  themes.forEach((t) => sel.add(new Option(t.name, t.id)));
-  const t = themes.find((x) => x.id === now) || themes[0];
+  for (const t of themes) {
+    // cannot be used: greyed, with what it lacks. Usable but with
+    // sounds still blank: picked as it is, and named as silent there.
+    const label = !t.ok
+      ? t.name + ' · missing ' + t.missing.join(', ')
+      : t.whole
+        ? t.name
+        : t.name + ' · silent: ' + t.silent.join(', ');
+    const o = new Option(label, t.id);
+    o.disabled = !t.ok;
+    sel.add(o);
+  }
+  const t = themes.find((x) => x.id === now && x.ok) || themes[0];
   sel.value = t.id;
   drawSwatches(t.ui);
+  const lost = lostTheme();
+  $('themeNote').hidden = !lost;
+  if (lost)
+    $('themeNoteText').textContent = lost + ' could not be read any more, so the app is on ' + themes[0].name + '.';
 }
-$('theme').addEventListener('change', () => {
-  const t = themes.find((x) => x.id === $sel('theme').value) || themes[0];
-  setTheme(t.id, t.ui);
+$('theme').addEventListener('change', async () => {
+  const t = themes.find((x) => x.id === $sel('theme').value && x.ok) || themes[0];
+  setTheme(t.id, t.name, t.ui);
   drawSwatches(t.ui);
+  await drawSoundBtns(); // the other theme's names
+  $('themeNote').hidden = true;
 });
 
 // the two tabs inside Themes

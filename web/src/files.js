@@ -1,19 +1,23 @@
-// The user's files: presets, and soon themes, in one folder the user
-// picked once through the system picker (a scoped grant, no storage
-// permission). A native bridge lists and reads it; the page never
-// touches storage itself. Without the bridge — the page in a plain
-// browser — there is no folder and the lists are empty.
+// The user's files: presets at the top, themes in folders under
+// `themes/`, in one folder the user picked once through the system
+// picker (a scoped grant, no storage permission). A native bridge lists
+// and reads it; the page never touches storage itself. Without the
+// bridge — the page in a plain browser — there is no folder and the
+// lists are empty.
 //
 // The bridge contract, the native side's Folder plugin:
 //   status()            → { granted, name }
 //   pick()              → { granted, name }   opens the system folder picker
-//   list()              → { names }
-//   read({ name })      → { base64 }
+//   list({ path? })     → { names, dirs }     files and subfolders of one folder
+//   read({ name })      → { base64 }          name may be a path
 //   write({ name, base64 })
 //   remove({ name })
 //   share({ name, base64 })  the system share sheet
 
+/** one file or folder name: no separators */
 const NAME = /^[^/\\]{1,120}$/;
+/** a path of names under the folder: no empty, dot or dot-dot segments */
+const PATH = /^(?!.*(^|\/)\.\.?(\/|$))[^/\\]{1,120}(\/[^/\\]{1,120}){0,8}$/;
 const NONE = { granted: false, name: '' };
 
 const bridge = () => /** @type {any} */ (window).Capacitor?.Plugins?.Folder || null;
@@ -21,7 +25,13 @@ const bridge = () => /** @type {any} */ (window).Capacitor?.Plugins?.Folder || n
 /** true inside the app, false in a plain browser */
 export const hasBridge = () => !!bridge();
 
-// ---- bytes as base64, the bridge's wire format ----
+// ---- base64 <-> bytes, the bridge's wire format ----
+function fromB64(b64) {
+  const bin = atob(b64);
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u.buffer;
+}
 function toB64(buf) {
   const u = new Uint8Array(buf);
   let s = '';
@@ -48,6 +58,35 @@ export async function pickFolder() {
     return await b.pick();
   } catch {
     return folder();
+  }
+}
+
+/**
+ * What one folder under the tree holds. `path` is names joined by "/",
+ * "" for the tree itself. A folder that is not there lists as empty.
+ * @param {string} path
+ * @returns {Promise<{names: string[], dirs: string[]}>} files, and subfolders
+ */
+export async function listDir(path) {
+  const b = bridge();
+  if (!b || (path && !PATH.test(path))) return { names: [], dirs: [] };
+  try {
+    const r = await b.list({ path });
+    const clean = (a) => (a || []).filter((n) => NAME.test(n)).sort((x, y) => x.localeCompare(y));
+    return { names: clean(r.names), dirs: clean(r.dirs) };
+  } catch {
+    return { names: [], dirs: [] };
+  }
+}
+
+/** the bytes of one file by path, or null */
+export async function readFile(path) {
+  const b = bridge();
+  if (!b || !PATH.test(path)) return null;
+  try {
+    return fromB64((await b.read({ name: path })).base64);
+  } catch {
+    return null;
   }
 }
 

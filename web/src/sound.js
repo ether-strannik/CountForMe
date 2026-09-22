@@ -11,7 +11,7 @@
 // thread keeps running when the page is hidden and the animation frame
 // loop does not, so a cue that was scheduled still sounds while the
 // user is in another app. Nothing here waits for a timer to fire.
-import { themeSource } from './theme.js';
+import { themeSource, themeId, lose } from './theme.js';
 import { SOUNDS } from './themepack.js';
 
 let ac = null;
@@ -113,17 +113,39 @@ const synth = {
 export const EVENTS = ['approach', 'prepare', 'main', 'turn', 'rest', 'end'];
 
 // ---- the theme's files, decoded once each ----
-// The manifest is read once and kept, because placing a sound on the
-// clock is synchronous and has to know which file a key names. Buffers
-// are cached by file name; two keys naming one file decode it once.
+// The manifest is read once per theme and kept, because placing a
+// sound on the clock is synchronous and has to know which file a key
+// names. Buffers are cached by file name; two keys naming one file
+// decode it once. A change of theme drops both: another theme's
+// `gong.mp3` is another sound.
 /** @type {{sounds: Record<string, string>, counts: Record<string, string>} | null} */
 let manifest = null;
+/** the theme the manifest and cache belong to */
+let loadedFor = '';
 /** @type {Record<string, AudioBuffer | null>} */
 const cache = {};
 
-/** the theme's manifest, read on first use */
+/**
+ * The theme's manifest, read on first use and again after a change of
+ * theme. A folder theme that cannot be read any more is let go of, and
+ * the shipped theme's manifest comes back instead.
+ */
 async function ready() {
-  if (!manifest) manifest = await themeSource().manifest();
+  if (manifest && loadedFor === themeId()) return manifest;
+  for (const k of Object.keys(cache)) delete cache[k];
+  manifest = null;
+  let m = null;
+  try {
+    m = await themeSource().manifest();
+  } catch {
+    m = null;
+  }
+  if (!m || !m.sounds || !m.counts) {
+    lose();
+    m = await themeSource().manifest(); // the shipped one now
+  }
+  manifest = m;
+  loadedFor = themeId();
   return manifest;
 }
 
@@ -139,6 +161,14 @@ async function bufferFor(file) {
   }
   return cache[file];
 }
+
+// Read at launch, not at the first sound. A folder theme that went
+// while the app was closed is found out now, and the app is back on
+// the shipped theme before anything is drawn from the old colours for
+// long, rather than in the middle of arming a session.
+ready().catch(() => {
+  /* no theme readable at all; the next `ready` tries again */
+});
 
 /** a sound key the theme has; anything else is what a timer plays */
 const soundKey = (key) => (SOUNDS.includes(key) ? key : 'timer');
@@ -170,7 +200,9 @@ export const ensureBuffers = () => Promise.all(EVENTS.map(ensureSound));
  * @returns {AudioScheduledSourceNode[]} the sources, so a caller can cancel them
  */
 export function playAt(key, at) {
-  const buf = cache[fileFor(key)];
+  const file = fileFor(key);
+  if (!file) return []; // the theme names nothing for it: silence, by design
+  const buf = cache[file];
   if (buf) {
     try {
       const c = audioCtx();
