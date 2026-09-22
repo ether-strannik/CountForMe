@@ -5,45 +5,121 @@ import { fmtClock } from './format.js';
 import { load, save } from './storage.js';
 import { askConfirm } from './confirm.js';
 import { makePad } from './keypad.js';
-import { audioCtx, play, playFile, buzz, packList, timerSound, ensureBuffers } from './sound.js';
+import {
+  audioCtx,
+  playAt,
+  playFileAt,
+  buzz,
+  packList,
+  timerSound,
+  ensureBuffers,
+  ensureFile,
+  holdClock,
+  releaseClock,
+} from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { listSounds } from './files.js';
 import { openScreen, closeScreen } from './nav.js';
 import { approachSec } from './prefs.js';
 
 let timers = load('timer.countdowns', []);
-// a timer that already elapsed while away comes back stopped, no beep
-timers.forEach((t) => {
-  if (t.running && t.endAt - Date.now() <= 0) {
-    t.running = false;
-    t.rem = 0;
-  }
-});
 const saveTimers = () => save('timer.countdowns', timers);
 let cdTicker = null;
 let taEditId = null;
 
-const cdRemaining = (t) => (t.running ? (t.endAt - Date.now()) / 1000 : t.rem);
-
-// The last seconds of a countdown, one knock each, using the same
-// setting Phases and Cadence read. Zero there turns it off here too.
+// One clock, as in runner.js. A running timer lives on the AUDIO clock:
+// its zero is a time on that clock, every sound it will make is placed
+// there the moment it starts, and the card is drawn from the same
+// number. What is seen and what is heard cannot come apart.
 //
-// Which second has already been announced, by timer id. Memory only:
-// it belongs to this run of this timer, not to the timer, and writing
-// it would put run state in the saved list.
-/** @type {Map<string, number>} */
-const knocked = new Map();
+// Date.now() is not consulted while a timer runs. It was, with the
+// sounds bridged onto the audio clock once at the start, and every one
+// of them landed late against the display: the audio clock loses close
+// to a second while the output stream opens, and a display on the wall
+// clock does not follow it there. `endAt` is kept only so a timer can
+// be picked up again after the app was closed.
+/** @type {Map<string, number>} audio time of zero, by running timer */
+const zeros = new Map();
+/** @type {Map<string, AudioScheduledSourceNode[]>} sounds placed, by timer */
+const scheduled = new Map();
+/** timers between the tap and the clock: decoding, not yet running */
+const starting = new Set();
 
-/** knock once as the countdown enters each of its last seconds */
+/** seconds left, on the clock the sounds are on */
+const cdRemaining = (t) => (t.running ? zeros.get(t.id) - audioCtx().currentTime : t.rem);
+
+/** drop whatever this timer still has waiting on the clock */
+function unschedule(id) {
+  for (const s of scheduled.get(id) || []) {
+    try {
+      s.stop();
+    } catch {
+      /* already finished */
+    }
+  }
+  scheduled.delete(id);
+  zeros.delete(id);
+  if (!scheduled.size) releaseClock(); // nothing left to keep it open for
+}
+
+/**
+ * Arm, then go. Everything is decoded first, and only then is the
+ * clock read: a knock through each of the last seconds and the timer's
+ * own sound at zero are placed on it, and the timer is running from
+ * that instant. A timer deleted or started again while it was decoding
+ * is left alone.
+ */
+async function start(t) {
+  if (starting.has(t.id)) return;
+  starting.add(t.id);
+  audioCtx(); // armed on the gesture that got us here
+  await Promise.all([ensureBuffers(), ensureFile(t.sound)]);
+  starting.delete(t.id);
+  if (t.running || !timers.includes(t)) return;
+  if (t.rem <= 0) t.rem = t.sec;
+  holdClock(); // before placing anything: the clock must not stall
+  const c = audioCtx();
+  const zero = c.currentTime + t.rem;
+  zeros.set(t.id, zero);
+  t.endAt = Date.now() + t.rem * 1000;
+  t.running = true;
+  const out = [];
+  // A knock as the countdown enters each of its last seconds. One
+  // already past is skipped rather than fired at once.
+  for (let k = approachSec(); k >= 1; k--) {
+    if (zero - k > c.currentTime) out.push(...playAt('approach', zero - k));
+  }
+  out.push(...playFileAt(t.sound, zero));
+  scheduled.set(t.id, out);
+  saveTimers();
+  renderTimers();
+  syncCdTicker();
+}
+
+// A timer left running when the app closed. Past its end, it comes
+// back stopped with no sound: that moment is gone. Still going, it is
+// put back on the clock with what it has left.
+timers.forEach((t) => {
+  if (!t.running) return;
+  t.running = false;
+  t.rem = Math.max(0, (t.endAt - Date.now()) / 1000);
+  if (t.rem > 0) start(t);
+});
+
+// Which second has already been felt, by timer id. Only the buzz needs
+// this: the sound is on the clock, but vibration cannot be scheduled.
+/** @type {Map<string, number>} */
+const buzzed = new Map();
+
+/** vibrate as the countdown enters each of its last seconds */
 function lastSeconds(t, rem) {
   const n = approachSec();
   if (!n) return;
   // The same rounding the card uses, from the same value on the same
-  // tick, so the knock and the number can never disagree.
+  // tick, so what is felt and what is shown cannot disagree.
   const s = Math.ceil(rem);
-  if (s < 1 || s > n || knocked.get(t.id) === s) return;
-  knocked.set(t.id, s);
-  play('approach');
+  if (s < 1 || s > n || buzzed.get(t.id) === s) return;
+  buzzed.set(t.id, s);
   buzz(60);
 }
 const RING_C = 2 * Math.PI * 45;
@@ -83,7 +159,8 @@ export function renderTimers() {
     updateCard(card, t);
     card.querySelector('.tcdel').addEventListener('click', () => {
       askConfirm('Delete this timer?', () => {
-        knocked.delete(t.id);
+        buzzed.delete(t.id);
+        unschedule(t.id);
         timers = timers.filter((x) => x.id !== t.id);
         saveTimers();
         renderTimers();
@@ -96,7 +173,8 @@ export function renderTimers() {
     const rsEl = card.querySelector('.reset');
     if (rsEl)
       rsEl.addEventListener('click', () => {
-        knocked.delete(t.id);
+        buzzed.delete(t.id);
+        unschedule(t.id);
         t.running = false;
         t.rem = t.sec;
         saveTimers();
@@ -120,19 +198,11 @@ function renderTimersTimes() {
 function toggleTimer(id) {
   const t = timers.find((x) => x.id === id);
   if (!t) return;
-  // Arm audio on this gesture and decode the cues, so the knocks in
-  // the last seconds are ready rather than fetched when they are due.
-  audioCtx();
-  ensureBuffers();
-  knocked.delete(t.id); // a stop or a restart begins the count again
-  if (t.running) {
-    t.rem = Math.max(0, (t.endAt - Date.now()) / 1000);
-    t.running = false;
-  } else {
-    if (t.rem <= 0) t.rem = t.sec;
-    t.endAt = Date.now() + t.rem * 1000;
-    t.running = true;
-  }
+  buzzed.delete(t.id); // a stop or a restart begins the count again
+  if (!t.running) return start(t);
+  t.rem = Math.max(0, cdRemaining(t));
+  t.running = false;
+  unschedule(t.id); // whatever was placed is no longer due when it was
   saveTimers();
   renderTimers();
   syncCdTicker();
@@ -149,14 +219,18 @@ function cdTick() {
   let changed = false;
   timers.forEach((t) => {
     if (!t.running) return;
-    const rem = (t.endAt - Date.now()) / 1000;
+    const rem = cdRemaining(t);
     if (rem > 0) return lastSeconds(t, rem);
     t.running = false;
     t.rem = t.sec; // reset to the set duration, ready to run again
     changed = true;
-    knocked.delete(t.id);
-    playFile(t.sound); // ONE beep, no loop
-    buzz(300);
+    buzzed.delete(t.id);
+    // Not `unschedule`: the sound at zero is still ringing, and a stop
+    // here would cut it. Only the hold is let go of.
+    scheduled.delete(t.id);
+    zeros.delete(t.id);
+    if (!scheduled.size) releaseClock();
+    buzz(300); // the sound was placed on the clock when this started
   });
   if (changed) {
     saveTimers();

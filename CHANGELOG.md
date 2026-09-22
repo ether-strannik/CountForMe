@@ -9,6 +9,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- A countdown timer sounds with the app in the background or the
+  screen off, as a session does. It used to end in silence unless the
+  app was on screen, and a timer left running when the app closed
+  came back mute.
 - The reset button on a running timer is a drawn mark. A timer card
   now carries no text glyphs at all, so nothing on it depends on the
   device's font.

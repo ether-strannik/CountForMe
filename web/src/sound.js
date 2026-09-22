@@ -316,18 +316,37 @@ export const buzz = (ms) => navigator.vibrate && navigator.vibrate(ms);
 /** what a new countdown timer starts with, as set under Sounds */
 export const timerSound = () => chosen('timer');
 
-/** play a sound by choice (countdown timers), the default when unset */
-export async function playFile(f) {
-  const buf = await bufferFor(f || timerSound());
-  if (!buf) return tone(880, 0.3, 'sine', 0.45);
-  try {
-    const s = audioCtx().createBufferSource();
-    s.buffer = buf;
-    s.connect(buses().cue);
-    s.start();
-  } catch {
-    tone(880, 0.3, 'sine', 0.45);
+/** decode a choice so it can be put on the clock later; cached after */
+export const ensureFile = (f) => bufferFor(f || timerSound());
+
+/**
+ * Put a chosen file on the audio clock at `at`. Decoded first by
+ * `ensureFile`: nothing is fetched here, because a sound that has to
+ * be fetched when it is due is a sound that arrives late, or not at
+ * all once the page is in the background.
+ * @param {string} f @param {number} at
+ * @returns {AudioScheduledSourceNode[]} the source, so a caller can cancel it
+ */
+export function playFileAt(f, at) {
+  const buf = cache[f || timerSound()];
+  if (buf) {
+    try {
+      const s = audioCtx().createBufferSource();
+      s.buffer = buf;
+      s.connect(buses().cue);
+      s.start(at);
+      return [s];
+    } catch {
+      /* fall through to the tone */
+    }
   }
+  return [tone(880, 0.3, 'sine', 0.45, at)].filter(Boolean);
+}
+
+/** play a sound by choice, now, decoding it if need be */
+export async function playFile(f) {
+  await ensureFile(f);
+  playFileAt(f, audioCtx().currentTime);
 }
 
 // ---- the Volume tab's test buttons ----
