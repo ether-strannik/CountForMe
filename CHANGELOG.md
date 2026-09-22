@@ -5,6 +5,27 @@ All notable changes documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [Unreleased]
+
+### Added
+
+- The preset manager lists categories, and the presets inside them,
+  by name. A view order only: nothing in the library moves.
+
+### Changed
+
+- The Cadence run screen counts cycles in the round, like Phases,
+  instead of reps. Thirty work intervals a round now read 1/30 to
+  30/30.
+
+### Fixed
+
+- Sound and screen drifted apart by seconds a minute on programs with
+  long gaps between cues. Android closed the audio stream during the
+  silence and its clock fell behind. The run now keeps the stream open
+  for its length and draws from the audio clock, so what is heard and
+  what is seen come from one clock.
+
 ## [1.1.0] - 2026-09-21
 
 ### Added

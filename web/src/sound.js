@@ -211,6 +211,50 @@ export function sayAt(n, at) {
   }
 }
 
+// After thirty seconds of silence the browser closes the hardware
+// stream and drives rendering from a timer instead, and a timer in a
+// background page runs slow. AudioContext.currentTime then falls behind
+// the wall clock: 2.7 seconds lost over three minutes on a program with
+// a minute between cues, every one of them landing late because they
+// were all placed on that clock in advance. So a session is never
+// silent. It loops one second of a sample too small to hear, and the
+// stream stays open for as long as it runs.
+//
+// Not zeros. The silence check is for samples that are exactly zero,
+// and a looping empty buffer was tried first and changed nothing.
+/** @type {AudioBufferSourceNode | null} */
+let hold = null;
+
+/** 80 dB under full scale: below anything a speaker can make audible */
+const HOLD_LEVEL = 1e-4;
+
+/** keep the audio clock running for the length of a session */
+export function holdClock() {
+  if (hold) return;
+  try {
+    const c = audioCtx();
+    const buf = c.createBuffer(1, Math.round(c.sampleRate), c.sampleRate);
+    buf.getChannelData(0).fill(HOLD_LEVEL);
+    hold = c.createBufferSource();
+    hold.buffer = buf;
+    hold.loop = true;
+    hold.connect(c.destination);
+    hold.start();
+  } catch {
+    hold = null; // no audio on this device; the drift is moot
+  }
+}
+
+/** let the stream close again */
+export function releaseClock() {
+  try {
+    hold && hold.stop();
+  } catch {
+    /* already stopped */
+  }
+  hold = null;
+}
+
 /** vibrate; Android ignores this while the page is hidden */
 export const buzz = (ms) => navigator.vibrate && navigator.vibrate(ms);
 

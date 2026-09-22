@@ -1,16 +1,17 @@
-// The wall-clock run engine both interval screens share: pause/resume by
-// shifting the start, the screen wake lock, and the session's cues.
+// The run engine both interval screens share: the session's cues, the
+// screen wake lock, and pause/resume.
 //
-// Sound and drawing run on different clocks, on purpose. Every cue in
-// the list `cues.js` built is placed on the AUDIO clock the moment the
-// session starts, so it plays whether or not the page is on screen —
-// the audio thread keeps time when the animation frame loop is
-// suspended. Drawing stays on requestAnimationFrame off Date.now(),
-// because drawing only matters when there is someone looking.
+// One clock. Every cue in the list `cues.js` built is placed on the
+// AUDIO clock the moment the session starts, so it plays whether or not
+// the page is on screen: the audio thread keeps time when the animation
+// frame loop is suspended. Drawing reads that same clock. A frame and
+// the sound due in it come from one number, so what is seen and what is
+// heard cannot come apart, whatever the clock itself does. Date.now()
+// is not consulted; the two were drifting by seconds a minute.
 //
 // What a frame LOOKS like is the screen's job, handed in as hooks; the
 // screens make no sound of their own.
-import { audioCtx, ensureBuffers, ensureCounts, playAt, sayAt, buzz } from './sound.js';
+import { audioCtx, ensureBuffers, ensureCounts, playAt, sayAt, buzz, holdClock, releaseClock } from './sound.js';
 import { sessionStart, sessionPause, sessionResume, sessionStop } from './session.js';
 
 /** a cue key from `cues.js` → the buzz that goes with it */
@@ -47,9 +48,11 @@ const LINGER = 3000;
 export function makeRunner(hooks) {
   let raf = 0;
   let wake = null;
-  let startMs = 0;
+  /** audio time of run second 0; moved forward by every pause */
+  let base = 0;
   let paused = false;
-  let pauseStart = 0;
+  /** run seconds elapsed when the pause began */
+  let pausedAt = 0;
   let running = false;
   let finished = false;
   let prepare = 0;
@@ -101,13 +104,16 @@ export function makeRunner(hooks) {
     cueIdx = 0;
     paused = false;
     finished = false;
-    startMs = Date.now();
     running = true;
+    holdClock(); // before scheduling: the clock must not stall mid-session
     keepAwake();
     sessionStart(prepare + sessionSec, s.title);
     schedule(0);
     tick();
   }
+
+  /** seconds into the run, on the clock the cues are on */
+  const elapsedNow = () => audioCtx().currentTime - base;
 
   /**
    * Put every cue still to come on the audio clock. `from` is where the
@@ -116,7 +122,7 @@ export function makeRunner(hooks) {
    */
   function schedule(from) {
     cancel();
-    const base = audioCtx().currentTime - from; // audio time of run second 0
+    base = audioCtx().currentTime - from;
     /** what the cue before this one placed, still able to be sounding */
     let earlier = [];
     for (const c of cues) {
@@ -176,7 +182,7 @@ export function makeRunner(hooks) {
   }
 
   function tick() {
-    const now = (Date.now() - startMs) / 1000;
+    const now = elapsedNow();
     fireCues(now);
 
     // PREPARE: a get-ready lead-in before the session
@@ -204,6 +210,7 @@ export function makeRunner(hooks) {
     clearTimeout(lingerId);
     cancelAnimationFrame(raf);
     cancel();
+    releaseClock();
     releaseAwake();
     sessionStop();
     running = false;
@@ -217,14 +224,12 @@ export function makeRunner(hooks) {
       paused = true;
       cancelAnimationFrame(raf);
       cancel(); // the rest of the session is no longer due when it was
-      pauseStart = Date.now();
+      pausedAt = elapsedNow();
       sessionPause();
     } else {
       paused = false;
-      startMs += Date.now() - pauseStart; // carry the clock forward
-      const runNow = (Date.now() - startMs) / 1000;
-      schedule(runNow);
-      sessionResume(prepare + sessionSec - runNow);
+      schedule(pausedAt); // run second 0 moves forward by the pause's length
+      sessionResume(prepare + sessionSec - pausedAt);
     }
     hooks.paused(paused);
     if (!paused) tick();
