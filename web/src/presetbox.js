@@ -20,8 +20,7 @@
 import { $, $in } from './dom.js';
 import { askConfirm } from './confirm.js';
 import { openScreen, closeScreen } from './nav.js';
-import { packLibrary, unpackProfiles, fileName, cleanFileName } from './profiles.js';
-import { writeText, shareText } from './files.js';
+import { attach, exporting, ticked, tick } from './presetxfer.js';
 
 /**
  * @typedef {{id: string, names: () => string[], loose: () => string[],
@@ -52,12 +51,6 @@ let sel = null;
 // carry someone else's idea of what should be unfolded.
 /** @type {Set<string>} */
 const unfolded = new Set();
-// Export is its own mode, not selection: it ticks boxes rather than
-// greying rows, because the two answer different questions — what am
-// I acting on now, versus what goes in the file.
-/** @type {{presets: Set<string>, cats: Set<string>} | null} */
-let pick = null;
-const exporting = () => pick !== null;
 
 const LONG_MS = 450;
 
@@ -71,12 +64,6 @@ const ORDERS = {
 let order = 'name';
 /** @param {string[]} names */
 const inOrder = (names) => [...names].sort(ORDERS[order]);
-
-/** the preset names inside one category */
-const catItems = (catId) => {
-  const c = box ? box.cats().find((x) => x.id === catId) : null;
-  return c ? c.items : [];
-};
 
 const selecting = () => sel !== null;
 const selCount = () => (sel ? sel.presets.size + sel.cats.size : 0);
@@ -134,19 +121,9 @@ function row(kind, key, name, open, onDelete) {
     (cat ? '<button class="prfold" aria-expanded="true">›</button>' : '') +
     '<button class="prname"></button><button class="prdel" title="Delete">✕</button>';
   if (exporting()) {
-    const bucket = cat ? pick.cats : pick.presets;
-    const tick = /** @type {HTMLInputElement} */ (el.querySelector('.prtick'));
-    tick.checked = bucket.has(key);
-    tick.addEventListener('change', () => {
-      if (tick.checked) bucket.add(key);
-      else bucket.delete(key);
-      if (!cat) return;
-      // Its presets go with it, so they stop being offered — and any
-      // that were already ticked are unticked, or they would go in the
-      // file twice, once as members and once loose.
-      if (tick.checked) catItems(key).forEach((n) => pick.presets.delete(n));
-      render();
-    });
+    const cb = /** @type {HTMLInputElement} */ (el.querySelector('.prtick'));
+    cb.checked = ticked(kind, key);
+    cb.addEventListener('change', () => tick(kind, key, cb.checked));
   }
   if (cat) {
     // The arrow folds the set; it is its own target so a tap on the
@@ -168,9 +145,9 @@ function row(kind, key, name, open, onDelete) {
   label.addEventListener('click', () => {
     if (exporting()) {
       // the whole row is the tick while choosing what to export
-      const tick = /** @type {HTMLInputElement} */ (el.querySelector('.prtick'));
-      tick.checked = !tick.checked;
-      return tick.dispatchEvent(new Event('change'));
+      const cb = /** @type {HTMLInputElement} */ (el.querySelector('.prtick'));
+      cb.checked = !cb.checked;
+      return cb.dispatchEvent(new Event('change'));
     }
     if (selecting()) return toggle(kind, key);
     if (open) open();
@@ -230,7 +207,7 @@ function render() {
     list.appendChild(el);
     // A ticked category carries its presets, so they are not offered
     // separately while exporting — the set goes whole.
-    const show = exporting() ? !pick.cats.has(c.id) && unfolded.has(c.id) : unfolded.has(c.id);
+    const show = unfolded.has(c.id) && !ticked('cat', c.id);
     if (show) inOrder(c.items).forEach((name) => list.appendChild(presetRow(api, name, true)));
   });
 
@@ -357,6 +334,7 @@ function openMoveMenu() {
  */
 export function openPresets(title, api) {
   box = api;
+  attach(api, render);
   sel = null;
   $('presetTitle').dataset.title = title;
   $('presetMenu').hidden = true;
@@ -379,78 +357,8 @@ function nameRow(what) {
   input.focus();
 }
 
-// ---- export: tick what goes in the file, name it, write it ----
-// Its own screen, so Android back leaves export rather than closing
-// the sheet — the same shape selection uses.
-$('presetExport').addEventListener('click', () => {
-  pick = { presets: new Set(), cats: new Set() };
-  openScreen('presetexp', () => {
-    pick = null;
-    nameRow('');
-    render();
-  });
-  render();
-});
-$('presetExpCancel').addEventListener('click', () => closeScreen('presetexp'));
-// Naming the file is its own screen too, so Android back steps from
-// the name to the ticks and from the ticks out of export. There is no
-// Back button anywhere here; the system has one.
-$('presetExpNext').addEventListener('click', () => {
-  if (!pick || !box) return;
-  if (!pick.presets.size && !pick.cats.size) return note('Tick something to export.');
-  $in('presetFileName').value = fileName(box.id, new Date());
-  $('presetFileRow').hidden = false;
-  $('presetExpActions').hidden = true;
-  openScreen('presetname', () => {
-    $('presetFileRow').hidden = true;
-    $('presetExpActions').hidden = !exporting();
-  });
-  $('presetFileName').focus();
-});
-$('presetFileOk').addEventListener('click', () => finish('save'));
-$('presetShare').addEventListener('click', () => finish('share'));
-$('presetFileName').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  finish('save');
-});
-
-const note = (t) => ($('presetNote').textContent = t);
-
-/**
- * Write the file, or hand it to another app.
- * @param {'save'|'share'} how
- */
-async function finish(how) {
-  if (!pick || !box) return;
-  const name = cleanFileName($in('presetFileName').value);
-  if (!name) return note('Name the file.');
-  const { cats, items } = box.exportPicked([...pick.presets], [...pick.cats]);
-  const text = packLibrary(box.id, cats, items);
-  const ok = how === 'share' ? await shareText(name, text) : await writeText(name, text);
-  if (!ok) {
-    return note(how === 'share' ? 'Could not share.' : 'Could not save. Pick a folder in settings first.');
-  }
-  if (how === 'save') note('Saved ' + name);
-  closeScreen('presetexp'); // pops the name screen with it
-}
-
-// ---- import: a file in, nothing overwritten ----
-$('presetImport').addEventListener('click', () => $('presetFile').click());
-$('presetFile').addEventListener('change', async () => {
-  const file = ($in('presetFile').files || [])[0];
-  $in('presetFile').value = ''; // so the same file can be picked twice
-  if (!file || !box) return;
-  const doc = unpackProfiles(await file.text());
-  if (!doc) return note('Not a presets file.');
-  if (doc.kind !== box.id) return note('That file is for the other tab.');
-  const { cats, items, skipped } = box.importDoc(doc);
-  const bits = [];
-  if (cats) bits.push(cats + (cats === 1 ? ' category' : ' categories'));
-  if (items) bits.push(items + (items === 1 ? ' preset' : ' presets'));
-  note(bits.length ? 'Added ' + bits.join(' and ') + (skipped ? ', skipped ' + skipped : '') : 'Nothing to add.');
-  render();
-});
+// Export and import: presetxfer.js. It draws nothing; the ticks on
+// the rows above are its, and it redraws through `render`.
 
 $('presetAdd').addEventListener('click', () => nameRow('preset'));
 $('presetAddCat').addEventListener('click', () => nameRow('cat'));
