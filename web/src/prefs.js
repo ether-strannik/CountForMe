@@ -27,6 +27,32 @@ export function setApproach(n) {
   saveStr('timer.approach', String(approach));
 }
 
+// How loud each thing the app plays is, in decibels up or down from
+// the level it ships at. Zero is that level, so a slider never
+// touched changes nothing.
+const DB_MAX = 12;
+/** a whole number of decibels within the range the sliders offer */
+const decibels = (v) => Math.max(-DB_MAX, Math.min(DB_MAX, Math.round(+v || 0)));
+
+let cueDb = decibels(loadStr('timer.cuedb', '0'));
+let voiceDb = decibels(loadStr('timer.voicedb', '0'));
+
+/** the cue sounds, in decibels from the shipped level */
+export const cueVolume = () => cueDb;
+/** @param {number} db */
+export function setCueVolume(db) {
+  cueDb = decibels(db);
+  saveStr('timer.cuedb', String(cueDb));
+}
+
+/** the spoken counts, in decibels from the shipped level */
+export const voiceVolume = () => voiceDb;
+/** @param {number} db */
+export function setVoiceVolume(db) {
+  voiceDb = decibels(db);
+  saveStr('timer.voicedb', String(voiceDb));
+}
+
 /** keep the screen on for as long as the app is up */
 export const keepScreenOn = () => awake;
 /** @param {boolean} on */

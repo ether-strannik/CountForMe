@@ -244,6 +244,7 @@
       <nav class="stabs">
         <button class="stab" data-stab="general" aria-selected="true">General</button>
         <button class="stab" data-stab="sounds" aria-selected="false">Sounds</button>
+        <button class="stab" data-stab="volume" aria-selected="false">Volume</button>
       </nav>
       <div id="sGeneral" class="spage">
         <div class="srow">
@@ -311,6 +312,35 @@
             <small
               >Every list above starts with the sounds that came with the app. To use your own, drop audio files into
               the folder you pick under General and they appear below them.</small
+            >
+          </div>
+        </div>
+      </div>
+      <!-- Volume: one fader per thing the app plays. Zero is the level
+           it ships at, so a slider that was never touched changes
+           nothing. Test plays that channel at the level set. -->
+      <div id="sVolume" class="spage" hidden>
+        <div class="vrow">
+          <div class="slabel">Cues <small>the sound at every interval</small></div>
+          <div class="vline">
+            <input id="volCue" class="vslider" type="range" min="-12" max="12" step="1" value="0" />
+            <span class="vval" id="volCueVal">0</span>
+            <button id="volCueTest" class="pbtn">Test</button>
+          </div>
+        </div>
+        <div class="vrow">
+          <div class="slabel">Voice <small>the spoken rep count</small></div>
+          <div class="vline">
+            <input id="volVoice" class="vslider" type="range" min="-12" max="12" step="1" value="0" />
+            <span class="vval" id="volVoiceVal">0</span>
+            <button id="volVoiceTest" class="pbtn">Test</button>
+          </div>
+        </div>
+        <div class="srow snote">
+          <div class="slabel">
+            <small
+              >Decibels, up or down from the level the app ships at. Music from another app has its own volume and
+              cannot be set from here.</small
             >
           </div>
         </div>

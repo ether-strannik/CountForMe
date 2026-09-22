@@ -24,6 +24,53 @@ export function audioCtx() {
   if (ac.state === 'suspended') ac.resume();
   return ac;
 }
+
+// ---- the two buses everything plays through ----
+// Cues on one, the spoken counts on the other, each behind a gain the
+// user sets. A bus rather than a gain per sound because a session is
+// scheduled whole at the start: moving a slider has to reach cues
+// already placed on the clock, and only a shared node does that.
+//
+// The voice starts lifted. Those files were recorded quieter than the
+// cue sounds, so this is the correction that makes the two level, and
+// what the user sets moves from there.
+const VOICE_BASE = 2.5;
+/** @type {GainNode | null} */
+let cueBus = null;
+/** @type {GainNode | null} */
+let voiceBus = null;
+
+function buses() {
+  const c = audioCtx();
+  if (!cueBus) {
+    cueBus = c.createGain();
+    cueBus.connect(c.destination);
+  }
+  if (!voiceBus) {
+    voiceBus = c.createGain();
+    voiceBus.gain.value = VOICE_BASE;
+    voiceBus.connect(c.destination);
+  }
+  return { cue: cueBus, voice: voiceBus };
+}
+
+/** decibels as a multiplier: 0 leaves a level alone */
+const fromDb = (db) => Math.pow(10, (+db || 0) / 20);
+
+/**
+ * How loud each bus runs, in decibels from the level the app ships at.
+ * @param {number} cueDb @param {number} voiceDb
+ */
+export function setVolumes(cueDb, voiceDb) {
+  try {
+    const b = buses();
+    b.cue.gain.value = fromDb(cueDb);
+    b.voice.gain.value = VOICE_BASE * fromDb(voiceDb);
+  } catch {
+    /* no audio on this device; nothing to set */
+  }
+}
+
 /**
  * @param {number} freq @param {number} dur @param {string} [type]
  * @param {number} [vol]
@@ -39,7 +86,7 @@ function tone(freq, dur, type, vol, at) {
     o.type = type || 'sine';
     o.frequency.value = freq;
     o.connect(g);
-    g.connect(c.destination);
+    g.connect(buses().cue);
     const t = at === undefined ? c.currentTime : at;
     g.gain.setValueAtTime(vol || 0.35, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -157,7 +204,7 @@ export function playAt(key, at) {
       const c = audioCtx();
       const s = c.createBufferSource();
       s.buffer = buf;
-      s.connect(c.destination);
+      s.connect(buses().cue);
       s.start(at);
       return [s];
     } catch {
@@ -191,12 +238,6 @@ export async function ensureCounts(nums) {
   );
 }
 
-// The numbers were recorded quieter than the cue sounds, so they are
-// lifted to sit with them. One number for all of them: the recordings
-// are level with each other, and the cue is whatever the user picked,
-// so no per-file tuning would hold anyway.
-const VOICE_GAIN = 2.5;
-
 /**
  * Put a spoken number on the audio clock.
  * @param {number} n @param {number} at
@@ -206,13 +247,9 @@ export function sayAt(n, at) {
   const buf = counts[n];
   if (!buf) return [];
   try {
-    const c = audioCtx();
-    const s = c.createBufferSource();
+    const s = audioCtx().createBufferSource();
     s.buffer = buf;
-    const g = c.createGain();
-    g.gain.value = VOICE_GAIN;
-    s.connect(g);
-    g.connect(c.destination);
+    s.connect(buses().voice);
     s.start(at);
     return [s];
   } catch {
@@ -275,12 +312,25 @@ export async function playFile(f) {
   const buf = await bufferFor(f || TIMER_DEFAULT);
   if (!buf) return tone(880, 0.3, 'sine', 0.45);
   try {
-    const c = audioCtx();
-    const s = c.createBufferSource();
+    const s = audioCtx().createBufferSource();
     s.buffer = buf;
-    s.connect(c.destination);
+    s.connect(buses().cue);
     s.start();
   } catch {
     tone(880, 0.3, 'sine', 0.45);
   }
+}
+
+// ---- the Volume tab's test buttons ----
+
+/** the Work cue, at the level set, so a slider can be heard while moved */
+export async function testCue() {
+  await decode('main');
+  play('main');
+}
+
+/** a spoken number, the same way */
+export async function testVoice() {
+  await ensureCounts([3]);
+  sayAt(3, audioCtx().currentTime);
 }

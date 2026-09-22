@@ -2,8 +2,19 @@
 // folder, the theme, and what Android is allowing. Sounds: a sound
 // per cue. Android back closes it (nav.js); nothing is drawn for that.
 import { $, $$, $in, $sel, $btn } from './dom.js';
-import { getStartTab, setStartTab, approachSec, setApproach, keepScreenOn, setKeepScreenOn } from './prefs.js';
-import { EVENTS, audioCtx, chosen, setChoice, packList } from './sound.js';
+import {
+  getStartTab,
+  setStartTab,
+  approachSec,
+  setApproach,
+  keepScreenOn,
+  setKeepScreenOn,
+  cueVolume,
+  setCueVolume,
+  voiceVolume,
+  setVoiceVolume,
+} from './prefs.js';
+import { EVENTS, audioCtx, chosen, setChoice, packList, setVolumes, testCue, testVoice } from './sound.js';
 import { openSoundPicker, soundName } from './soundpick.js';
 import { hasBridge, folder, pickFolder, listSounds } from './files.js';
 import { themeFile, themeList, setTheme } from './theme.js';
@@ -88,6 +99,36 @@ $('awakeBtn').addEventListener('click', () => {
   renderAwake();
 });
 
+// ---- volume: a fader per thing the app plays ----
+// The value is pushed into the sound engine on every move, so a slider
+// dragged mid-session reaches the cues already on the clock. Applied
+// at load too, not when the sheet opens, or the first session of the
+// day would run at the shipped level.
+const showDb = (id, db) => ($(id).textContent = (db > 0 ? '+' : '') + db);
+
+function applyVolumes() {
+  setVolumes(cueVolume(), voiceVolume());
+  showDb('volCueVal', cueVolume());
+  showDb('volVoiceVal', voiceVolume());
+}
+
+function renderVolumes() {
+  $in('volCue').value = String(cueVolume());
+  $in('volVoice').value = String(voiceVolume());
+  applyVolumes();
+}
+$('volCue').addEventListener('input', () => {
+  setCueVolume(+$in('volCue').value);
+  applyVolumes();
+});
+$('volVoice').addEventListener('input', () => {
+  setVoiceVolume(+$in('volVoice').value);
+  applyVolumes();
+});
+$('volCueTest').addEventListener('click', testCue);
+$('volVoiceTest').addEventListener('click', testVoice);
+applyVolumes();
+
 // ---- what Android is letting the app do ----
 // Each row is a switch showing the real state, not a control that sets
 // it: tapping opens the screen where Android decides. Read when the
@@ -118,6 +159,7 @@ function showSettingsTab(t) {
   $$('.stab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.stab === t)));
   $('sGeneral').hidden = t !== 'general';
   $('sSounds').hidden = t !== 'sounds';
+  $('sVolume').hidden = t !== 'volume';
 }
 $$('.stab').forEach((b) => b.addEventListener('click', () => showSettingsTab(b.dataset.stab)));
 $('gear').addEventListener('click', async () => {
@@ -129,6 +171,7 @@ $('gear').addEventListener('click', async () => {
   drawSoundBtns();
   $sel('startTab').value = getStartTab();
   $in('approach').value = String(approachSec());
+  renderVolumes();
   showSettingsTab('general');
   $('settings').hidden = false;
   openScreen('settings', () => ($('settings').hidden = true));

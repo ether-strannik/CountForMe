@@ -7,6 +7,13 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- A Volume tab in settings, with a fader for the cues and one for the
+  spoken counts. Zero is the level the app ships at, and each has a
+  Test button so a level can be heard while it is set. A fader moved
+  during a session takes effect at once.
+
 ### Fixed
 
 - The spoken rep counts were quieter than the cue sounds. They now
