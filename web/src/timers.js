@@ -1,6 +1,6 @@
 // Countdown timers: named, one beep at zero (not a looping alarm).
 // Cards with a progress ring; an add/edit sheet with an h:mm:ss keypad.
-import { $, $in, CIRCLE_MINUS_SVG, PENCIL_SVG } from './dom.js';
+import { $, $in, CIRCLE_MINUS_SVG, PENCIL_SVG, RELOAD_SVG } from './dom.js';
 import { fmtClock } from './format.js';
 import { load, save } from './storage.js';
 import { askConfirm } from './confirm.js';
@@ -76,7 +76,7 @@ export function renderTimers() {
       CIRCLE_MINUS_SVG +
       '</button>' +
       (started
-        ? '<button class="tcbtn reset">↺</button>'
+        ? '<button class="tcbtn reset" title="Reset" aria-label="Reset">' + RELOAD_SVG + '</button>'
         : '<button class="tcbtn edit" title="Edit" aria-label="Edit">' + PENCIL_SVG + '</button>') +
       '</div>';
     card.querySelector('.tcname').textContent = t.name || fmtClock(t.sec);

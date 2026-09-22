@@ -47,6 +47,14 @@ export const CIRCLE_MINUS_SVG =
   '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>' +
   '<path d="M9 12l6 0"/></svg>';
 
+// Reload mark: put a started timer back to its full duration. Sits in
+// the same button as the pencil, which it replaces once a timer runs.
+export const RELOAD_SVG =
+  '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M19.933 13.041a8 8 0 1 1 -9.925 -8.788c3.899 -1 7.935 1.007 9.425 4.747"/>' +
+  '<path d="M20 4v5h-5"/></svg>';
+
 // Pencil edit glyph (timer cards). Stroked in the button's own colour
 // rather than a named one, so a theme reaches it with nothing to set.
 // `currentColor` is a keyword, not a custom property, so it is safe in

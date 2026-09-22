@@ -7,6 +7,12 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- The reset button on a running timer is a drawn mark. A timer card
+  now carries no text glyphs at all, so nothing on it depends on the
+  device's font.
+
 ### Added
 
 - Countdown timers knock through their last seconds, the way Phases
