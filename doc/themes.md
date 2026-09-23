@@ -134,6 +134,22 @@ picking, at launch, importing, exporting. A theme that is not `ok` is
 listed greyed with its gaps and cannot be picked. Nothing falls back
 to anything outside the theme.
 
+## A theme as a zip
+
+A theme folder zipped is the package: `theme.json` and the files
+beside it, flat. Export, under Themes, zips the theme in use to a
+place the user picks through the system's save dialog, as
+`<name>.zip`. Import picks a zip from anywhere on the phone, looks
+inside, checks the theme, and only then unpacks it into a new folder
+under the user's own and puts it on. Whole themes only, both ways; a
+refusal names what is missing.
+
+The zip is made and read on the native side with Android's own zip,
+nothing added; no bytes pass through the page. A zip made by hand on
+a computer works too: zip the folder. A single top folder inside the
+zip is stripped; entries with a path of their own are skipped; an
+entry over 20 MB or a zip over 64 MB is refused.
+
 ## Where themes live on the phone
 
 Under the folder chosen in Settings, in `themes/`, one folder per

@@ -38,6 +38,8 @@ import {
   createTheme,
   copyTheme,
   deleteTheme,
+  exportTheme,
+  importTheme,
   themeEditable,
   setColour,
   setSound,
@@ -218,6 +220,28 @@ function askName(mode) {
 }
 $('themeNew').addEventListener('click', () => askName('new'));
 $('themeCopy').addEventListener('click', () => askName('copy'));
+// ---- a theme as a zip ----
+// Export zips the theme in use to a place the user picks. Import picks
+// a zip from anywhere and makes a theme of it. Whole themes only, both
+// ways; a refusal names what is missing, under the picker.
+const say = (msg) => {
+  $('themeNoteText').textContent = msg;
+  $('themeNote').hidden = !msg;
+};
+$('themeExport').addEventListener('click', async () => {
+  const r = await exportTheme();
+  if ('missing' in r) return say('Not exported: missing ' + r.missing.join(', ') + '.');
+  say('');
+});
+$('themeImport').addEventListener('click', async () => {
+  const r = await importTheme();
+  if (!r) return; // nothing picked
+  if ('missing' in r) return say('Not imported: ' + r.missing.join(', ') + '.');
+  say('');
+  await renderThemes();
+  await drawSoundBtns();
+});
+
 // Del: the theme in use, folder and all, after a confirm. Only one of
 // the user's own; on the shipped theme the button is off.
 $('themeDel').addEventListener('click', () => {

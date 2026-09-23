@@ -9,7 +9,7 @@
 // paints its colours over the stylesheet, and they are kept alongside
 // the choice so the next launch paints them before anything draws.
 import { load, save } from './storage.js';
-import { listDir, readFile, writeText, writeFile, removePath } from './files.js';
+import { listDir, readFile, writeText, writeFile, removePath, exportZip, pickZip, unpackZip } from './files.js';
 import { TOKENS, SOUNDS, COUNTS, themeCheck, blankTheme, slug } from './themepack.js';
 
 const KEY = 'timer.theme';
@@ -262,6 +262,54 @@ export const setSound = (role, file) => (SOUNDS.includes(role) ? assign('sounds'
  * @param {string} n  one of COUNTS @param {string} file  in the library
  */
 export const setCount = (n, file) => (COUNTS.includes(n) ? assign('counts', n, file) : Promise.resolve(false));
+
+/**
+ * The theme in use as a zip of its folder, to a place the user picks.
+ * Only a whole theme goes out. Nord too: its folder is inside the app,
+ * and the zip is made from there.
+ * @returns {Promise<{saved: boolean} | {missing: string[]}>}
+ *   whether the file was written, or what the theme lacks
+ */
+export async function exportTheme() {
+  const src = themeSource();
+  let m;
+  try {
+    m = await src.manifest();
+  } catch {
+    m = null;
+  }
+  const lib = m ? await src.library() : [];
+  const check = themeCheck(m, lib);
+  if (!check.whole) return { missing: check.missing };
+  const dir = folderOf(chosen.id);
+  const name = slug(m.name) + '.zip';
+  return { saved: dir ? await exportZip(DIR + '/' + dir, name) : await exportZip('public/theme', name, true) };
+}
+
+/**
+ * A theme zip in, picked from anywhere: looked inside, checked at the
+ * door, and only then unpacked into a new folder under the user's own
+ * and put on. Only a whole theme comes in.
+ * @returns {Promise<{id: string} | {missing: string[]} | null>}
+ *   null when nothing was picked
+ */
+export async function importTheme() {
+  const z = await pickZip();
+  if (!z) return null;
+  let m;
+  try {
+    m = JSON.parse(z.manifest);
+  } catch {
+    m = null;
+  }
+  if (!m) return { missing: ['no theme.json in it'] };
+  const check = themeCheck(m, z.names);
+  if (!check.whole) return { missing: check.missing };
+  const dir = await freeDir(m.name);
+  if (!(await unpackZip(DIR + '/' + dir))) return { missing: ['could not be unpacked'] };
+  setTheme(FOLDER + dir, m.name, m.ui);
+  return { id: FOLDER + dir };
+}
 
 /** use a theme and remember it, colours included */
 export function setTheme(id, name, ui) {

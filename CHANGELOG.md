@@ -9,6 +9,11 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A theme as a zip. Export under Themes zips the theme in use, sounds
+  and all, to a place you pick. Import picks a zip from anywhere on
+  the phone and makes a theme of it in your folder. Whole themes only,
+  both ways; a refusal says what is missing. A zip of a theme folder
+  made on a computer works too.
 - Delete theme. Del under Themes removes the theme in use, folder and
   sounds, after a confirm. Only a theme of your own; on Nord the
   button is off.

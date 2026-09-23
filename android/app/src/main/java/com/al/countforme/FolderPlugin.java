@@ -37,7 +37,10 @@ import java.util.List;
  *   write({ name, base64 })                  name may be a path; folders are made
  *   remove({ name })                         name may be a path; a folder goes with its contents
  *   share({ name, base64 })  hand the bytes to another app
- *   pickFile()          -> { name, base64 }  one audio file from anywhere
+ *   pickFile({ type? }) -> { name, base64 }  one file from anywhere
+ *   exportZip({ path, name, asset? }) -> { saved }   a folder, zipped flat, to where the user picks
+ *   pickZip()           -> { names, manifest }       a zip the user picks, looked inside
+ *   unpackZip({ dest }) -> { ok }                    that zip, into a folder under the tree
  */
 @CapacitorPlugin(name = "Folder")
 public class FolderPlugin extends Plugin {
@@ -90,13 +93,14 @@ public class FolderPlugin extends Plugin {
    * pick is a one-time read on that file; the bytes come back and the
    * page writes them where it wants, into a theme's folder.
    *
-   *   pickFile() -> { name, base64 }   or { name: "" } when nothing was picked
+   *   pickFile({ type? }) -> { name, base64 }   or { name: "" } when nothing was picked
+   *   type is a mime filter for the picker; "audio/*" when left out
    */
   @PluginMethod
   public void pickFile(PluginCall call) {
     Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
     i.addCategory(Intent.CATEGORY_OPENABLE);
-    i.setType("audio/*");
+    i.setType(call.getString("type", "audio/*"));
     startActivityForResult(call, i, "pickedFile");
   }
 
@@ -127,6 +131,227 @@ public class FolderPlugin extends Plugin {
       call.resolve(r);
     } catch (Exception e) {
       call.reject("cannot read: " + e.getMessage());
+    }
+  }
+
+  // ---- a theme as a zip: Android's own zip, nothing added ----
+  // A theme is a folder of files. Export zips that folder, flat, to a
+  // place the user picks; import reads a zip the user picks and unpacks
+  // it into a folder under the tree. Nothing goes through the page as
+  // bytes: the zip is read and written here.
+
+  /** an entry name that may land in a theme folder: plain, no path */
+  private static boolean plainName(String n) {
+    return n != null && !n.isEmpty() && !n.contains("/") && !n.contains("\\") && !n.equals(".") && !n.equals("..")
+        && n.length() <= 120;
+  }
+
+  /** what a zip's entry names have in common at the front: "nord/" when a folder was zipped */
+  private static String commonDir(List<String> names) {
+    String prefix = null;
+    for (String n : names) {
+      int cut = n.indexOf('/');
+      String head = cut < 0 ? "" : n.substring(0, cut + 1);
+      if (prefix == null) prefix = head;
+      else if (!prefix.equals(head)) return "";
+    }
+    return prefix == null ? "" : prefix;
+  }
+
+  private static final long MAX_ENTRY = 20L * 1024 * 1024;
+  private static final long MAX_TOTAL = 64L * 1024 * 1024;
+
+  private static void pump(InputStream in, OutputStream out, long cap) throws Exception {
+    byte[] b = new byte[65536];
+    long total = 0;
+    int n;
+    while ((n = in.read(b)) > 0) {
+      total += n;
+      if (total > cap) throw new Exception("too large");
+      out.write(b, 0, n);
+    }
+  }
+
+  /**
+   * Zip a folder, flat, to a file the user picks through the system's
+   * save dialog. `path` is a folder under the tree, or, with `asset`
+   * true, a folder inside the app's own files (the shipped theme).
+   *
+   *   exportZip({ path, name, asset? }) -> { saved }
+   */
+  @PluginMethod
+  public void exportZip(PluginCall call) {
+    Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+    i.addCategory(Intent.CATEGORY_OPENABLE);
+    i.setType("application/zip");
+    i.putExtra(Intent.EXTRA_TITLE, call.getString("name", "theme.zip"));
+    startActivityForResult(call, i, "exportTarget");
+  }
+
+  @ActivityCallback
+  private void exportTarget(PluginCall call, ActivityResult result) {
+    if (call == null) return;
+    JSObject r = new JSObject();
+    r.put("saved", false);
+    Intent data = result.getData();
+    if (result.getResultCode() != android.app.Activity.RESULT_OK || data == null || data.getData() == null) {
+      call.resolve(r);
+      return;
+    }
+    String path = call.getString("path", "");
+    boolean asset = Boolean.TRUE.equals(call.getBoolean("asset", false));
+    try (java.util.zip.ZipOutputStream z = new java.util.zip.ZipOutputStream(
+        getContext().getContentResolver().openOutputStream(data.getData(), "wt"))) {
+      if (asset) {
+        for (String n : getContext().getAssets().list(path)) {
+          try (InputStream in = getContext().getAssets().open(path + "/" + n)) {
+            z.putNextEntry(new java.util.zip.ZipEntry(n));
+            pump(in, z, MAX_ENTRY);
+            z.closeEntry();
+          }
+        }
+      } else {
+        Uri t = tree();
+        String id = t == null ? null : docId(t, path);
+        if (id == null) { call.reject("no such folder"); return; }
+        Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(t, id);
+        String[] cols = { DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE };
+        try (Cursor c = getContext().getContentResolver().query(children, cols, null, null, null)) {
+          while (c != null && c.moveToNext()) {
+            if (DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) continue;
+            Uri doc = DocumentsContract.buildDocumentUriUsingTree(t, c.getString(0));
+            try (InputStream in = getContext().getContentResolver().openInputStream(doc)) {
+              z.putNextEntry(new java.util.zip.ZipEntry(c.getString(1)));
+              pump(in, z, MAX_ENTRY);
+              z.closeEntry();
+            }
+          }
+        }
+      }
+      r.put("saved", true);
+      call.resolve(r);
+    } catch (Exception e) {
+      call.reject("cannot zip: " + e.getMessage());
+    }
+  }
+
+  /** the zip picked for import, held between the look inside and the unpack */
+  private Uri pendingZip;
+
+  /**
+   * Pick a zip and look inside: the names of its files, and the text
+   * of its theme.json. Nothing is written yet; the page checks the
+   * theme first and says where it goes.
+   *
+   *   pickZip() -> { names, manifest }   names: [] when nothing was picked
+   */
+  @PluginMethod
+  public void pickZip(PluginCall call) {
+    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    i.addCategory(Intent.CATEGORY_OPENABLE);
+    i.setType("*/*");
+    i.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "application/zip", "application/octet-stream" });
+    startActivityForResult(call, i, "pickedZip");
+  }
+
+  @ActivityCallback
+  private void pickedZip(PluginCall call, ActivityResult result) {
+    if (call == null) return;
+    JSObject r = new JSObject();
+    JSArray names = new JSArray();
+    r.put("names", names);
+    r.put("manifest", "");
+    Intent data = result.getData();
+    if (result.getResultCode() != android.app.Activity.RESULT_OK || data == null || data.getData() == null) {
+      call.resolve(r);
+      return;
+    }
+    pendingZip = data.getData();
+    List<String> all = new ArrayList<>();
+    String manifest = "";
+    try (java.util.zip.ZipInputStream z = new java.util.zip.ZipInputStream(
+        getContext().getContentResolver().openInputStream(pendingZip))) {
+      java.util.zip.ZipEntry e;
+      while ((e = z.getNextEntry()) != null) {
+        if (e.isDirectory()) continue;
+        all.add(e.getName());
+        if (e.getName().endsWith("theme.json")) {
+          ByteArrayOutputStream buf = new ByteArrayOutputStream();
+          pump(z, buf, 1024 * 1024);
+          manifest = buf.toString("UTF-8");
+        }
+        z.closeEntry();
+      }
+    } catch (Exception ex) {
+      pendingZip = null;
+      call.reject("cannot read: " + ex.getMessage());
+      return;
+    }
+    String strip = commonDir(all);
+    for (String n : all) {
+      String leaf = n.startsWith(strip) ? n.substring(strip.length()) : n;
+      if (plainName(leaf)) names.put(leaf);
+    }
+    r.put("manifest", manifest);
+    call.resolve(r);
+  }
+
+  /**
+   * Unpack the zip picked last into a folder under the tree, made if
+   * need be. Entries with a path of their own are skipped; a folder
+   * zipped whole has its one top folder stripped.
+   *
+   *   unpackZip({ dest }) -> { ok }
+   */
+  @PluginMethod
+  public void unpackZip(PluginCall call) {
+    Uri src = pendingZip;
+    String dest = call.getString("dest", "");
+    Uri t = tree();
+    if (src == null || t == null || dest.isEmpty()) { call.reject("nothing to unpack"); return; }
+    try {
+      List<String> all = new ArrayList<>();
+      try (java.util.zip.ZipInputStream z = new java.util.zip.ZipInputStream(
+          getContext().getContentResolver().openInputStream(src))) {
+        java.util.zip.ZipEntry e;
+        while ((e = z.getNextEntry()) != null) { if (!e.isDirectory()) all.add(e.getName()); z.closeEntry(); }
+      }
+      String strip = commonDir(all);
+      String parentId = dirId(t, dest);
+      if (parentId == null) { call.reject("cannot create folder"); return; }
+      Uri parent = DocumentsContract.buildDocumentUriUsingTree(t, parentId);
+      long total = 0;
+      try (java.util.zip.ZipInputStream z = new java.util.zip.ZipInputStream(
+          getContext().getContentResolver().openInputStream(src))) {
+        java.util.zip.ZipEntry e;
+        while ((e = z.getNextEntry()) != null) {
+          if (e.isDirectory()) { z.closeEntry(); continue; }
+          String n = e.getName();
+          String leaf = n.startsWith(strip) ? n.substring(strip.length()) : n;
+          if (!plainName(leaf)) { z.closeEntry(); continue; }
+          String mime = leaf.endsWith(".json") ? "application/json" : "application/octet-stream";
+          String existing = childId(t, parentId, leaf);
+          Uri doc = existing != null
+              ? DocumentsContract.buildDocumentUriUsingTree(t, existing)
+              : DocumentsContract.createDocument(getContext().getContentResolver(), parent, mime, leaf);
+          if (doc == null) { call.reject("cannot create " + leaf); return; }
+          ByteArrayOutputStream buf = new ByteArrayOutputStream();
+          pump(z, buf, MAX_ENTRY);
+          total += buf.size();
+          if (total > MAX_TOTAL) { call.reject("too large"); return; }
+          try (OutputStream out = getContext().getContentResolver().openOutputStream(doc, "wt")) {
+            out.write(buf.toByteArray());
+          }
+          z.closeEntry();
+        }
+      }
+      pendingZip = null;
+      JSObject r = new JSObject();
+      r.put("ok", true);
+      call.resolve(r);
+    } catch (Exception ex) {
+      call.reject("cannot unpack: " + ex.getMessage());
     }
   }
 

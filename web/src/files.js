@@ -91,20 +91,75 @@ export async function readFile(path) {
 }
 
 /**
- * One audio file from anywhere, through the system file picker: its
- * name and its bytes. Null when nothing was picked or there is no
- * bridge. The pick is a one-time read; keeping the file is a write.
+ * One file from anywhere, through the system file picker: its name
+ * and its bytes. Null when nothing was picked or there is no bridge.
+ * The pick is a one-time read; keeping the file is a write.
+ * @param {string} type  a mime filter for the picker
  * @returns {Promise<{name: string, bytes: ArrayBuffer} | null>}
  */
-export async function pickAudio() {
+export async function pickFile(type) {
   const b = bridge();
   if (!b) return null;
   try {
-    const r = await b.pickFile();
+    const r = await b.pickFile({ type });
     if (!r.name || !r.base64) return null;
     return { name: r.name, bytes: fromB64(r.base64) };
   } catch {
     return null;
+  }
+}
+
+/** one audio file, the same way */
+export const pickAudio = () => pickFile('audio/*');
+
+// ---- a theme as a zip, made and read natively ----
+
+/**
+ * Zip a folder, flat, to a file the user picks through the system's
+ * save dialog. `path` is under the tree, or inside the app's own files
+ * when `asset` is true. False when the user backed out or it failed.
+ * @param {string} path @param {string} name  the suggested file name
+ * @param {boolean} [asset]
+ */
+export async function exportZip(path, name, asset = false) {
+  const b = bridge();
+  if (!b || !PATH.test(path) || !NAME.test(name)) return false;
+  try {
+    return !!(await b.exportZip({ path, name, asset })).saved;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pick a zip and look inside: the plain names of its files and the
+ * text of its theme.json. Nothing is written yet. Null when nothing
+ * was picked or it could not be read.
+ * @returns {Promise<{names: string[], manifest: string} | null>}
+ */
+export async function pickZip() {
+  const b = bridge();
+  if (!b) return null;
+  try {
+    const r = await b.pickZip();
+    const names = (r.names || []).filter((n) => NAME.test(n));
+    return names.length ? { names, manifest: r.manifest || '' } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Unpack the zip picked last into a folder under the tree.
+ * @param {string} dest  a path under the tree, made if need be
+ */
+export async function unpackZip(dest) {
+  const b = bridge();
+  if (!b || !PATH.test(dest)) return false;
+  try {
+    return !!(await b.unpackZip({ dest })).ok;
+  } catch {
+    return false;
   }
 }
 
