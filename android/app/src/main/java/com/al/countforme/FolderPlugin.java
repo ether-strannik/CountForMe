@@ -38,6 +38,8 @@ import java.util.List;
  *   remove({ name })                         name may be a path; a folder goes with its contents
  *   share({ name, base64 })  hand the bytes to another app
  *   pickFile({ type? }) -> { name, base64 }  one file from anywhere
+ *   pickSong()          -> { name, uri }     one song, kept, streamed not carried
+ *   song()              -> { name, uri }     the song kept last time
  *   exportZip({ path, name, asset? }) -> { saved }   a folder, zipped flat, to where the user picks
  *   pickZip()           -> { names, manifest }       a zip the user picks, looked inside
  *   unpackZip({ dest }) -> { ok }                    that zip, into a folder under the tree
@@ -46,6 +48,8 @@ import java.util.List;
 public class FolderPlugin extends Plugin {
   private static final String PREFS = "folder";
   private static final String KEY = "tree";
+  private static final String KEY_SONG = "song";
+  private static final String KEY_SONG_NAME = "songName";
 
   private Uri tree() {
     SharedPreferences p = getContext().getSharedPreferences(PREFS, 0);
@@ -116,22 +120,97 @@ public class FolderPlugin extends Plugin {
     }
     Uri u = data.getData();
     try (InputStream in = getContext().getContentResolver().openInputStream(u)) {
-      String name = "";
-      String[] cols = { android.provider.OpenableColumns.DISPLAY_NAME };
-      try (Cursor c = getContext().getContentResolver().query(u, cols, null, null, null)) {
-        if (c != null && c.moveToFirst()) name = c.getString(0);
-      }
-      if (name == null || name.isEmpty()) name = u.getLastPathSegment();
       ByteArrayOutputStream buf = new ByteArrayOutputStream();
       byte[] b = new byte[65536];
       int n;
       while ((n = in.read(b)) > 0) buf.write(b, 0, n);
-      r.put("name", name);
+      r.put("name", displayName(u));
       r.put("base64", Base64.encodeToString(buf.toByteArray(), Base64.NO_WRAP));
       call.resolve(r);
     } catch (Exception e) {
       call.reject("cannot read: " + e.getMessage());
     }
+  }
+
+  /** what the provider calls a file, falling back to the last path segment */
+  private String displayName(Uri u) {
+    String name = "";
+    String[] cols = { android.provider.OpenableColumns.DISPLAY_NAME };
+    try (Cursor c = getContext().getContentResolver().query(u, cols, null, null, null)) {
+      if (c != null && c.moveToFirst()) name = c.getString(0);
+    } catch (Exception e) {
+      // a provider with no columns: the path is all there is
+    }
+    if (name == null || name.isEmpty()) name = u.getLastPathSegment();
+    return name == null ? "" : name;
+  }
+
+  /** is this URI still ours to read, after a restart or a revoke */
+  private boolean readable(Uri u) {
+    for (android.content.UriPermission up : getContext().getContentResolver().getPersistedUriPermissions()) {
+      if (up.getUri().equals(u) && up.isReadPermission()) return true;
+    }
+    return false;
+  }
+
+  // ---- the song ----
+  // Not read here, and never carried as bytes. The grant is made
+  // persistable and the URI is kept, so the page turns it into a URL
+  // through Capacitor's own local server and the media decoder streams
+  // it: playing starts on the first chunk instead of the last, and a
+  // long track costs no memory. `pickFile` above is the other shape,
+  // for the short cue sounds that get copied into a theme.
+
+  /** one song, through the system picker, with a grant that outlives the run */
+  @PluginMethod
+  public void pickSong(PluginCall call) {
+    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    i.addCategory(Intent.CATEGORY_OPENABLE);
+    i.setType("audio/*");
+    i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+    startActivityForResult(call, i, "pickedSong");
+  }
+
+  @ActivityCallback
+  private void pickedSong(PluginCall call, ActivityResult result) {
+    if (call == null) return;
+    JSObject r = new JSObject();
+    r.put("name", "");
+    Intent data = result.getData();
+    if (result.getResultCode() != android.app.Activity.RESULT_OK || data == null || data.getData() == null) {
+      call.resolve(r);
+      return;
+    }
+    Uri u = data.getData();
+    try {
+      getContext().getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    } catch (Exception e) {
+      // a provider that will not persist still plays for this run
+    }
+    String name = displayName(u);
+    getContext()
+        .getSharedPreferences(PREFS, 0)
+        .edit()
+        .putString(KEY_SONG, u.toString())
+        .putString(KEY_SONG_NAME, name)
+        .apply();
+    r.put("name", name);
+    r.put("uri", u.toString());
+    call.resolve(r);
+  }
+
+  /** the song kept last time, if the grant survived */
+  @PluginMethod
+  public void song(PluginCall call) {
+    JSObject r = new JSObject();
+    r.put("name", "");
+    SharedPreferences p = getContext().getSharedPreferences(PREFS, 0);
+    String s = p.getString(KEY_SONG, null);
+    if (s != null && readable(Uri.parse(s))) {
+      r.put("name", p.getString(KEY_SONG_NAME, ""));
+      r.put("uri", s);
+    }
+    call.resolve(r);
   }
 
   // ---- a theme as a zip: Android's own zip, nothing added ----

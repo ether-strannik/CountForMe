@@ -13,6 +13,9 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   song: tap the name to pick a file, then play, pause and stop. It
   plays at its own level and keeps playing across the tabs and through
   a session.
+- The song starts playing straight away, whatever its length, and is
+  still there named on the strip the next time the app opens. Picking
+  one is a one-off.
 - The song ducks under every cue and every spoken count, and comes back
   up between them. Cues closer together than the gap keep it down
   instead of pumping it up and down between each one, so a Cadence

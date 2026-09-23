@@ -26,8 +26,6 @@ export default [
         Element: 'readonly',
         AudioContext: 'readonly',
         Audio: 'readonly',
-        Blob: 'readonly',
-        URL: 'readonly',
         atob: 'readonly',
         btoa: 'readonly',
         TextEncoder: 'readonly',

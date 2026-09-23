@@ -112,6 +112,53 @@ export async function pickFile(type) {
 /** one audio file, the same way */
 export const pickAudio = () => pickFile('audio/*');
 
+// ---- the song: a URL, not bytes ----
+// A cue sound is a few hundred kilobytes and is copied into a theme,
+// so `pickFile` carrying the bytes is right for it. A song is not.
+// Reading one whole file before a note plays means the bytes cross the
+// bridge as base64 and are decoded a character at a time here, which
+// on a ten-megabyte track is ten million turns of a loop on the main
+// thread. So the song is never read: the native side keeps the URI
+// with a grant that survives a restart, and `songUrl` turns it into
+// something the media decoder can stream.
+
+/**
+ * @typedef {{ name: string, uri: string }} Song
+ */
+
+/** @param {any} r @returns {Song | null} */
+const asSong = (r) => (r && r.name && r.uri ? { name: r.name, uri: r.uri } : null);
+
+/** the system picker, for one song that is then remembered */
+export async function pickSong() {
+  const b = bridge();
+  if (!b) return null;
+  try {
+    return asSong(await b.pickSong());
+  } catch {
+    return null;
+  }
+}
+
+/** the song picked last time, if its grant survived */
+export async function keptSong() {
+  const b = bridge();
+  if (!b) return null;
+  try {
+    return asSong(await b.song());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A song's URI as a URL the WebView will stream. Capacitor's own local
+ * server answers it, on the same origin as the page, so this holds in
+ * the dev build too.
+ * @param {string} uri
+ */
+export const songUrl = (uri) => /** @type {any} */ (window).Capacitor?.convertFileSrc?.(uri) || uri;
+
 // ---- a theme as a zip, made and read natively ----
 
 /**
