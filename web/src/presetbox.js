@@ -27,13 +27,15 @@ import { attach, exporting, ticked, tick } from './presetxfer.js';
  *            exportPicked: (names: string[], catIds: string[]) =>
  *              {cats: {name: string, items: {label: string, item: any}[]}[],
  *               items: {label: string, item: any}[]},
- *            cats: () => {id: string, name: string, items: string[]}[],
+ *            cats: () => {id: string, name: string, theme: string, items: string[]}[],
  *            pick: (n: string) => void,
  *            create: (n: string, catId: string) => void,
  *            remove: (n: string) => void,
  *            removeMany: (names: string[], catIds: string[]) => void,
  *            importDoc: (doc: any) => {cats: number, items: number, skipped: number},
- *            addCat: (name: string) => void,
+ *            addCat: (name: string, theme: string) => void,
+ *            setCatTheme: (id: string, theme: string) => void,
+ *            themes: () => Promise<{ref: string, name: string}[]>,
  *            removeCat: (id: string) => void,
  *            move: (names: string[], catId: string) => void}} PresetApi
  */
@@ -204,6 +206,18 @@ function render() {
     n.className = 'prcount';
     n.textContent = c.items.length ? String(c.items.length) : 'empty';
     el.insertBefore(n, el.querySelector('.prdel'));
+    // The theme the set names, as a tag; tapping it changes it. A set
+    // naming none shows nothing here, and the tap still offers one.
+    const tag = document.createElement('button');
+    tag.className = 'prtheme';
+    tag.textContent = c.theme ? themeNames[c.theme] || c.theme : '+ theme';
+    tag.classList.toggle('none', !c.theme);
+    tag.hidden = selecting() || exporting();
+    tag.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openThemeMenu(c.id);
+    });
+    el.insertBefore(tag, n);
     list.appendChild(el);
     // A ticked category carries its presets, so they are not offered
     // separately while exporting — the set goes whole.
@@ -340,8 +354,71 @@ export function openPresets(title, api) {
   $('presetMenu').hidden = true;
   nameRow('');
   render();
+  // the themes a set may name, read once per opening; the rows show
+  // a theme by its name once they are in
+  api.themes().then((list) => {
+    themeRefs = list;
+    themeNames = Object.fromEntries(list.map((t) => [t.ref, t.name]));
+    render();
+  });
   $('presetOverlay').hidden = false;
   openScreen('presets', () => ($('presetOverlay').hidden = true));
+}
+
+// ---- the theme a set names ----
+// Asked once when a set is made, the way a preset is asked about its
+// set: Yes and a list, or Skip. Changed later from the tag on the row.
+/** @type {{ref: string, name: string}[]} */
+let themeRefs = [];
+/** @type {Record<string, string>} ref → name */
+let themeNames = {};
+
+/** the list of themes as menu lines; `onPick` gets the ref, "" for none */
+function themeLines(menu, onPick, withNone) {
+  if (withNone) menuItem(menu, 'None', () => onPick(''));
+  themeRefs.forEach((t) => menuItem(menu, t.name, () => onPick(t.ref)));
+}
+
+/** after naming a set: apply a theme to it, or not */
+function askTheme(name) {
+  if (!box) return;
+  const make = (ref) => {
+    if (box) box.addCat(name, ref);
+    $('presetMenu').hidden = true;
+    render();
+  };
+  if (!themeRefs.length) return make('');
+  const menu = $('presetMenu');
+  menu.innerHTML = '';
+  const ask = document.createElement('div');
+  ask.className = 'prask';
+  ask.innerHTML = '<span>Apply a theme?</span><button class="pbtn save">Yes</button><button class="pbtn">Skip</button>';
+  const [yes, skip] = ask.querySelectorAll('button');
+  yes.addEventListener('click', () => {
+    menu.innerHTML = '';
+    menuNote(menu, 'Theme', 'prgroup');
+    themeLines(menu, make, false);
+  });
+  skip.addEventListener('click', () => make(''));
+  menu.appendChild(ask);
+  menu.hidden = false;
+}
+
+/** the tag on a set's row: pick another theme for it, or none */
+function openThemeMenu(catId) {
+  const menu = $('presetMenu');
+  menu.innerHTML = '';
+  menuNote(menu, 'Theme for this set', 'prgroup');
+  themeLines(
+    menu,
+    (ref) => {
+      if (box) box.setCatTheme(catId, ref);
+      menu.hidden = true;
+      render();
+    },
+    true,
+  );
+  menu.hidden = false;
 }
 
 /** show the name box for a preset or a set, or put it away */
@@ -412,9 +489,8 @@ $('presetNameOk').addEventListener('click', () => {
   const n = $in('presetNameInput').value.trim();
   if (!n || !box) return;
   if (naming === 'cat') {
-    box.addCat(n);
     nameRow('');
-    return render(); // a new set is made here; the manager stays open
+    return askTheme(n); // a new set is made here; the manager stays open
   }
   nameRow('');
   askCategory(n);

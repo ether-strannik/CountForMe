@@ -10,18 +10,26 @@
 import { $, $btn } from './dom.js';
 import { load, save, loadStr, saveStr } from './storage.js';
 import { openPresets } from './presetbox.js';
+import { useTheme, themeList, refOfId } from './theme.js';
 
 /**
  * A store as it is now, whatever it was before.
  * @param {any} raw
- * @returns {{cats: {id: string, name: string, items: Record<string, any>}[],
+ * @returns {{cats: {id: string, name: string, theme: string, items: Record<string, any>}[],
  *            items: Record<string, any>}}
  */
 function migrate(raw) {
-  if (raw && Array.isArray(raw.cats) && raw.items) return raw;
+  if (raw && Array.isArray(raw.cats) && raw.items) {
+    // a set made before sets could name a theme names none
+    raw.cats.forEach((c) => (c.theme = typeof c.theme === 'string' ? c.theme : ''));
+    return raw;
+  }
   // v1: a flat map of presets, which are all loose until moved
   return { cats: [], items: raw && typeof raw === 'object' ? raw : {} };
 }
+
+/** a theme name as the presets file may carry it: "shipped", or a folder name */
+const themeName = (v) => (typeof v === 'string' && /^[a-z0-9-]{0,120}$/.test(v) ? v : '');
 
 /**
  * @param {object} o
@@ -82,18 +90,36 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
       id,
       names,
       // each set with the presets inside it, so the sheet can nest them
-      cats: () => store.cats.map((c) => ({ id: c.id, name: c.name, items: sorted(c.items) })),
+      cats: () => store.cats.map((c) => ({ id: c.id, name: c.name, theme: c.theme || '', items: sorted(c.items) })),
       // the presets in no set: these stay at the root, unindented
       loose: () => sorted(store.items),
+      // A set may name a theme. Picking a preset from it puts that
+      // theme on, so the setup screen already looks and will sound
+      // like the workout. A set naming none changes nothing.
       pick(n) {
         const p = flat()[n];
         if (!p) return;
+        const set = setOf(n);
+        if (set && set.theme) useTheme(set.theme);
         setCurrent(n);
         apply(p);
       },
       create(n, catId) {
+        const set = store.cats.find((c) => c.id === catId);
+        if (set && set.theme) useTheme(set.theme);
         setCurrent(n, catId); // unsaved until the tab's Save is pressed
         apply(blank());
+      },
+      /** every theme a set may name: Nord, then the usable ones in the folder */
+      async themes() {
+        const list = await themeList();
+        return list.filter((t) => t.ok).map((t) => ({ ref: refOfId(t.id), name: t.name }));
+      },
+      setCatTheme(catId, ref) {
+        const set = store.cats.find((c) => c.id === catId);
+        if (!set) return;
+        set.theme = themeName(ref);
+        saveStore();
       },
       remove(n) {
         const set = setOf(n);
@@ -116,8 +142,8 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
         });
         saveStore();
       },
-      addCat(name) {
-        store.cats.push({ id: 'c' + Date.now().toString(36), name, items: {} });
+      addCat(name, theme) {
+        store.cats.push({ id: 'c' + Date.now().toString(36), name, theme: themeName(theme), items: {} });
         saveStore();
       },
       /**
@@ -136,6 +162,7 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
         return {
           cats: cats.map((c) => ({
             name: c.name,
+            theme: c.theme || '',
             items: sorted(c.items).map((n) => ({ label: n, item: c.items[n] })),
           })),
           items: picked
@@ -148,7 +175,7 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
        * Bring a file in. Nothing is overwritten: a preset whose name
        * is taken arrives as "name (2)", and so does a category. What
        * the user already has is never touched.
-       * @param {{cats: {name: string, items: {label: string, item: any}[]}[],
+       * @param {{cats: {name: string, theme?: string, items: {label: string, item: any}[]}[],
        *          items: {label: string, item: any}[]}} doc
        * @returns {{cats: number, items: number, skipped: number}}
        */
@@ -171,7 +198,14 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
             items[e.label] = e.item;
             added++;
           });
-          store.cats.push({ id: 'c' + Date.now().toString(36) + store.cats.length, name, items });
+          // the theme it names comes along as a name; whether the phone
+          // has that theme is found out when a preset is picked
+          store.cats.push({
+            id: 'c' + Date.now().toString(36) + store.cats.length,
+            name,
+            theme: themeName(c.theme),
+            items,
+          });
         });
 
         (doc.items || []).forEach((e) => {

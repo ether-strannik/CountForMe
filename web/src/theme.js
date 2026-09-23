@@ -324,10 +324,11 @@ export function setTheme(id, name, ui) {
 // gone. There is nothing to paint or play from, so the app runs on the
 // shipped theme and says so, once, in the Themes tab. Not a fallback
 // rule: a theme is whole or unusable, and this one became unusable
-// after it was chosen.
+// after it was chosen. A preset category naming a theme that is not
+// there is the same case: the app stays where it is and says so.
 let lost = '';
 
-/** the folder theme the app had to leave, named; "" when none */
+/** what the Themes tab says once, about a theme that could not be used; "" when nothing */
 export const lostTheme = () => lost;
 
 /** the chosen folder theme cannot be read: back to the shipped one */
@@ -335,5 +336,42 @@ export function lose() {
   if (chosen.id === SHIPPED) return;
   const name = chosen.name || folderOf(chosen.id);
   setTheme(SHIPPED, '', null);
-  lost = name; // after setTheme, which clears it: this is the one case it stays
+  lost = name + ' could not be read any more, so the app is on Nord.'; // after setTheme, which clears it
+}
+
+// ---- a theme named from outside: by a preset category ----
+// A category may name a theme, as `shipped` for Nord or a folder name
+// under themes/. That is one string in the presets file, so a set of
+// workouts shared without its theme still loads, and a theme shared
+// without workouts still works.
+
+/** a theme id as a set names it: "shipped", or its folder name */
+export const refOfId = (id) => (id === SHIPPED ? 'shipped' : folderOf(id));
+
+/**
+ * Put on the theme a category names. Nothing for "". A folder name
+ * that is not in the folder, or a theme there that cannot be used,
+ * leaves the theme in use as it is and says so once.
+ * @param {string} ref  "shipped", a folder name, or ""
+ * @returns {Promise<boolean>} true when the theme is on
+ */
+export async function useTheme(ref) {
+  if (!ref) return false;
+  if (ref === 'shipped') {
+    if (chosen.id !== SHIPPED) setTheme(SHIPPED, '', null);
+    return true;
+  }
+  const m = await folderManifest(ref);
+  const check = themeCheck(m, (await listDir(DIR + '/' + ref)).names);
+  if (!check.ok) {
+    lost =
+      'The set names a theme, ' +
+      ref +
+      ', that is not in the folder, so the app stays on ' +
+      (chosen.name || 'Nord') +
+      '.';
+    return false;
+  }
+  if (chosen.id !== FOLDER + ref) setTheme(FOLDER + ref, m.name, m.ui);
+  return true;
 }

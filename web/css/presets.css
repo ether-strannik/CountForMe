@@ -105,6 +105,26 @@
   color: var(--muted);
   font-size: 13px;
 }
+/* the theme a set names, as a tag on its row; tapping changes it */
+.prtheme {
+  flex: none;
+  max-width: 34vw;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--accent-soft);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.prtheme.none {
+  border-color: var(--line);
+  color: var(--muted);
+}
 
 /* selection: the row goes grey, the way a list app shows it */
 .prrow.picked {

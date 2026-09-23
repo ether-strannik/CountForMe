@@ -41,9 +41,11 @@ export function unpackProfiles(text) {
   }
   if (!isMap(doc) || doc.format !== FORMAT || doc.version !== VERSION) return null;
   if (typeof doc.kind !== 'string') return null;
+  // a category may name a theme, "shipped" or a folder name; the name
+  // travels as it is and means something only where that theme exists
   const cats = (Array.isArray(doc.cats) ? doc.cats : [])
     .filter((c) => isMap(c) && typeof c.name === 'string' && c.name.trim())
-    .map((c) => ({ name: c.name.trim(), items: entries(c.items) }));
+    .map((c) => ({ name: c.name.trim(), theme: typeof c.theme === 'string' ? c.theme : '', items: entries(c.items) }));
   return { kind: doc.kind, cats, items: entries(doc.items) };
 }
 

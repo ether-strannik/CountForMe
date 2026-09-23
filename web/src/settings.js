@@ -219,8 +219,7 @@ async function renderThemes() {
   $btn('themeDel').disabled = !themeEditable();
   const lost = lostTheme();
   $('themeNote').hidden = !lost;
-  if (lost)
-    $('themeNoteText').textContent = lost + ' could not be read any more, so the app is on ' + themes[0].name + '.';
+  if (lost) $('themeNoteText').textContent = lost;
 }
 $('theme').addEventListener('change', async () => {
   const t = themes.find((x) => x.id === $sel('theme').value && x.ok) || themes[0];

@@ -9,6 +9,14 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A preset category can name a theme. Making a category asks "Apply
+  a theme?" with Yes and Skip, and the category's row in the preset
+  manager carries the theme as a tag, tapped to change or clear it.
+  Picking a preset from that category puts the theme on right there,
+  colours and sounds, so the workout looks and sounds like itself. A
+  category naming a theme the phone does not have leaves the theme in
+  use and says so under the picker. The name travels with the presets
+  file; a set shared without its theme still loads.
 - A theme as a zip. Export under Themes zips the theme in use, sounds
   and all, to a place you pick. Import picks a zip from anywhere on
   the phone and makes a theme of it in your folder. Whole themes only,
