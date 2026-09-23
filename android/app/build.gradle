@@ -17,6 +17,26 @@ android {
         }
     }
     buildTypes {
+        // The live-reload build, for working on the page. It loads the
+        // page from the `dev` server on loopback instead of from its own
+        // assets, so an edit to the JavaScript, HTML or CSS shows in the
+        // running app with no build at all. Java still needs one.
+        //
+        // Its own application id, so it installs beside the real app
+        // rather than replacing it, and there is no way to ship a build
+        // that points at a server. What it needs beyond debug is in
+        // src/dev/: the server's address, the permission to reach it,
+        // and a name that says which app you are looking at.
+        //
+        // matchingFallbacks: Capacitor's library projects have a debug
+        // and a release and nothing else, so a third build type here has
+        // to say which of theirs to link against.
+        dev {
+            initWith debug
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            matchingFallbacks = ['debug']
+        }
         release {
             // The dex is the bulk of this APK — the page is small, AndroidX
             // and Capacitor are not. Capacitor ships consumerProguardFiles

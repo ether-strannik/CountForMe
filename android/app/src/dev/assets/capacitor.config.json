@@ -1,0 +1,8 @@
+{
+  "appId": "com.al.countforme",
+  "appName": "Count for me",
+  "webDir": "web",
+  "server": {
+    "url": "http://127.0.0.1:5173"
+  }
+}

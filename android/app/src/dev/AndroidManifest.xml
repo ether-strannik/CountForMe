@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Merged into the dev build only. The real app is built without both
+     of these, and nothing here can reach it.
+
+     The dev build fetches its page over HTTP from the dev server on
+     loopback, so it needs the two things the shipped app is deliberately
+     without: leave to open a socket at all, and leave to do it in the
+     clear. The main manifest strips INTERNET because Capacitor's own
+     library declares it; this puts it back for this build. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:usesCleartextTraffic="true"
+        tools:targetApi="28" />
+</manifest>

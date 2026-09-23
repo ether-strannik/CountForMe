@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- The dev build sits next to the real app on the launcher. It says so,
+     because the two are otherwise the same icon and the same name. -->
+<resources>
+    <string name="app_name">Count for me dev</string>
+    <string name="title_activity_main">Count for me dev</string>
+</resources>

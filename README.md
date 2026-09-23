@@ -45,6 +45,20 @@ The page itself is plain HTML, CSS and ES modules under `web/`, loaded
 by the browser as written. Nothing is transpiled or bundled, so what
 runs is what is in the repository.
 
+### Working on the page
+
+There is a third build, `:app:assembleDev`, for editing. It loads the
+page from a server on `http://127.0.0.1:5173` instead of from its own
+assets, so a change to the HTML, CSS or JavaScript shows in the running
+app with no rebuild. Java changes still need one.
+
+It installs as `com.al.countforme.dev`, beside the real app rather than
+over it, so there is no build to switch back from and no way to ship one
+pointing at a server. Everything it needs is under `android/app/src/dev/`
+— the address, the permission to reach it, and a name that says which
+app you are looking at. Serve `web/` at that address with any static
+server that reloads on change.
+
 ## Attribution
 
 **Sounds.** Sound effects from [Pixabay](https://pixabay.com), used
