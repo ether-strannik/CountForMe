@@ -23,8 +23,13 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   each cue and for the counts, each played on a tap. The number of
   last seconds moves to General, since it is a setting and not a
   sound.
-- Sounds are part of the theme. A countdown timer plays the theme's
-  timer sound; one that had a sound of its own picked plays that too.
+- Sounds are part of the theme. A theme is a library of sounds with
+  a preset over it: which file plays for each cue, and the colours.
+  A countdown timer rings with any file in the library, picked in the
+  timer sheet, where a row plays when tapped and OK keeps it. A new
+  timer starts on the theme's timer sound, and one whose file the
+  theme in use does not have plays that too. Nord's library is the
+  sixteen sounds the app has always shipped.
 - The app ships one theme, Nord, and looks like it from the first
   frame. Default, Gruvbox and Light are no longer in the app; they
   return as complete sets to load from the chosen folder.

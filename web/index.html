@@ -418,6 +418,21 @@
       </div>
     </div>
 
+    <!-- a timer's sound, one of the theme's: a row plays when tapped,
+         only OK keeps it -->
+    <div id="tsOverlay" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle">Sound</div>
+        </div>
+        <div id="tsList" class="xlist"></div>
+        <div class="catactions">
+          <button id="tsCancel" class="pbtn">Cancel</button>
+          <button id="tsOk" class="pbtn save">OK</button>
+        </div>
+      </div>
+    </div>
+
     <script src="/shared/fullscreen.js" defer></script>
     <script src="/shared/textzoom.js" defer></script>
     <script type="module" src="src/app.js"></script>

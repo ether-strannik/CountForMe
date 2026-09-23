@@ -120,7 +120,10 @@ export const EVENTS = ['approach', 'prepare', 'main', 'turn', 'rest', 'end'];
 // `gong.mp3` is another sound.
 /** @type {{sounds: Record<string, string>, counts: Record<string, string>} | null} */
 let manifest = null;
-/** the theme the manifest and cache belong to */
+/** every audio file the theme holds: what a timer may pick from */
+/** @type {string[]} */
+let library = [];
+/** the theme the manifest, library and cache belong to */
 let loadedFor = '';
 /** @type {Record<string, AudioBuffer | null>} */
 const cache = {};
@@ -145,9 +148,13 @@ async function ready() {
     m = await themeSource().manifest(); // the shipped one now
   }
   manifest = m;
+  library = await themeSource().library();
   loadedFor = themeId();
   return manifest;
 }
+
+/** the theme's library, once read: every file a timer may pick */
+export const soundLibrary = () => library;
 
 /** decode one of the theme's files once; null when it cannot be had */
 async function bufferFor(file) {
@@ -170,14 +177,25 @@ ready().catch(() => {
   /* no theme readable at all; the next `ready` tries again */
 });
 
-/** a sound key the theme has; anything else is what a timer plays */
-const soundKey = (key) => (SOUNDS.includes(key) ? key : 'timer');
+// A sound is asked for by a role (`main`, `timer`) or by a file in the
+// library, which is how a timer names its own. A file the theme does
+// not have is what a timer plays by default: a timer saved under one
+// theme still rings under another.
+/** the file behind a role, once the manifest is in */
+const roleFile = (role) => (manifest ? manifest.sounds[role] || '' : '');
 
-/** the file behind a sound key, once the manifest is in */
-const fileFor = (key) => (manifest ? manifest.sounds[soundKey(key)] : '');
+/** the file a role or a library file name resolves to */
+function fileFor(x) {
+  if (SOUNDS.includes(x)) return roleFile(x);
+  if (library.includes(x)) return x;
+  return roleFile('timer');
+}
+
+/** the synth for a role; a library file that cannot be decoded gets the timer's */
+const synthFor = (x) => synth[SOUNDS.includes(x) ? x : 'timer'];
 
 /** the name a sound shows under: its file, without the extension */
-export const soundName = (key) => fileFor(key).replace(/\.mp3$/i, '');
+export const soundName = (x) => fileFor(x).replace(/\.[^.]+$/, '');
 
 /** decode a sound so it can be put on the clock later; cached after */
 export async function ensureSound(key) {
@@ -215,7 +233,7 @@ export function playAt(key, at) {
       /* fall through to the synth */
     }
   }
-  return synth[soundKey(key)](at).filter(Boolean);
+  return synthFor(key)(at).filter(Boolean);
 }
 
 /** a sound, now, decoding it if need be */
@@ -224,8 +242,8 @@ export async function play(key) {
   playAt(key, audioCtx().currentTime);
 }
 
-/** what a new countdown timer starts with: the theme's timer sound */
-export const timerSound = () => 'timer';
+/** what a new countdown timer starts with: the theme's timer file */
+export const timerSound = () => roleFile('timer');
 
 // The spoken numbers. Decoded up front like the cues, because a count
 // that has to be fetched at the moment it is due is a count that

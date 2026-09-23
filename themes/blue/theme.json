@@ -17,6 +17,24 @@
     "scrim": "rgba(0, 0, 0, 0.6)",
     "glyph": "#5b6672"
   },
+  "library": [
+    "bell-1.mp3",
+    "bell-2.mp3",
+    "bell-3.mp3",
+    "bell-4.mp3",
+    "bell-5.mp3",
+    "bowl.mp3",
+    "clock-ticking.mp3",
+    "drum-kick.mp3",
+    "flute-2.mp3",
+    "flute.mp3",
+    "gong.mp3",
+    "piano-2.mp3",
+    "piano-3.mp3",
+    "piano-4.mp3",
+    "piano.mp3",
+    "wine-glass.mp3"
+  ],
   "sounds": {
     "approach": "piano-3.mp3",
     "prepare": "clock-ticking.mp3",

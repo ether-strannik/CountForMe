@@ -12,7 +12,11 @@ Settings.
 
 ## The folder
 
-A theme is a folder holding `theme.json` and the files it names.
+A theme is a folder: a library of sounds, and `theme.json`, which is
+a preset over it. The JSON says which colour goes where and which
+file from the library plays for each cue and each count. A countdown
+timer may ring with any file in the library, not only the ones the
+cues use.
 
 ```
 nord/
@@ -23,11 +27,15 @@ nord/
   bell-4.mp3
   wine-glass.mp3
   flute.mp3        end, and the timer
+  bell-1.mp3 …     the rest of the library: a timer may pick any
   1.mp3 … 9.mp3    the spoken counts
 ```
 
-Two keys may name the same file. A file the JSON does not name is
-ignored.
+Two keys may name the same file. The library is every audio file in
+the folder; one dropped in is offered to timers without touching the
+JSON. The shipped theme's folder cannot be listed, so its `theme.json`
+names the library under `library`. A folder theme may carry that key
+too, but its folder is what counts.
 
 ## theme.json
 
@@ -51,6 +59,15 @@ ignored.
     "scrim": "rgba(0, 0, 0, 0.55)",
     "glyph": "#4c566a"
   },
+  "library": [
+    "bell-1.mp3",
+    "bell-2.mp3",
+    "bell-3.mp3",
+    "bell-4.mp3",
+    "bell-5.mp3",
+    "bowl.mp3",
+    "..."
+  ],
   "sounds": {
     "approach": "piano-3.mp3",
     "prepare": "clock-ticking.mp3",
@@ -77,6 +94,8 @@ ignored.
 - `name`: what the picker shows.
 - `ui`: all 15 colour tokens, any CSS colour. The names match the
   custom properties in `web/base.css`.
+- `library`: every audio file in the folder. Needed in the shipped
+  theme, whose folder cannot be listed; a folder theme is listed.
 - `sounds`: a file for each of the six cues and for `timer`, what a
   new countdown timer starts with.
 - `counts`: a file for each number one to nine.

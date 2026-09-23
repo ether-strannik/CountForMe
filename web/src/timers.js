@@ -8,7 +8,6 @@ import { makePad } from './keypad.js';
 import {
   audioCtx,
   playAt,
-  play,
   buzz,
   timerSound,
   soundName,
@@ -18,6 +17,7 @@ import {
   releaseClock,
 } from './sound.js';
 import { openScreen, closeScreen } from './nav.js';
+import { openSoundPicker } from './soundpick.js';
 import { approachSec } from './prefs.js';
 import { timersRunning, timersDone } from './session.js';
 
@@ -258,24 +258,31 @@ function secToDigits(sec) {
   const p = (n) => String(n).padStart(2, '0');
   return (p(Math.floor(sec / 3600)) + p(Math.floor((sec % 3600) / 60)) + p(sec % 60)).replace(/^0+/, '');
 }
-// The sound this timer plays, one of the theme's, held while the sheet
-// is open. The button names it and plays it on a tap. A timer saved
-// before sounds were the theme's names a file the theme does not
-// have; it plays the theme's timer sound, and is saved so on next edit.
+// The sound this timer plays, a file from the theme's library, held
+// while the sheet is open. The button names it; tapping opens the
+// picker, where a row plays and OK keeps. A timer whose file the theme
+// in use does not have plays the theme's timer sound, and the button
+// says so.
 let taSound = timerSound();
 const drawTaSound = async () => {
   await ensureSound(taSound); // the manifest, so the name is in
+  if (!taSound) taSound = timerSound();
   $('taSound').textContent = soundName(taSound);
 };
-$('taSound').addEventListener('click', () => play(taSound));
+$('taSound').addEventListener('click', () =>
+  openSoundPicker(taSound, (key) => {
+    taSound = key;
+    drawTaSound();
+  }),
+);
 function openTimerAdd(id) {
   taEditId = id;
   const t = id != null ? timers.find((x) => x.id === id) : null;
   $('taTitle').textContent = t ? 'Edit timer' : 'New timer';
   $in('taName').value = t ? t.name || '' : '';
   taPad.set(t ? secToDigits(t.sec) : '');
-  // an existing timer keeps its own sound; a new one starts at the
-  // default, read now so a change under Sounds is picked up
+  // an existing timer keeps its own file; a new one starts on the
+  // theme's timer sound
   taSound = (t && t.sound) || timerSound();
   drawTaSound();
   $('timerAdd').hidden = false;

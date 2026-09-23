@@ -1,9 +1,10 @@
 // What a theme is, and whether one can be used.
 //
-// A theme is a folder: `theme.json` and the sound files it names. The
-// JSON gives the theme its name, sets every colour token, and names a
-// file for each cue, for the timer, and for each spoken count. Nothing
-// falls back to anything outside the theme.
+// A theme is a folder: a library of sound files, and `theme.json`, a
+// preset over it. The JSON gives the theme its name, sets every colour
+// token, and names a file from the library for each cue, for the
+// timer, and for each spoken count. A timer may ring with any file in
+// the library. Nothing falls back to anything outside the theme.
 //
 // Two lines are drawn, because a theme is built step by step and seen
 // live as it goes. `ok` is the line for using it: the name and every

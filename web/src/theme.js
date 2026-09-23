@@ -92,32 +92,44 @@ export async function themeList() {
   return out;
 }
 
+/** an audio file, by its name */
+const AUDIO = /\.(mp3|wav|ogg|m4a|aac)$/i;
+
 /**
- * Where the theme in use is read from: its manifest, and the bytes of
- * a file beside it. The sound engine goes through this and knows no
- * folder. A folder theme that cannot be read any more resolves its
- * manifest to null; the engine then falls back through `lose()`.
- * @returns {{manifest: () => Promise<any>, bytes: (file: string) => Promise<ArrayBuffer | null>}}
+ * Where the theme in use is read from: its manifest, its library, and
+ * the bytes of a file beside it. The sound engine goes through this
+ * and knows no folder. A folder theme that cannot be read any more
+ * resolves its manifest to null; the engine then falls back through
+ * `lose()`.
+ *
+ * The library is every audio file in the theme's folder. The shipped
+ * theme's folder cannot be listed, so its theme.json names them; a
+ * folder theme's listing is read, and a file dropped in appears.
+ * @returns {{manifest: () => Promise<any>, library: () => Promise<string[]>,
+ *   bytes: (file: string) => Promise<ArrayBuffer | null>}}
  */
 export function themeSource() {
   const dir = folderOf(chosen.id);
   if (!dir) {
     return {
       manifest: shippedTheme,
+      library: async () => (await shippedTheme()).library || [],
       bytes: async (file) => {
         const r = await fetch('theme/' + file);
         return r.ok ? r.arrayBuffer() : null;
       },
     };
   }
+  const path = DIR + '/' + dir;
   return {
     // usable, or nothing: a colour gone since the theme was picked is
     // the same as the theme gone. A sound gone is that sound silent.
     manifest: async () => {
       const m = await folderManifest(dir);
-      return themeCheck(m, (await listDir(DIR + '/' + dir)).names).ok ? m : null;
+      return themeCheck(m, (await listDir(path)).names).ok ? m : null;
     },
-    bytes: (file) => readFile(DIR + '/' + dir + '/' + file),
+    library: async () => (await listDir(path)).names.filter((f) => AUDIO.test(f)),
+    bytes: (file) => readFile(path + '/' + file),
   };
 }
 
