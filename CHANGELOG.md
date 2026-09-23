@@ -9,6 +9,11 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Setting a theme's sounds. On a theme of your own, a row in the
+  Sounds tab, or a count, opens the picker over the theme's library,
+  and the pick is written to the theme. The picker's Add takes one
+  audio file from anywhere on the phone and copies it into the
+  theme, where it stays as part of the library.
 - Editing a theme's colours. On a theme of your own, every chip in
   the Colours tab shows its hex value; tap it, change it, and the app
   takes the colour at once and writes it to the theme. Hex only, with

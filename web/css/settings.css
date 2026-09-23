@@ -187,6 +187,10 @@
   flex: none;
   justify-content: flex-end;
 }
+/* Add sits at the left, away from Cancel and OK */
+#tsAdd {
+  margin-right: auto;
+}
 /* the row picked in the sound picker */
 .xrow[aria-pressed='true'] {
   color: var(--accent);

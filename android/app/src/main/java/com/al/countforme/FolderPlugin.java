@@ -37,6 +37,7 @@ import java.util.List;
  *   write({ name, base64 })                  name may be a path; folders are made
  *   remove({ name })
  *   share({ name, base64 })  hand the bytes to another app
+ *   pickFile()          -> { name, base64 }  one audio file from anywhere
  */
 @CapacitorPlugin(name = "Folder")
 public class FolderPlugin extends Plugin {
@@ -82,6 +83,51 @@ public class FolderPlugin extends Plugin {
         | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
     startActivityForResult(call, i, "picked");
+  }
+
+  /**
+   * One audio file from anywhere, through the system file picker. The
+   * pick is a one-time read on that file; the bytes come back and the
+   * page writes them where it wants, into a theme's folder.
+   *
+   *   pickFile() -> { name, base64 }   or { name: "" } when nothing was picked
+   */
+  @PluginMethod
+  public void pickFile(PluginCall call) {
+    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    i.addCategory(Intent.CATEGORY_OPENABLE);
+    i.setType("audio/*");
+    startActivityForResult(call, i, "pickedFile");
+  }
+
+  @ActivityCallback
+  private void pickedFile(PluginCall call, ActivityResult result) {
+    if (call == null) return;
+    JSObject r = new JSObject();
+    r.put("name", "");
+    Intent data = result.getData();
+    if (result.getResultCode() != android.app.Activity.RESULT_OK || data == null || data.getData() == null) {
+      call.resolve(r);
+      return;
+    }
+    Uri u = data.getData();
+    try (InputStream in = getContext().getContentResolver().openInputStream(u)) {
+      String name = "";
+      String[] cols = { android.provider.OpenableColumns.DISPLAY_NAME };
+      try (Cursor c = getContext().getContentResolver().query(u, cols, null, null, null)) {
+        if (c != null && c.moveToFirst()) name = c.getString(0);
+      }
+      if (name == null || name.isEmpty()) name = u.getLastPathSegment();
+      ByteArrayOutputStream buf = new ByteArrayOutputStream();
+      byte[] b = new byte[65536];
+      int n;
+      while ((n = in.read(b)) > 0) buf.write(b, 0, n);
+      r.put("name", name);
+      r.put("base64", Base64.encodeToString(buf.toByteArray(), Base64.NO_WRAP));
+      call.resolve(r);
+    } catch (Exception e) {
+      call.reject("cannot read: " + e.getMessage());
+    }
   }
 
   @ActivityCallback

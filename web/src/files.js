@@ -91,10 +91,28 @@ export async function readFile(path) {
 }
 
 /**
+ * One audio file from anywhere, through the system file picker: its
+ * name and its bytes. Null when nothing was picked or there is no
+ * bridge. The pick is a one-time read; keeping the file is a write.
+ * @returns {Promise<{name: string, bytes: ArrayBuffer} | null>}
+ */
+export async function pickAudio() {
+  const b = bridge();
+  if (!b) return null;
+  try {
+    const r = await b.pickFile();
+    if (!r.name || !r.base64) return null;
+    return { name: r.name, bytes: fromB64(r.base64) };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Write bytes under a name, which may be a path; folders on the way
  * are made. False when it could not be kept.
  */
-async function writeFile(name, bytes) {
+export async function writeFile(name, bytes) {
   const b = bridge();
   if (!b || !PATH.test(name)) return false;
   try {

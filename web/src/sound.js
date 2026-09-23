@@ -156,6 +156,12 @@ async function ready() {
 /** the theme's library, once read: every file a timer may pick */
 export const soundLibrary = () => library;
 
+/** the theme in use changed on disk: read it again on the next call */
+export function refreshSounds() {
+  manifest = null;
+  loadedFor = '';
+}
+
 /** decode one of the theme's files once; null when it cannot be had */
 async function bufferFor(file) {
   if (!file) return null;
@@ -196,6 +202,9 @@ const synthFor = (x) => synth[SOUNDS.includes(x) ? x : 'timer'];
 
 /** the name a sound shows under: its file, without the extension */
 export const soundName = (x) => fileFor(x).replace(/\.[^.]+$/, '');
+
+/** the library file a role plays, once the manifest is in; "" when blank */
+export const soundFile = (role) => roleFile(role);
 
 /** decode a sound so it can be put on the clock later; cached after */
 export async function ensureSound(key) {
@@ -249,8 +258,8 @@ export const timerSound = () => roleFile('timer');
 // that has to be fetched at the moment it is due is a count that
 // arrives late, or not at all once the page is in the background.
 
-/** the file behind a spoken count, once the manifest is in */
-const countFile = (n) => (manifest ? manifest.counts[String(n)] : '');
+/** the file behind a spoken count, once the manifest is in; "" when blank */
+export const countFile = (n) => (manifest ? manifest.counts[String(n)] || '' : '');
 
 /** decode the numbers a session will speak; anything missing stays silent */
 export async function ensureCounts(nums) {

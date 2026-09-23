@@ -9,8 +9,8 @@
 // paints its colours over the stylesheet, and they are kept alongside
 // the choice so the next launch paints them before anything draws.
 import { load, save } from './storage.js';
-import { listDir, readFile, writeText } from './files.js';
-import { TOKENS, themeCheck, blankTheme, slug } from './themepack.js';
+import { listDir, readFile, writeText, writeFile } from './files.js';
+import { TOKENS, SOUNDS, COUNTS, themeCheck, blankTheme, slug } from './themepack.js';
 
 const KEY = 'timer.theme';
 
@@ -170,6 +170,43 @@ export async function setColour(token, value) {
   setTheme(chosen.id, chosen.name, m.ui);
   return true;
 }
+
+/** a file name as it may be kept in a theme folder: no separators */
+const FILE = /^[^/\\]{1,120}$/;
+
+/**
+ * Put a sound file into the theme in use, so it is in the library.
+ * Only a folder theme. A file of that name already there is replaced.
+ * @param {string} name @param {ArrayBuffer} bytes
+ * @returns {Promise<boolean>}
+ */
+export async function addToLibrary(name, bytes) {
+  const dir = folderOf(chosen.id);
+  if (!dir || !FILE.test(name) || name === 'theme.json') return false;
+  return writeFile(DIR + '/' + dir + '/' + name, bytes);
+}
+
+/** change one entry of the theme's manifest and write it back */
+async function assign(group, key, file) {
+  const dir = folderOf(chosen.id);
+  if (!dir || !FILE.test(file)) return false;
+  const m = await folderManifest(dir);
+  if (!m) return false;
+  m[group] = { ...(m[group] || {}), [key]: file };
+  return writeText(DIR + '/' + dir + '/theme.json', JSON.stringify(m, null, 2) + '\n');
+}
+
+/**
+ * Name the library file a cue plays, on the theme in use.
+ * @param {string} role  one of SOUNDS @param {string} file  in the library
+ */
+export const setSound = (role, file) => (SOUNDS.includes(role) ? assign('sounds', role, file) : Promise.resolve(false));
+
+/**
+ * Name the library file a count speaks, on the theme in use.
+ * @param {string} n  one of COUNTS @param {string} file  in the library
+ */
+export const setCount = (n, file) => (COUNTS.includes(n) ? assign('counts', n, file) : Promise.resolve(false));
 
 /** use a theme and remember it, colours included */
 export function setTheme(id, name, ui) {

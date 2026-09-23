@@ -15,10 +15,33 @@ import {
   voiceVolume,
   setVoiceVolume,
 } from './prefs.js';
-import { audioCtx, ensureSound, play, playCount, soundName, setVolumes, testCue, testVoice } from './sound.js';
+import {
+  audioCtx,
+  ensureSound,
+  play,
+  playCount,
+  soundName,
+  soundFile,
+  countFile,
+  refreshSounds,
+  setVolumes,
+  testCue,
+  testVoice,
+} from './sound.js';
 import { TOKENS, SOUNDS, COUNTS, isHex } from './themepack.js';
 import { hasBridge, folder, pickFolder } from './files.js';
-import { themeId, themeList, setTheme, lostTheme, createTheme, themeEditable, setColour } from './theme.js';
+import {
+  themeId,
+  themeList,
+  setTheme,
+  lostTheme,
+  createTheme,
+  themeEditable,
+  setColour,
+  setSound,
+  setCount,
+} from './theme.js';
+import { openSoundPicker } from './soundpick.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen, closeScreen } from './nav.js';
 
@@ -208,7 +231,10 @@ for (const n of COUNTS) {
   const b = document.createElement('button');
   b.className = 'cnt';
   b.textContent = n;
-  b.addEventListener('click', () => playCount(+n));
+  b.addEventListener('click', () => {
+    if (!themeEditable()) return playCount(+n);
+    openSoundPicker(countFile(n), (file) => setCount(n, file).then(assigned), true);
+  });
   $('counts').appendChild(b);
 }
 
@@ -305,5 +331,17 @@ $('gear').addEventListener('click', async () => {
   $('settings').hidden = false;
   openScreen('settings', () => ($('settings').hidden = true));
 });
-SOUNDS.forEach((key) => $('snd-' + key).addEventListener('click', () => play(key)));
+// A row on the shipped theme plays its sound. On a theme of the user's
+// own it opens the picker over the theme's library, with Add, and the
+// pick is written to the theme and heard from then on.
+async function assigned() {
+  refreshSounds(); // the manifest changed on disk
+  await drawSoundBtns();
+}
+SOUNDS.forEach((key) =>
+  $('snd-' + key).addEventListener('click', () => {
+    if (!themeEditable()) return play(key);
+    openSoundPicker(soundFile(key), (file) => setSound(key, file).then(assigned), true);
+  }),
+);
 $sel('startTab').value = getStartTab();
