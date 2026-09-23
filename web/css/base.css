@@ -18,10 +18,10 @@
   /* The rest of what a theme has to reach. Named for what they mean, so
      a theme sets them without knowing which control uses which. */
   --on-accent: #2e3440; /* ink on an accent-filled control */
-  --accent-soft: rgba(136, 192, 208, 0.35); /* accent as a track behind a knob */
+  --accent-soft: #88c0d059; /* accent as a track behind a knob */
   --action: #e5e9f0; /* the loudest button on a screen: START */
   --on-action: #2e3440;
-  --scrim: rgba(0, 0, 0, 0.55); /* the dim behind a sheet */
+  --scrim: #0000008c; /* the dim behind a sheet */
   --glyph: #4c566a; /* a drawn mark that is not text: the delete circle */
 }
 * {

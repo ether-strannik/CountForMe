@@ -11,10 +11,10 @@
     "bad": "#ef6b6b",
     "go": "#66bb6a",
     "on-accent": "#06121f",
-    "accent-soft": "rgba(100, 181, 246, 0.4)",
+    "accent-soft": "#64b5f666",
     "action": "#eef1f4",
     "on-action": "#0b0f14",
-    "scrim": "rgba(0, 0, 0, 0.6)",
+    "scrim": "#00000099",
     "glyph": "#5b6672"
   }
 }

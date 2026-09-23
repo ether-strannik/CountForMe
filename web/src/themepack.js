@@ -59,12 +59,15 @@ export const NEW_UI = {
   bad: '#ef6b6b',
   go: '#66bb6a',
   'on-accent': '#06121f',
-  'accent-soft': 'rgba(100, 181, 246, 0.4)',
+  'accent-soft': '#64b5f666',
   action: '#eef1f4',
   'on-action': '#0b0f14',
-  scrim: 'rgba(0, 0, 0, 0.6)',
+  scrim: '#00000099',
   glyph: '#5b6672',
 };
+
+/** a colour as a theme writes it: hex only, 3, 4, 6 or 8 digits */
+export const isHex = (v) => /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(String(v || '').trim());
 
 /** a new theme's manifest: named, coloured, silent */
 export const blankTheme = (name) => ({ name, ui: { ...NEW_UI }, sounds: {}, counts: {} });

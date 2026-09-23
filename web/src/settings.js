@@ -16,9 +16,9 @@ import {
   setVoiceVolume,
 } from './prefs.js';
 import { audioCtx, ensureSound, play, playCount, soundName, setVolumes, testCue, testVoice } from './sound.js';
-import { TOKENS, SOUNDS, COUNTS } from './themepack.js';
+import { TOKENS, SOUNDS, COUNTS, isHex } from './themepack.js';
 import { hasBridge, folder, pickFolder } from './files.js';
-import { themeId, themeList, setTheme, lostTheme, createTheme } from './theme.js';
+import { themeId, themeList, setTheme, lostTheme, createTheme, themeEditable, setColour } from './theme.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen, closeScreen } from './nav.js';
 
@@ -62,19 +62,75 @@ $('approach').addEventListener('keydown', (e) => {
 /** @type {Awaited<ReturnType<typeof themeList>>} */
 let themes = [];
 
-/** the Colours tab: every token the theme in use sets, as a chip */
+// The Colours tab: every token the theme in use sets, as a chip with
+// its name and its value. On a theme of the user's own, tapping a chip
+// turns the value into a field. A hex colour is applied on the spot
+// and written to the theme; anything else stays in the field, marked,
+// until it is one. The shipped theme is shown, not edited.
 function drawSwatches(ui) {
   const box = $('tColours');
   box.innerHTML = '';
+  const editable = themeEditable();
   for (const t of TOKENS) {
     const s = document.createElement('div');
     s.className = 'swatch';
     const chip = document.createElement('div');
     chip.className = 'chip';
     chip.style.background = ui[t] || '';
-    s.append(chip, t);
+    const val = document.createElement('div');
+    val.className = 'val';
+    val.textContent = ui[t] || '';
+    s.append(chip, t, val);
+    if (editable) {
+      chip.addEventListener('click', () => editColour(s, val, t, ui[t] || ''));
+      val.addEventListener('click', () => editColour(s, val, t, ui[t] || ''));
+    }
     box.appendChild(s);
   }
+}
+
+/** put a field in place of the value, and take what it says when done */
+function editColour(swatch, val, token, current) {
+  if (swatch.querySelector('input')) return;
+  const inp = document.createElement('input');
+  inp.className = 'hexin';
+  inp.value = current;
+  inp.setAttribute('inputmode', 'text');
+  inp.setAttribute('autocapitalize', 'none');
+  inp.setAttribute('spellcheck', 'false');
+  swatch.replaceChild(inp, val);
+  inp.focus();
+  inp.select();
+  let done = false;
+  const finish = async () => {
+    if (done) return;
+    const v = inp.value.trim();
+    if (v === current || !v) {
+      done = true;
+      swatch.replaceChild(val, inp);
+      return;
+    }
+    if (!isHex(v)) {
+      inp.classList.add('bad'); // not a hex colour; the field stays for another go
+      return;
+    }
+    done = true;
+    if (await setColour(token, v))
+      await renderThemes(); // the chips, from the file as written
+    else swatch.replaceChild(val, inp);
+  };
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      finish();
+    }
+    if (e.key === 'Escape') {
+      done = true;
+      swatch.replaceChild(val, inp);
+    }
+  });
+  inp.addEventListener('input', () => inp.classList.remove('bad'));
+  inp.addEventListener('blur', finish);
 }
 
 // The list is the shipped theme and every folder under themes/ in the

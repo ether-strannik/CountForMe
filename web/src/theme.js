@@ -151,6 +151,26 @@ export async function createTheme(name) {
   return FOLDER + dir;
 }
 
+/** can the theme in use be edited: only one from the folder */
+export const themeEditable = () => !!folderOf(chosen.id);
+
+/**
+ * Change one colour of the theme in use, on the spot: painted at once
+ * and written to its theme.json. Only a folder theme.
+ * @param {string} token @param {string} value  any CSS colour
+ * @returns {Promise<boolean>} false when nothing could be written
+ */
+export async function setColour(token, value) {
+  const dir = folderOf(chosen.id);
+  if (!dir || !TOKENS.includes(token)) return false;
+  const m = await folderManifest(dir);
+  if (!m) return false;
+  m.ui = { ...(m.ui || {}), [token]: value };
+  if (!(await writeText(DIR + '/' + dir + '/theme.json', JSON.stringify(m, null, 2) + '\n'))) return false;
+  setTheme(chosen.id, chosen.name, m.ui);
+  return true;
+}
+
 /** use a theme and remember it, colours included */
 export function setTheme(id, name, ui) {
   lost = '';

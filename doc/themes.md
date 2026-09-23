@@ -53,10 +53,10 @@ too, but its folder is what counts.
     "bad": "#bf616a",
     "go": "#a3be8c",
     "on-accent": "#2e3440",
-    "accent-soft": "rgba(136, 192, 208, 0.35)",
+    "accent-soft": "#88c0d059",
     "action": "#e5e9f0",
     "on-action": "#2e3440",
-    "scrim": "rgba(0, 0, 0, 0.55)",
+    "scrim": "#0000008c",
     "glyph": "#4c566a"
   },
   "library": [
@@ -92,8 +92,10 @@ too, but its folder is what counts.
 ```
 
 - `name`: what the picker shows.
-- `ui`: all 15 colour tokens, any CSS colour. The names match the
-  custom properties in `web/base.css`.
+- `ui`: all 15 colour tokens, hex only: `#rgb`, `#rgba`, `#rrggbb` or
+  `#rrggbbaa`. The two translucent ones, `accent-soft` and `scrim`,
+  carry their alpha in the last two digits. The names match the custom
+  properties in `web/base.css`.
 - `library`: every audio file in the folder. Needed in the shipped
   theme, whose folder cannot be listed; a folder theme is listed.
 - `sounds`: a file for each of the six cues and for `timer`, what a
