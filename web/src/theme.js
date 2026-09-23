@@ -142,9 +142,7 @@ export function themeSource() {
  * @returns {Promise<string>} the new theme's id; "" when nothing could be written
  */
 export async function createTheme(name) {
-  const taken = new Set((await listDir(DIR)).dirs);
-  let dir = slug(name);
-  for (let n = 2; taken.has(dir); n++) dir = slug(name) + '-' + n;
+  const dir = await freeDir(name);
   const m = blankTheme(name.trim() || dir);
   if (!(await writeText(DIR + '/' + dir + '/theme.json', JSON.stringify(m, null, 2) + '\n'))) return '';
   setTheme(FOLDER + dir, m.name, m.ui);
@@ -157,7 +155,7 @@ export const themeEditable = () => !!folderOf(chosen.id);
 /**
  * Change one colour of the theme in use, on the spot: painted at once
  * and written to its theme.json. Only a folder theme.
- * @param {string} token @param {string} value  any CSS colour
+ * @param {string} token @param {string} value  a hex colour, checked by the caller
  * @returns {Promise<boolean>} false when nothing could be written
  */
 export async function setColour(token, value) {
@@ -169,6 +167,50 @@ export async function setColour(token, value) {
   if (!(await writeText(DIR + '/' + dir + '/theme.json', JSON.stringify(m, null, 2) + '\n'))) return false;
   setTheme(chosen.id, chosen.name, m.ui);
   return true;
+}
+
+/** a folder name under themes/ not yet taken, from a theme name */
+async function freeDir(name) {
+  const taken = new Set((await listDir(DIR)).dirs);
+  let dir = slug(name);
+  for (let n = 2; taken.has(dir); n++) dir = slug(name) + '-' + n;
+  return dir;
+}
+
+/**
+ * The theme in use, copied whole into a new folder under a name of the
+ * user's: its manifest under the new name, every file in its library,
+ * every count. Nord included. Whole from the first second, then edited
+ * like any theme of the user's own. Put on at once.
+ * @param {string} name
+ * @returns {Promise<string>} the new theme's id; "" when it could not be made
+ */
+export async function copyTheme(name) {
+  const src = themeSource();
+  let m;
+  try {
+    m = await src.manifest();
+  } catch {
+    m = null;
+  }
+  if (!m) return '';
+  const dir = await freeDir(name);
+  const files = new Set([...(await src.library()), ...Object.values(m.sounds || {}), ...Object.values(m.counts || {})]);
+  for (const f of files) {
+    if (!FILE.test(f)) continue;
+    const bytes = await src.bytes(f);
+    if (bytes && !(await writeFile(DIR + '/' + dir + '/' + f, bytes))) return '';
+  }
+  // no `library` key: a folder theme's library is its folder
+  const out = {
+    name: name.trim() || dir,
+    ui: { ...m.ui },
+    sounds: { ...(m.sounds || {}) },
+    counts: { ...(m.counts || {}) },
+  };
+  if (!(await writeText(DIR + '/' + dir + '/theme.json', JSON.stringify(out, null, 2) + '\n'))) return '';
+  setTheme(FOLDER + dir, out.name, out.ui);
+  return FOLDER + dir;
 }
 
 /** a file name as it may be kept in a theme folder: no separators */

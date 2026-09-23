@@ -9,6 +9,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Copy theme. Under Themes, Copy takes the theme in use, Nord
+  included, into a new theme under a name you give: colours, every
+  sound in its library, every count. Whole from the start, and yours
+  to edit.
 - Setting a theme's sounds. On a theme of your own, a row in the
   Sounds tab, or a count, opens the picker over the theme's library,
   and the pick is written to the theme. The picker's Add takes one

@@ -36,6 +36,7 @@ import {
   setTheme,
   lostTheme,
   createTheme,
+  copyTheme,
   themeEditable,
   setColour,
   setSound,
@@ -197,19 +198,28 @@ function showThemeTab(t) {
 }
 $$('.ttab').forEach((b) => b.addEventListener('click', () => showThemeTab(b.dataset.ttab)));
 
-// ---- a new theme: a name, then it exists and is on ----
-// It starts with every colour set and every sound blank, so it can be
-// worked in at once and built step by step, seen live.
-$('themeNew').addEventListener('click', () => {
+// ---- a theme of the user's own: a name, then it exists and is on ----
+// New starts with every colour set and every sound blank, so it can be
+// worked in at once and built step by step, seen live. Copy takes the
+// theme in use, Nord included, whole. One sheet asks the name for both.
+/** @type {'new' | 'copy'} */
+let tnMode = 'new';
+function askName(mode) {
+  tnMode = mode;
+  $('tnTitle').textContent = mode === 'copy' ? 'Copy theme' : 'New theme';
   $in('tnName').value = '';
   $('tnOverlay').hidden = false;
   openScreen('tnOverlay', () => ($('tnOverlay').hidden = true));
   $('tnName').focus();
-});
+}
+$('themeNew').addEventListener('click', () => askName('new'));
+$('themeCopy').addEventListener('click', () => askName('copy'));
 $('tnOk').addEventListener('click', async () => {
   const name = $in('tnName').value.trim();
   if (!name) return $('tnName').focus();
-  const id = await createTheme(name);
+  $btn('tnOk').disabled = true; // a copy takes a moment; one press is one theme
+  const id = await (tnMode === 'copy' ? copyTheme(name) : createTheme(name));
+  $btn('tnOk').disabled = false;
   closeScreen('tnOverlay');
   if (!id) return; // no folder to write in; the picker is unchanged
   await renderThemes();

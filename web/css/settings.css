@@ -208,6 +208,11 @@
 }
 
 /* ---- the Themes tab ---- */
+/* New and Copy, side by side in the picker row's last cell */
+.tbtns {
+  display: flex;
+  gap: 8px;
+}
 /* The two tabs inside it, lighter than the page's own so the two rows
    of tabs read as levels. */
 .ttabs {

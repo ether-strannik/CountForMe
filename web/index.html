@@ -297,7 +297,10 @@
         <div class="srow">
           <div class="slabel">Theme</div>
           <select id="theme"></select>
-          <button id="themeNew" class="pbtn">New</button>
+          <div class="tbtns">
+            <button id="themeNew" class="pbtn">New</button>
+            <button id="themeCopy" class="pbtn">Copy</button>
+          </div>
         </div>
         <!-- shown once, when the theme in use had to be left: its folder
              went, or lost a file -->
@@ -420,11 +423,12 @@
       </div>
     </div>
 
-    <!-- a new theme: its name, then it exists and is on -->
+    <!-- a theme of the user's own, new or a copy: its name, then it
+         exists and is on -->
     <div id="tnOverlay" hidden>
       <div class="sheet">
         <div class="sheethead">
-          <div class="stitle">New theme</div>
+          <div class="stitle" id="tnTitle">New theme</div>
         </div>
         <input id="tnName" class="catname" placeholder="name" />
         <div class="catactions">
