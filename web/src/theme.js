@@ -9,7 +9,7 @@
 // paints its colours over the stylesheet, and they are kept alongside
 // the choice so the next launch paints them before anything draws.
 import { load, save } from './storage.js';
-import { listDir, readFile, writeText, writeFile } from './files.js';
+import { listDir, readFile, writeText, writeFile, removePath } from './files.js';
 import { TOKENS, SOUNDS, COUNTS, themeCheck, blankTheme, slug } from './themepack.js';
 
 const KEY = 'timer.theme';
@@ -211,6 +211,19 @@ export async function copyTheme(name) {
   if (!(await writeText(DIR + '/' + dir + '/theme.json', JSON.stringify(out, null, 2) + '\n'))) return '';
   setTheme(FOLDER + dir, out.name, out.ui);
   return FOLDER + dir;
+}
+
+/**
+ * Remove the theme in use, folder and all. Only one of the user's own;
+ * the shipped theme cannot go. The app is on the shipped theme after.
+ * @returns {Promise<boolean>} false when it is still there
+ */
+export async function deleteTheme() {
+  const dir = folderOf(chosen.id);
+  if (!dir) return false;
+  if (!(await removePath(DIR + '/' + dir))) return false;
+  setTheme(SHIPPED, '', null);
+  return true;
 }
 
 /** a file name as it may be kept in a theme folder: no separators */

@@ -109,6 +109,21 @@ export async function pickAudio() {
 }
 
 /**
+ * Remove a file or a folder by path, a folder with everything in it.
+ * True when it is gone, or was never there.
+ */
+export async function removePath(path) {
+  const b = bridge();
+  if (!b || !PATH.test(path)) return false;
+  try {
+    await b.remove({ name: path });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Write bytes under a name, which may be a path; folders on the way
  * are made. False when it could not be kept.
  */

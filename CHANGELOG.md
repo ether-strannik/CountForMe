@@ -9,6 +9,9 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Delete theme. Del under Themes removes the theme in use, folder and
+  sounds, after a confirm. Only a theme of your own; on Nord the
+  button is off.
 - Copy theme. Under Themes, Copy takes the theme in use, Nord
   included, into a new theme under a name you give: colours, every
   sound in its library, every count. Whole from the start, and yours

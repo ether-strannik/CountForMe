@@ -208,10 +208,29 @@
 }
 
 /* ---- the Themes tab ---- */
-/* New and Copy, side by side in the picker row's last cell */
+/* The picker row: the label and the buttons take what they need, the
+   picker gets the rest and shortens a long name. The buttons never
+   leave the screen, whatever the theme is called. */
+.trow {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.trow select {
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* New, Copy and Del, side by side in the row's last cell */
 .tbtns {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex: none;
+}
+.tbtns .pbtn {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 /* The two tabs inside it, lighter than the page's own so the two rows
    of tabs read as levels. */

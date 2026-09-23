@@ -37,6 +37,7 @@ import {
   lostTheme,
   createTheme,
   copyTheme,
+  deleteTheme,
   themeEditable,
   setColour,
   setSound,
@@ -45,6 +46,7 @@ import {
 import { openSoundPicker } from './soundpick.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
 import { openScreen, closeScreen } from './nav.js';
+import { askConfirm } from './confirm.js';
 
 // ---- the folder: sounds and preset files live there ----
 async function renderFolder() {
@@ -177,6 +179,7 @@ async function renderThemes() {
   const t = themes.find((x) => x.id === now && x.ok) || themes[0];
   sel.value = t.id;
   drawSwatches(t.ui);
+  $btn('themeDel').disabled = !themeEditable();
   const lost = lostTheme();
   $('themeNote').hidden = !lost;
   if (lost)
@@ -186,6 +189,7 @@ $('theme').addEventListener('change', async () => {
   const t = themes.find((x) => x.id === $sel('theme').value && x.ok) || themes[0];
   setTheme(t.id, t.name, t.ui);
   drawSwatches(t.ui);
+  $btn('themeDel').disabled = !themeEditable();
   await drawSoundBtns(); // the other theme's names
   $('themeNote').hidden = true;
 });
@@ -214,6 +218,17 @@ function askName(mode) {
 }
 $('themeNew').addEventListener('click', () => askName('new'));
 $('themeCopy').addEventListener('click', () => askName('copy'));
+// Del: the theme in use, folder and all, after a confirm. Only one of
+// the user's own; on the shipped theme the button is off.
+$('themeDel').addEventListener('click', () => {
+  if (!themeEditable()) return;
+  const t = themes.find((x) => x.id === themeId());
+  askConfirm('Delete the theme ' + (t ? t.name : '') + '? Its sounds go with it.', async () => {
+    if (!(await deleteTheme())) return;
+    await renderThemes();
+    await drawSoundBtns();
+  });
+});
 $('tnOk').addEventListener('click', async () => {
   const name = $in('tnName').value.trim();
   if (!name) return $('tnName').focus();

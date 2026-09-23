@@ -35,7 +35,7 @@ import java.util.List;
  *   list({ path? })     -> { names, dirs }   files and subfolders of a folder
  *   read({ name })      -> { base64 }        name may be a path: "themes/x/y.mp3"
  *   write({ name, base64 })                  name may be a path; folders are made
- *   remove({ name })
+ *   remove({ name })                         name may be a path; a folder goes with its contents
  *   share({ name, base64 })  hand the bytes to another app
  *   pickFile()          -> { name, base64 }  one audio file from anywhere
  */
