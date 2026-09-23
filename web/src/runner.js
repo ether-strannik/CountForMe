@@ -49,6 +49,10 @@ const SAY_AFTER = 0.3;
 // session that is already over.
 const LINGER = 3000;
 
+// Each screen makes its own runner, and the duck keeps a list per
+// thing that schedules, so each needs a name of its own to file under.
+let made = 0;
+
 /**
  * @param {object} hooks
  * @param {(left: number) => void} hooks.ready     draw the lead-in, `left` s to go
@@ -59,6 +63,7 @@ const LINGER = 3000;
  * @param {() => boolean} hooks.onScreen           is the run screen visible
  */
 export function makeRunner(hooks) {
+  const duckKey = 'run' + ++made;
   let raf = 0;
   let wake = null;
   /** audio time of run second 0; moved forward by every pause */
@@ -153,7 +158,7 @@ export function makeRunner(hooks) {
       sources.push(...group);
       earlier = group; // a cue and its spoken count end together
     }
-    armDuck(placed);
+    armDuck(duckKey, placed);
   }
 
   /**
@@ -186,7 +191,7 @@ export function makeRunner(hooks) {
       }
     }
     sources = [];
-    clearDuck(); // `schedule` writes the new one immediately after
+    clearDuck(duckKey); // `schedule` writes the new one immediately after
   }
 
   /**

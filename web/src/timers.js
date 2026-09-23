@@ -15,6 +15,9 @@ import {
   ensureSound,
   holdClock,
   releaseClock,
+  cueLength,
+  armDuck,
+  clearDuck,
 } from './sound.js';
 import { openScreen, closeScreen } from './nav.js';
 import { openSoundPicker } from './soundpick.js';
@@ -47,6 +50,9 @@ const starting = new Set();
 /** seconds left, on the clock the sounds are on */
 const cdRemaining = (t) => (t.running ? zeros.get(t.id) - audioCtx().currentTime : t.rem);
 
+/** what the music files this timer's knocks and end sound under */
+const duckKey = (id) => 'cd' + id;
+
 /** drop whatever this timer still has waiting on the clock */
 function unschedule(id) {
   for (const s of scheduled.get(id) || []) {
@@ -58,6 +64,7 @@ function unschedule(id) {
   }
   scheduled.delete(id);
   zeros.delete(id);
+  clearDuck(duckKey(id)); // its sounds are gone; the music owes it nothing
   if (!scheduled.size) releaseClock(); // nothing left to keep it open for
 }
 
@@ -83,13 +90,20 @@ async function start(t) {
   t.endAt = Date.now() + t.rem * 1000;
   t.running = true;
   const out = [];
+  /** the same sounds as times and lengths, for the music to duck under */
+  const placed = [];
   // A knock as the countdown enters each of its last seconds. One
   // already past is skipped rather than fired at once.
   for (let k = approachSec(); k >= 1; k--) {
-    if (zero - k > c.currentTime) out.push(...playAt('approach', zero - k));
+    if (zero - k > c.currentTime) {
+      out.push(...playAt('approach', zero - k));
+      placed.push({ at: zero - k, dur: cueLength('approach') });
+    }
   }
   out.push(...playAt(t.sound, zero));
+  placed.push({ at: zero, dur: cueLength(t.sound) });
   scheduled.set(t.id, out);
+  armDuck(duckKey(t.id), placed);
   saveTimers();
   renderTimers();
   syncCdTicker();
@@ -236,7 +250,9 @@ function cdTick() {
     changed = true;
     buzzed.delete(t.id);
     // Not `unschedule`: the sound at zero is still ringing, and a stop
-    // here would cut it. Only the hold is let go of.
+    // here would cut it. Only the hold is let go of. The duck is left
+    // alone for the same reason — it already knows when that sound
+    // ends, and lifting now would raise the music over it.
     scheduled.delete(t.id);
     zeros.delete(t.id);
     if (!scheduled.size) releaseClock();

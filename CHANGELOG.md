@@ -18,6 +18,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   instead of pumping it up and down between each one, so a Cadence
   block with a rep every second drops the music once at the start and
   lifts it once at the end.
+- A countdown timer ducks the song too, through its knocks and its end
+  sound. One running under a session, or several under each other, all
+  hold the music down together, and it lifts when the last of them is
+  done.
 - A Music tab in settings with the four numbers behind that: how far
   the song drops, how much quiet earns it back, and how fast it moves
   each way. Moving one during a run is heard on the next cue, so the

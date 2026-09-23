@@ -92,23 +92,33 @@ export function setVolumes(cueDb, voiceDb) {
 // music's answer to them there in the same breath. `duck.js` works out
 // what that answer is; everything here is the writing of it.
 //
-// The list is kept because the four numbers are the user's to move
+// The lists are kept because the four numbers are the user's to move
 // while a session runs, and moving one has to be heard now, not next
-// time. `refreshDuck` rewrites from the same list against the new
+// time. `refreshDuck` rewrites from the same lists against the new
 // settings, which is also what a pause and resume needs.
+//
+// One list per thing that schedules, not one in total: a countdown
+// timer can be running under a session, and several countdowns under
+// each other. The music answers to all of them at once, so the
+// envelope is built from every list together.
 
-/** @type {{at: number, dur: number}[]} what the session placed */
-let placed = [];
+/** @type {Map<string, {at: number, dur: number}[]>} what each placed */
+const placedBy = new Map();
+
+// Two ramps ending at the same instant on one parameter are not a
+// ramp, they are a race. A millisecond of daylight settles it.
+const EVENT_GAP = 0.001;
 
 function writeDuck() {
   try {
     const g = buses().music.gain;
     const now = audioCtx().currentTime;
-    // Drop what was written before and pin the level where it is now,
-    // so a rewrite mid-session starts from what is being heard rather
-    // than jumping.
-    g.cancelScheduledValues(now);
-    g.setValueAtTime(g.value, now);
+    // What is wholly behind us can no longer shape anything ahead.
+    for (const [who, list] of placedBy) {
+      if (list.every((s) => s.at + s.dur < now)) placedBy.delete(who);
+    }
+    const placed = [...placedBy.values()].flat();
+    const down = duckDown() / 1000;
     const pts = duckEnvelope(placed, {
       from: now,
       depth: duckDepth(),
@@ -116,35 +126,58 @@ function writeDuck() {
       down: duckDown(),
       up: duckUp(),
     });
-    // Points already past are not written: the one pinned above stands
-    // in for them, and a ramp to a time behind us is a step.
-    let any = false;
-    for (const p of pts) {
-      if (p.t <= now) continue;
-      g.linearRampToValueAtTime(p.v, p.t);
-      any = true;
+    // Drop what was written before and pin the level where it is now,
+    // so a rewrite mid-session carries on from what is being heard.
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+
+    // A point already behind us cannot be scheduled, but it still says
+    // where the gain belongs: the last of them is the level to be at.
+    // That is not always the level being heard. PREPARE sits at second
+    // zero of a session, so the whole of its fall is behind the instant
+    // this runs, and skipping those points left the music drifting down
+    // across the window instead of dropping before the cue. Slide into
+    // that level over what is left of the fall rather than stepping,
+    // which on music is a click.
+    let i = 0;
+    let level = g.value;
+    while (i < pts.length && pts[i].t <= now) level = pts[i++].v;
+    if (level !== g.value) {
+      const next = i < pts.length ? pts[i].t : Infinity;
+      const slide = Math.min(now + down, next - EVENT_GAP);
+      if (slide > now) g.linearRampToValueAtTime(level, slide);
+      else g.setValueAtTime(level, now);
     }
-    if (!any) g.linearRampToValueAtTime(1, now + duckUp() / 1000);
+
+    for (; i < pts.length; i++) g.linearRampToValueAtTime(pts[i].v, pts[i].t);
+    // Nothing ahead: whatever it is at comes back up and stays there.
+    if (i === 0 && level === g.value) g.linearRampToValueAtTime(1, now + duckUp() / 1000);
   } catch {
     /* no audio on this device; there is nothing to duck */
   }
 }
 
 /**
- * The duck for a whole session, written in one go.
- * @param {{at: number, dur: number}[]} sounds  every cue and count placed
+ * What one thing has put on the clock, and so what the music owes it.
+ * Replaces whatever that thing said before.
+ * @param {string} who  the scheduler: a session, or one countdown timer
+ * @param {{at: number, dur: number}[]} sounds  every cue and count it placed
  */
-export function armDuck(sounds) {
-  placed = sounds;
+export function armDuck(who, sounds) {
+  placedBy.set(who, sounds);
   writeDuck();
 }
 
-/** the same session again, against settings that have just changed */
-export const refreshDuck = () => placed.length && writeDuck();
+/** the same again, against settings that have just changed */
+export const refreshDuck = () => placedBy.size && writeDuck();
 
-/** nothing is coming: the music comes back up and stays */
-export function clearDuck() {
-  placed = [];
+/**
+ * That one has nothing coming. The music lifts once nothing else is
+ * holding it down.
+ * @param {string} who
+ */
+export function clearDuck(who) {
+  placedBy.delete(who);
   writeDuck();
 }
 
