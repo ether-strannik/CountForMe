@@ -126,7 +126,8 @@
 /* ---- the sheets that open over a page. z 22 clears the settings
    page at 20. The preset manager has its own file ---- */
 #xferOverlay,
-#tsOverlay {
+#tsOverlay,
+#tnOverlay {
   position: fixed;
   inset: 0;
   z-index: 22;

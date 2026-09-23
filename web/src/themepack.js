@@ -43,6 +43,42 @@ export const COUNTS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const text = (v) => typeof v === 'string' && v.trim() !== '';
 
 /**
+ * What a new theme starts with: every colour set, so the screen can be
+ * worked in from the first second, and every sound blank. The colours
+ * are the blue palette the app had before Nord, kept here as values
+ * so a new theme reads nothing from anywhere.
+ */
+export const NEW_UI = {
+  bg: '#12161a',
+  card: '#191f26',
+  line: '#232b34',
+  text: '#e6e6e6',
+  muted: '#8b98a5',
+  accent: '#64b5f6',
+  warn: '#d8a657',
+  bad: '#ef6b6b',
+  go: '#66bb6a',
+  'on-accent': '#06121f',
+  'accent-soft': 'rgba(100, 181, 246, 0.4)',
+  action: '#eef1f4',
+  'on-action': '#0b0f14',
+  scrim: 'rgba(0, 0, 0, 0.6)',
+  glyph: '#5b6672',
+};
+
+/** a new theme's manifest: named, coloured, silent */
+export const blankTheme = (name) => ({ name, ui: { ...NEW_UI }, sounds: {}, counts: {} });
+
+/** a folder name from a theme name: lower case, dashes, nothing else */
+export function slug(name) {
+  const s = String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return s || 'theme';
+}
+
+/**
  * Can this theme be used, and is it whole? Every gap is named, so a
  * list can say what a theme lacks rather than only that it is out.
  * @param {any} m               the parsed theme.json

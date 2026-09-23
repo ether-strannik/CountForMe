@@ -9,6 +9,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A theme of your own. New under Themes asks for a name, writes a
+  theme folder into your folder and puts it on. It starts with a full
+  set of colours and no sounds; a blank sound is silent and shows as
+  "none" on its row.
 - Themes from your folder. Put a theme folder under `themes/` inside
   the folder chosen under General and it appears in the picker. A
   theme missing a colour is listed greyed with what it lacks and

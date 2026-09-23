@@ -297,6 +297,7 @@
         <div class="srow">
           <div class="slabel">Theme</div>
           <select id="theme"></select>
+          <button id="themeNew" class="pbtn">New</button>
         </div>
         <!-- shown once, when the theme in use had to be left: its folder
              went, or lost a file -->
@@ -306,8 +307,9 @@
         <div class="srow snote">
           <div class="slabel">
             <small
-              >More themes go in a <b>themes</b> folder inside the folder chosen under General, one folder each. A theme
-              is its colours and its sounds together, and is listed only when it is whole.</small
+              >Themes live in a <b>themes</b> folder inside the folder chosen under General, one folder each. New makes
+              one there and puts it on. A theme is its colours and its sounds together; a sound still blank is silent
+              until it is set.</small
             >
           </div>
         </div>
@@ -414,6 +416,20 @@
         <div class="catactions" id="presetExpActions" hidden>
           <button id="presetExpCancel" class="pbtn">Cancel</button>
           <button id="presetExpNext" class="pbtn save">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- a new theme: its name, then it exists and is on -->
+    <div id="tnOverlay" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle">New theme</div>
+        </div>
+        <input id="tnName" class="catname" placeholder="name" />
+        <div class="catactions">
+          <button id="tnCancel" class="pbtn">Cancel</button>
+          <button id="tnOk" class="pbtn save">Create</button>
         </div>
       </div>
     </div>

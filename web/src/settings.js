@@ -18,9 +18,9 @@ import {
 import { audioCtx, ensureSound, play, playCount, soundName, setVolumes, testCue, testVoice } from './sound.js';
 import { TOKENS, SOUNDS, COUNTS } from './themepack.js';
 import { hasBridge, folder, pickFolder } from './files.js';
-import { themeId, themeList, setTheme, lostTheme } from './theme.js';
+import { themeId, themeList, setTheme, lostTheme, createTheme } from './theme.js';
 import { systemStatus, onSystemChange, openNotifications, openBattery, keepAwake } from './system.js';
-import { openScreen } from './nav.js';
+import { openScreen, closeScreen } from './nav.js';
 
 // ---- the folder: sounds and preset files live there ----
 async function renderFolder() {
@@ -34,7 +34,7 @@ async function renderFolder() {
 // it. Nothing here changes a sound: that is a different theme.
 async function drawSoundBtns() {
   await ensureSound('timer'); // reads the manifest, so the names are in
-  SOUNDS.forEach((key) => ($btn('snd-' + key).textContent = soundName(key)));
+  SOUNDS.forEach((key) => ($btn('snd-' + key).textContent = soundName(key) || 'none'));
 }
 $('pickFolder').addEventListener('click', async () => {
   await pickFolder();
@@ -88,14 +88,9 @@ async function renderThemes() {
   const now = themeId();
   sel.innerHTML = '';
   for (const t of themes) {
-    // cannot be used: greyed, with what it lacks. Usable but with
-    // sounds still blank: picked as it is, and named as silent there.
-    const label = !t.ok
-      ? t.name + ' · missing ' + t.missing.join(', ')
-      : t.whole
-        ? t.name
-        : t.name + ' · silent: ' + t.silent.join(', ');
-    const o = new Option(label, t.id);
+    // cannot be used: greyed, with what it lacks. A sound still blank
+    // is not said here; the Sounds tab shows it on its own row.
+    const o = new Option(t.ok ? t.name : t.name + ' · missing ' + t.missing.join(', '), t.id);
     o.disabled = !t.ok;
     sel.add(o);
   }
@@ -122,6 +117,35 @@ function showThemeTab(t) {
   $('tSounds').hidden = t !== 'sounds';
 }
 $$('.ttab').forEach((b) => b.addEventListener('click', () => showThemeTab(b.dataset.ttab)));
+
+// ---- a new theme: a name, then it exists and is on ----
+// It starts with every colour set and every sound blank, so it can be
+// worked in at once and built step by step, seen live.
+$('themeNew').addEventListener('click', () => {
+  $in('tnName').value = '';
+  $('tnOverlay').hidden = false;
+  openScreen('tnOverlay', () => ($('tnOverlay').hidden = true));
+  $('tnName').focus();
+});
+$('tnOk').addEventListener('click', async () => {
+  const name = $in('tnName').value.trim();
+  if (!name) return $('tnName').focus();
+  const id = await createTheme(name);
+  closeScreen('tnOverlay');
+  if (!id) return; // no folder to write in; the picker is unchanged
+  await renderThemes();
+  await drawSoundBtns();
+});
+$('tnCancel').addEventListener('click', () => closeScreen('tnOverlay'));
+$('tnOverlay').addEventListener('click', (e) => {
+  if (e.target === $('tnOverlay')) closeScreen('tnOverlay');
+});
+$('tnName').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('tnOk').click();
+  }
+});
 
 // the counts row: nine numbers, each played on a tap
 for (const n of COUNTS) {

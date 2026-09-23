@@ -34,7 +34,7 @@ import java.util.List;
  *   pick()              -> { granted, name }
  *   list({ path? })     -> { names, dirs }   files and subfolders of a folder
  *   read({ name })      -> { base64 }        name may be a path: "themes/x/y.mp3"
- *   write({ name, base64 })
+ *   write({ name, base64 })                  name may be a path; folders are made
  *   remove({ name })
  *   share({ name, base64 })  hand the bytes to another app
  */
@@ -185,6 +185,32 @@ public class FolderPlugin extends Plugin {
     }
   }
 
+  /**
+   * The id of the folder at a path, creating each missing segment on
+   * the way. "" is the tree itself. Null when a segment cannot be made.
+   */
+  private String dirId(Uri t, String path) throws Exception {
+    String id = DocumentsContract.getTreeDocumentId(t);
+    if (path == null || path.isEmpty()) return id;
+    for (String seg : path.split("/")) {
+      if (seg.isEmpty() || seg.equals(".") || seg.equals("..")) return null;
+      String next = childId(t, id, seg);
+      if (next == null) {
+        Uri parent = DocumentsContract.buildDocumentUriUsingTree(t, id);
+        Uri made = DocumentsContract.createDocument(getContext().getContentResolver(), parent,
+            DocumentsContract.Document.MIME_TYPE_DIR, seg);
+        if (made == null) return null;
+        next = DocumentsContract.getDocumentId(made);
+      }
+      id = next;
+    }
+    return id;
+  }
+
+  /**
+   * Write bytes under a name, which may be a path: "themes/mine/x.json".
+   * Folders on the way are created. An existing file is replaced.
+   */
   @PluginMethod
   public void write(PluginCall call) {
     String name = call.getString("name");
@@ -197,9 +223,14 @@ public class FolderPlugin extends Plugin {
       if (id != null) {
         doc = DocumentsContract.buildDocumentUriUsingTree(t, id);
       } else {
-        Uri parent = DocumentsContract.buildDocumentUriUsingTree(t, DocumentsContract.getTreeDocumentId(t));
-        String mime = name.endsWith(".json") ? "application/json" : "application/octet-stream";
-        doc = DocumentsContract.createDocument(getContext().getContentResolver(), parent, mime, name);
+        int cut = name.lastIndexOf('/');
+        String dir = cut < 0 ? "" : name.substring(0, cut);
+        String leaf = cut < 0 ? name : name.substring(cut + 1);
+        String parentId = dirId(t, dir);
+        if (parentId == null) { call.reject("cannot create folder"); return; }
+        Uri parent = DocumentsContract.buildDocumentUriUsingTree(t, parentId);
+        String mime = leaf.endsWith(".json") ? "application/json" : "application/octet-stream";
+        doc = DocumentsContract.createDocument(getContext().getContentResolver(), parent, mime, leaf);
         if (doc == null) { call.reject("cannot create"); return; }
       }
       // "wt": truncate, so a shorter file does not keep the old tail

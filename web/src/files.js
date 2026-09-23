@@ -90,10 +90,13 @@ export async function readFile(path) {
   }
 }
 
-/** write bytes under a name; false when it could not be kept */
+/**
+ * Write bytes under a name, which may be a path; folders on the way
+ * are made. False when it could not be kept.
+ */
 async function writeFile(name, bytes) {
   const b = bridge();
-  if (!b || !NAME.test(name)) return false;
+  if (!b || !PATH.test(name)) return false;
   try {
     await b.write({ name, base64: toB64(bytes) });
     return true;

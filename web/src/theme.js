@@ -9,8 +9,8 @@
 // paints its colours over the stylesheet, and they are kept alongside
 // the choice so the next launch paints them before anything draws.
 import { load, save } from './storage.js';
-import { listDir, readFile } from './files.js';
-import { TOKENS, themeCheck } from './themepack.js';
+import { listDir, readFile, writeText } from './files.js';
+import { TOKENS, themeCheck, blankTheme, slug } from './themepack.js';
 
 const KEY = 'timer.theme';
 
@@ -131,6 +131,24 @@ export function themeSource() {
     library: async () => (await listDir(path)).names.filter((f) => AUDIO.test(f)),
     bytes: (file) => readFile(path + '/' + file),
   };
+}
+
+/**
+ * A theme of the user's own: a folder under `themes/` named after it,
+ * holding a theme.json with the starting colours and no sounds yet.
+ * Put on at once, so it can be built and seen live from here. A name
+ * already taken gets a number.
+ * @param {string} name
+ * @returns {Promise<string>} the new theme's id; "" when nothing could be written
+ */
+export async function createTheme(name) {
+  const taken = new Set((await listDir(DIR)).dirs);
+  let dir = slug(name);
+  for (let n = 2; taken.has(dir); n++) dir = slug(name) + '-' + n;
+  const m = blankTheme(name.trim() || dir);
+  if (!(await writeText(DIR + '/' + dir + '/theme.json', JSON.stringify(m, null, 2) + '\n'))) return '';
+  setTheme(FOLDER + dir, m.name, m.ui);
+  return FOLDER + dir;
 }
 
 /** use a theme and remember it, colours included */
