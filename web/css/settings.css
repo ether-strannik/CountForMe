@@ -265,9 +265,29 @@
 .swatch {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   font-size: 13px;
   color: var(--muted);
+}
+/* a group's heading spans the row: what these tokens paint */
+.sgroup {
+  grid-column: 1 / -1;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sgroup:first-child {
+  margin-top: 4px;
+}
+/* where the token shows, under its name */
+.swatch small {
+  min-height: 2.4em;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--muted);
+  opacity: 0.8;
 }
 .swatch .chip {
   height: 44px;

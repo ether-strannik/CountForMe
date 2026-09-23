@@ -30,6 +30,8 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   the Colours tab shows its hex value; tap it, change it, and the app
   takes the colour at once and writes it to the theme. Hex only, with
   the two translucent colours carrying their alpha as two more digits.
+  The chips sit in four groups, Surfaces, Text, Accent, States and
+  actions, and each says in a few words where it shows.
 - A theme of your own. New under Themes asks for a name, writes a
   theme folder into your folder and puts it on. It starts with a full
   set of colours and no sounds; a blank sound is silent and shows as

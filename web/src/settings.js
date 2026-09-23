@@ -91,29 +91,64 @@ $('approach').addEventListener('keydown', (e) => {
 let themes = [];
 
 // The Colours tab: every token the theme in use sets, as a chip with
-// its name and its value. On a theme of the user's own, tapping a chip
-// turns the value into a field. A hex colour is applied on the spot
-// and written to the theme; anything else stays in the field, marked,
-// until it is one. The shipped theme is shown, not edited.
+// its name, a line on where it shows, and its value, in four groups.
+// On a theme of the user's own, tapping a chip turns the value into a
+// field. A hex colour is applied on the spot and written to the theme;
+// anything else stays in the field, marked, until it is one. The
+// shipped theme is shown, not edited.
+
+/** the tokens by what they paint, each with where it shows */
+/** @type {[string, Record<string, string>][]} */
+const GROUPS = [
+  [
+    'Surfaces',
+    { bg: 'the page', card: 'cards, boxes, sheets', line: 'dividers, borders', scrim: 'dim behind a sheet' },
+  ],
+  ['Text', { text: 'main text', muted: 'hints, labels at rest', glyph: 'drawn marks, not text' }],
+  [
+    'Accent',
+    { accent: 'selected tab, knobs, ring', 'accent-soft': 'track behind a knob', 'on-accent': 'text on accent' },
+  ],
+  [
+    'States and actions',
+    {
+      warn: 'amber notes',
+      bad: 'delete, stop, wrong',
+      go: 'green, running',
+      action: 'START',
+      'on-action': 'text on START',
+    },
+  ],
+];
+
 function drawSwatches(ui) {
   const box = $('tColours');
   box.innerHTML = '';
   const editable = themeEditable();
-  for (const t of TOKENS) {
-    const s = document.createElement('div');
-    s.className = 'swatch';
-    const chip = document.createElement('div');
-    chip.className = 'chip';
-    chip.style.background = ui[t] || '';
-    const val = document.createElement('div');
-    val.className = 'val';
-    val.textContent = ui[t] || '';
-    s.append(chip, t, val);
-    if (editable) {
-      chip.addEventListener('click', () => editColour(s, val, t, ui[t] || ''));
-      val.addEventListener('click', () => editColour(s, val, t, ui[t] || ''));
+  for (const [title, tokens] of GROUPS) {
+    const h = document.createElement('div');
+    h.className = 'sgroup';
+    h.textContent = title;
+    box.appendChild(h);
+    for (const [t, where] of Object.entries(tokens)) {
+      if (!TOKENS.includes(t)) continue;
+      const s = document.createElement('div');
+      s.className = 'swatch';
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.style.background = ui[t] || '';
+      const hint = document.createElement('small');
+      hint.textContent = where;
+      const val = document.createElement('div');
+      val.className = 'val';
+      val.textContent = ui[t] || '';
+      s.append(chip, t, hint, val);
+      if (editable) {
+        chip.addEventListener('click', () => editColour(s, val, t, ui[t] || ''));
+        val.addEventListener('click', () => editColour(s, val, t, ui[t] || ''));
+      }
+      box.appendChild(s);
     }
-    box.appendChild(s);
   }
 }
 
