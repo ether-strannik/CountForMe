@@ -3,6 +3,7 @@
 import './theme.js'; // paint the saved theme before anything draws
 import { $, $$ } from './dom.js';
 import './settings.js'; // the gear, and the sheet behind it
+import './music.js'; // the strip above the tabs
 import { getStartTab } from './prefs.js';
 import { renderTimers } from './timers.js';
 import { isRunning } from './intervals.js';

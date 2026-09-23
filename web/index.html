@@ -7,6 +7,7 @@
     <!-- order matters: run.css overrides tabs.css at equal specificity -->
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/tabs.css" />
+    <link rel="stylesheet" href="css/music.css" />
     <link rel="stylesheet" href="css/sheets.css" />
     <link rel="stylesheet" href="css/settings.css" />
     <link rel="stylesheet" href="css/presets.css" />
@@ -245,6 +246,14 @@
       <div class="repslab" id="iv2repslab">REPS</div>
     </div>
 
+    <!-- music: one strip above the tabs, the same on every screen. The
+         name is the picker; the two buttons are the whole player. -->
+    <div class="music">
+      <button class="mname none" id="mName">&#9834; none</button>
+      <button class="mbtn" id="mPlay" aria-label="Play or pause" disabled>&#9654;</button>
+      <button class="mbtn" id="mStop" aria-label="Stop" disabled>&#9632;</button>
+    </div>
+
     <!-- bottom tabs -->
     <nav class="tabs">
       <button class="tab" data-tab="timers" aria-selected="false">Timers</button>
@@ -259,6 +268,7 @@
         <button class="stab" data-stab="general" aria-selected="true">General</button>
         <button class="stab" data-stab="themes" aria-selected="false">Themes</button>
         <button class="stab" data-stab="volume" aria-selected="false">Volume</button>
+        <button class="stab" data-stab="music" aria-selected="false">Music</button>
       </nav>
       <div id="sGeneral" class="spage">
         <div class="srow">
@@ -388,9 +398,49 @@
         <div class="srow snote">
           <div class="slabel">
             <small
-              >Decibels, up or down from the level the app ships at. Music from another app has its own volume and
+              >Decibels, up or down from the level the app ships at. Music playing in another app has its own volume and
               cannot be set from here.</small
             >
+          </div>
+        </div>
+      </div>
+      <!-- Duck: the song has no level of its own. It plays as it is,
+           and a cue pushes it down for as long as the cues keep
+           coming. These four say by how much, and how fast. -->
+      <div id="sMusic" class="spage" hidden>
+        <div class="vrow">
+          <div class="slabel">The song <small>picked on the strip, played here to tune against</small></div>
+          <div class="mhead">
+            <span class="msong" id="volMusicName">&#9834; none</span>
+            <button id="volMusicTest" class="pbtn" disabled>Play</button>
+          </div>
+        </div>
+        <div class="vrow">
+          <div class="slabel">Depth <small>how far the song drops under a cue</small></div>
+          <div class="vline pair">
+            <input id="dkDepth" class="vslider" type="range" min="-24" max="0" step="1" value="-12" />
+            <span class="vval" id="dkDepthVal">-12</span>
+          </div>
+        </div>
+        <div class="vrow">
+          <div class="slabel">Gap <small>cues closer than this keep it down instead of letting it back up</small></div>
+          <div class="vline pair">
+            <input id="dkGap" class="vslider" type="range" min="1" max="30" step="1" value="10" />
+            <span class="vval" id="dkGapVal">10 s</span>
+          </div>
+        </div>
+        <div class="vrow">
+          <div class="slabel">Fade down <small>quick, or the cue starts before the song is out of the way</small></div>
+          <div class="vline pair">
+            <input id="dkDown" class="vslider" type="range" min="10" max="300" step="10" value="50" />
+            <span class="vval" id="dkDownVal">50 ms</span>
+          </div>
+        </div>
+        <div class="vrow">
+          <div class="slabel">Fade up <small>slow, or the song surges back and pulls the ear</small></div>
+          <div class="vline pair">
+            <input id="dkUp" class="vslider" type="range" min="100" max="2000" step="50" value="500" />
+            <span class="vval" id="dkUpVal">500 ms</span>
           </div>
         </div>
       </div>

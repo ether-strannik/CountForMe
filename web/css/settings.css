@@ -378,6 +378,27 @@
   gap: 12px;
   margin-top: 10px;
 }
+/* The Music tab's faders have no test of their own: the song is the
+   test, and it is started once at the top of the page. */
+.vline.pair {
+  grid-template-columns: 1fr auto;
+}
+/* what is loaded, and the button that plays it while the faders move */
+.mhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.msong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: 15px;
+}
 .vval {
   min-width: 2.4em;
   text-align: right;

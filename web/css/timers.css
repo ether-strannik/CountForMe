@@ -2,7 +2,7 @@
 .timerlist {
   max-width: 520px;
   margin: 0 auto;
-  padding: 8px 12px calc(70px + env(safe-area-inset-bottom));
+  padding: 8px 12px calc(70px + var(--strip) + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 10px;

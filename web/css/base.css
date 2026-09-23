@@ -24,6 +24,12 @@
   --scrim: #0000008c; /* the dim behind a sheet */
   --glyph: #4c566a; /* a drawn mark that is not text: the delete circle */
 }
+/* Not a colour, and not a theme's to set: how tall the music strip is.
+   Every screen that keeps room clear above the tabs adds it, so the
+   height of that strip is one number in one place. */
+:root {
+  --strip: 38px;
+}
 * {
   box-sizing: border-box;
 }

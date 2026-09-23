@@ -20,7 +20,7 @@
 .rows {
   max-width: 520px;
   margin: 0 auto;
-  padding: 8px 12px calc(210px + env(safe-area-inset-bottom));
+  padding: 8px 12px calc(210px + var(--strip) + env(safe-area-inset-bottom));
 }
 .blockbox {
   border: 1px solid var(--line);

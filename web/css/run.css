@@ -9,7 +9,7 @@
   flex-direction: column;
   background: var(--bg);
   text-align: center;
-  padding-bottom: calc(146px + env(safe-area-inset-bottom));
+  padding-bottom: calc(146px + var(--strip) + env(safe-area-inset-bottom));
 }
 .pane {
   flex: 1;

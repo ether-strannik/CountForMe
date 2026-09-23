@@ -14,7 +14,16 @@ import {
   setCueVolume,
   voiceVolume,
   setVoiceVolume,
+  duckDepth,
+  setDuckDepth,
+  duckGap,
+  setDuckGap,
+  duckDown,
+  setDuckDown,
+  duckUp,
+  setDuckUp,
 } from './prefs.js';
+import { toggleMusic } from './music.js';
 import {
   audioCtx,
   ensureSound,
@@ -25,6 +34,7 @@ import {
   countFile,
   refreshSounds,
   setVolumes,
+  refreshDuck,
   testCue,
   testVoice,
 } from './sound.js';
@@ -364,6 +374,43 @@ $('volVoice').addEventListener('input', () => {
 });
 $('volCueTest').addEventListener('click', testCue);
 $('volVoiceTest').addEventListener('click', testVoice);
+
+// ---- music: what a cue does to the song ----
+// Four numbers, all the user's, because the sweet spot is found by ear
+// against a song that is playing. Every move rewrites the duck the
+// running session already put on the clock, so a fader dragged mid-run
+// is heard on the next cue rather than the next session.
+const showUnit = (id, n, unit) => ($(id).textContent = n + unit);
+
+function renderDuck() {
+  $in('dkDepth').value = String(duckDepth());
+  $in('dkGap').value = String(duckGap());
+  $in('dkDown').value = String(duckDown());
+  $in('dkUp').value = String(duckUp());
+  showUnit('dkDepthVal', duckDepth(), '');
+  showUnit('dkGapVal', duckGap(), ' s');
+  showUnit('dkDownVal', duckDown(), ' ms');
+  showUnit('dkUpVal', duckUp(), ' ms');
+  refreshDuck();
+}
+$('dkDepth').addEventListener('input', () => {
+  setDuckDepth(+$in('dkDepth').value);
+  renderDuck();
+});
+$('dkGap').addEventListener('input', () => {
+  setDuckGap(+$in('dkGap').value);
+  renderDuck();
+});
+$('dkDown').addEventListener('input', () => {
+  setDuckDown(+$in('dkDown').value);
+  renderDuck();
+});
+$('dkUp').addEventListener('input', () => {
+  setDuckUp(+$in('dkUp').value);
+  renderDuck();
+});
+// The song is its own test: it plays while the faders move.
+$('volMusicTest').addEventListener('click', toggleMusic);
 applyVolumes();
 
 // ---- what Android is letting the app do ----
@@ -397,6 +444,7 @@ function showSettingsTab(t) {
   $('sGeneral').hidden = t !== 'general';
   $('sThemes').hidden = t !== 'themes';
   $('sVolume').hidden = t !== 'volume';
+  $('sMusic').hidden = t !== 'music';
 }
 $$('.stab').forEach((b) => b.addEventListener('click', () => showSettingsTab(b.dataset.stab)));
 $('gear').addEventListener('click', async () => {
@@ -409,6 +457,7 @@ $('gear').addEventListener('click', async () => {
   $sel('startTab').value = getStartTab();
   $in('approach').value = String(approachSec());
   renderVolumes();
+  renderDuck();
   showSettingsTab('general');
   showThemeTab('colours');
   $('settings').hidden = false;

@@ -1,0 +1,54 @@
+/* the music strip: one line above the tabs, on every screen that has
+   them. Same height as `--strip`, which is what those screens leave
+   clear. The settings page and the sheets cover it, on purpose: the
+   fader is inside settings, and a sheet wants the screen. */
+.music {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(54px + env(safe-area-inset-bottom));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--strip);
+  padding: 0 10px;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+/* The name is a button because tapping it is how a file is picked.
+   It takes the room the two controls do not, and a long title ends in
+   an ellipsis rather than pushing them off the edge. */
+.mname {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.mname.none {
+  color: var(--muted);
+}
+.mbtn {
+  flex: none;
+  width: 40px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.mbtn:disabled {
+  color: var(--muted);
+  opacity: 0.45;
+}

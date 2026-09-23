@@ -13,6 +13,8 @@
 // user is in another app. Nothing here waits for a timer to fire.
 import { themeSource, themeId, lose } from './theme.js';
 import { SOUNDS } from './themepack.js';
+import { duckEnvelope } from './duck.js';
+import { duckDepth, duckGap, duckDown, duckUp } from './prefs.js';
 
 let ac = null;
 export function audioCtx() {
@@ -22,11 +24,17 @@ export function audioCtx() {
   return ac;
 }
 
-// ---- the two buses everything plays through ----
-// Cues on one, the spoken counts on the other, each behind a gain the
-// user sets. A bus rather than a gain per sound because a session is
-// scheduled whole at the start: moving a slider has to reach cues
-// already placed on the clock, and only a shared node does that.
+// ---- the three buses everything plays through ----
+// Cues on one, the spoken counts on the other, the music on a third,
+// each behind a gain the user sets. A bus rather than a gain per sound
+// because a session is scheduled whole at the start: moving a slider
+// has to reach cues already placed on the clock, and only a shared
+// node does that.
+//
+// The music bus is why the player belongs in here at all. A dip under
+// each cue has to be placed on the audio clock beside it, ahead of
+// time, or it arrives late and holds while the app is away. A gain on
+// a shared node takes that schedule; an element's own volume cannot.
 //
 // The voice starts lifted. Those files were recorded quieter than the
 // cue sounds, so this is the correction that makes the two level, and
@@ -36,6 +44,8 @@ const VOICE_BASE = 2.5;
 let cueBus = null;
 /** @type {GainNode | null} */
 let voiceBus = null;
+/** @type {GainNode | null} */
+let musicBus = null;
 
 function buses() {
   const c = audioCtx();
@@ -48,14 +58,23 @@ function buses() {
     voiceBus.gain.value = VOICE_BASE;
     voiceBus.connect(c.destination);
   }
-  return { cue: cueBus, voice: voiceBus };
+  if (!musicBus) {
+    musicBus = c.createGain();
+    musicBus.connect(c.destination);
+  }
+  return { cue: cueBus, voice: voiceBus, music: musicBus };
 }
+
+/** the node the music player hangs off, so the dip has somewhere to go */
+export const musicInput = () => buses().music;
 
 /** decibels as a multiplier: 0 leaves a level alone */
 const fromDb = (db) => Math.pow(10, (+db || 0) / 20);
 
 /**
  * How loud each bus runs, in decibels from the level the app ships at.
+ * The music bus is not here: it sits at the file's own level and only
+ * the duck ever moves it.
  * @param {number} cueDb @param {number} voiceDb
  */
 export function setVolumes(cueDb, voiceDb) {
@@ -66,6 +85,67 @@ export function setVolumes(cueDb, voiceDb) {
   } catch {
     /* no audio on this device; nothing to set */
   }
+}
+
+// ---- the duck ----
+// A session puts every cue on the clock at once, and this puts the
+// music's answer to them there in the same breath. `duck.js` works out
+// what that answer is; everything here is the writing of it.
+//
+// The list is kept because the four numbers are the user's to move
+// while a session runs, and moving one has to be heard now, not next
+// time. `refreshDuck` rewrites from the same list against the new
+// settings, which is also what a pause and resume needs.
+
+/** @type {{at: number, dur: number}[]} what the session placed */
+let placed = [];
+
+function writeDuck() {
+  try {
+    const g = buses().music.gain;
+    const now = audioCtx().currentTime;
+    // Drop what was written before and pin the level where it is now,
+    // so a rewrite mid-session starts from what is being heard rather
+    // than jumping.
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    const pts = duckEnvelope(placed, {
+      from: now,
+      depth: duckDepth(),
+      gap: duckGap(),
+      down: duckDown(),
+      up: duckUp(),
+    });
+    // Points already past are not written: the one pinned above stands
+    // in for them, and a ramp to a time behind us is a step.
+    let any = false;
+    for (const p of pts) {
+      if (p.t <= now) continue;
+      g.linearRampToValueAtTime(p.v, p.t);
+      any = true;
+    }
+    if (!any) g.linearRampToValueAtTime(1, now + duckUp() / 1000);
+  } catch {
+    /* no audio on this device; there is nothing to duck */
+  }
+}
+
+/**
+ * The duck for a whole session, written in one go.
+ * @param {{at: number, dur: number}[]} sounds  every cue and count placed
+ */
+export function armDuck(sounds) {
+  placed = sounds;
+  writeDuck();
+}
+
+/** the same session again, against settings that have just changed */
+export const refreshDuck = () => placed.length && writeDuck();
+
+/** nothing is coming: the music comes back up and stays */
+export function clearDuck() {
+  placed = [];
+  writeDuck();
 }
 
 /**
@@ -199,6 +279,19 @@ function fileFor(x) {
 
 /** the synth for a role; a library file that cannot be decoded gets the timer's */
 const synthFor = (x) => synth[SOUNDS.includes(x) ? x : 'timer'];
+
+// How long a sound runs, for the duck: it has to know when a cue is
+// over before it can let the music back up. Read off the decoded
+// buffer, so it is the real length and not a guess. Nothing decoded,
+// or the theme naming no file, falls back to the synth's own length —
+// that is what will play instead.
+const SYNTH_LEN = 0.3;
+
+/** seconds a cue sounds for */
+export const cueLength = (key) => cache[fileFor(key)]?.duration || SYNTH_LEN;
+
+/** seconds a spoken number sounds for; 0 when the theme has none */
+export const countLength = (n) => cache[countFile(n)]?.duration || 0;
 
 /** the name a sound shows under: its file, without the extension */
 export const soundName = (x) => fileFor(x).replace(/\.[^.]+$/, '');

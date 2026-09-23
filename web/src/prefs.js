@@ -53,6 +53,60 @@ export function setVoiceVolume(db) {
   saveStr('timer.voicedb', String(voiceDb));
 }
 
+// ---- the duck ----
+// The music has no level of its own to set: it plays at the file's
+// own, and the only thing that ever moves it is a cue. These four say
+// what that move is. Depth is how far it drops. Gap is how much
+// silence has to follow a cue before the music is allowed back up, so
+// cues closer together than this keep it down instead of pumping it
+// between every one. The two fades are how fast it moves each way,
+// and they are not the same: down has to beat the cue's attack, up has
+// to be slow enough not to draw attention to itself.
+//
+// All four are the user's. The pair that would normally be fixed in
+// code is here too, because the sweet spot is found by ear on the
+// phone and not guessed at a desk.
+
+/** @param {string|number} v @param {number} lo @param {number} hi */
+const within = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(+v || 0)));
+
+let duckDb = within(loadStr('timer.duckdb', '-12'), -24, 0);
+let duckGapSec = within(loadStr('timer.duckgap', '10'), 1, 30);
+let duckDownMs = within(loadStr('timer.duckdown', '50'), 10, 300);
+let duckUpMs = within(loadStr('timer.duckup', '500'), 100, 2000);
+
+/** how far the music drops under a cue, in decibels; never a lift */
+export const duckDepth = () => duckDb;
+/** @param {number} db */
+export function setDuckDepth(db) {
+  duckDb = within(db, -24, 0);
+  saveStr('timer.duckdb', String(duckDb));
+}
+
+/** seconds of quiet a cue must be followed by before the music comes back */
+export const duckGap = () => duckGapSec;
+/** @param {number} sec */
+export function setDuckGap(sec) {
+  duckGapSec = within(sec, 1, 30);
+  saveStr('timer.duckgap', String(duckGapSec));
+}
+
+/** milliseconds to take the music down */
+export const duckDown = () => duckDownMs;
+/** @param {number} ms */
+export function setDuckDown(ms) {
+  duckDownMs = within(ms, 10, 300);
+  saveStr('timer.duckdown', String(duckDownMs));
+}
+
+/** milliseconds to bring it back */
+export const duckUp = () => duckUpMs;
+/** @param {number} ms */
+export function setDuckUp(ms) {
+  duckUpMs = within(ms, 100, 2000);
+  saveStr('timer.duckup', String(duckUpMs));
+}
+
 /** keep the screen on for as long as the app is up */
 export const keepScreenOn = () => awake;
 /** @param {boolean} on */

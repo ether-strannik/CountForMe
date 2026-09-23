@@ -11,7 +11,20 @@
 //
 // What a frame LOOKS like is the screen's job, handed in as hooks; the
 // screens make no sound of their own.
-import { audioCtx, ensureBuffers, ensureCounts, playAt, sayAt, buzz, holdClock, releaseClock } from './sound.js';
+import {
+  audioCtx,
+  ensureBuffers,
+  ensureCounts,
+  playAt,
+  sayAt,
+  buzz,
+  holdClock,
+  releaseClock,
+  cueLength,
+  countLength,
+  armDuck,
+  clearDuck,
+} from './sound.js';
 import { sessionStart, sessionPause, sessionResume, sessionStop } from './session.js';
 
 /** a cue key from `cues.js` → the buzz that goes with it */
@@ -125,15 +138,22 @@ export function makeRunner(hooks) {
     base = audioCtx().currentTime - from;
     /** what the cue before this one placed, still able to be sounding */
     let earlier = [];
+    /** the same sounds as times and lengths, for the music to duck under */
+    const placed = [];
     for (const c of cues) {
       if (c.at < from) continue;
       const at = base + c.at;
       cutAt(earlier, at);
       const group = playAt(c.event, at);
-      if (c.say) group.push(...sayAt(c.say, at + SAY_AFTER));
+      placed.push({ at, dur: cueLength(c.event) });
+      if (c.say) {
+        group.push(...sayAt(c.say, at + SAY_AFTER));
+        placed.push({ at: at + SAY_AFTER, dur: countLength(c.say) });
+      }
       sources.push(...group);
       earlier = group; // a cue and its spoken count end together
     }
+    armDuck(placed);
   }
 
   /**
@@ -156,7 +176,7 @@ export function makeRunner(hooks) {
     }
   }
 
-  /** drop every sound not yet played */
+  /** drop every sound not yet played, and the duck that answered them */
   function cancel() {
     for (const s of sources) {
       try {
@@ -166,6 +186,7 @@ export function makeRunner(hooks) {
       }
     }
     sources = [];
+    clearDuck(); // `schedule` writes the new one immediately after
   }
 
   /**

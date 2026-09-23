@@ -1,9 +1,10 @@
-/* the fixed bottom band above the tabs, and the tab bar */
+/* the fixed bottom band above the music strip and the tabs, and the
+   tab bar itself */
 .bottom {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(54px + env(safe-area-inset-bottom));
+  bottom: calc(54px + var(--strip) + env(safe-area-inset-bottom));
   padding: 14px 12px;
   background: var(--bg);
   border-top: 1px solid var(--line);

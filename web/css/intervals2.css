@@ -2,7 +2,7 @@
 .iv2setup {
   max-width: 520px;
   margin: 0 auto;
-  padding: 8px 12px calc(150px + env(safe-area-inset-bottom));
+  padding: 8px 12px calc(150px + var(--strip) + env(safe-area-inset-bottom));
 }
 .iv2field {
   display: flex;
