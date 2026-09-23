@@ -7,6 +7,8 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-09-23
+
 ### Added
 
 - A preset category can name a theme. Making a category asks "Apply
@@ -66,13 +68,14 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   theme in use does not have plays that too. Nord's library is the
   sixteen sounds the app has always shipped.
 - The app ships one theme, Nord, and looks like it from the first
-  frame. Default, Gruvbox and Light are no longer in the app; they
-  return as complete sets to load from the chosen folder.
+  frame. The old blue palette, Gruvbox and Light are no longer in the
+  app; their colours are in the repository's `themes/` folder to copy
+  into your own.
 
 ### Removed
 
-- Choosing a sound per cue, and the sound picker. A different set of
-  sounds is a different theme, and soon one of your own.
+- Choosing a sound per cue outside a theme. A different set of sounds
+  is a different theme, or one of your own.
 
 ## [1.1.3] - 2026-09-22
 

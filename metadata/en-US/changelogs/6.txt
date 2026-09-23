@@ -1,0 +1,10 @@
+Themes carry their sounds. A theme is colours, the sound of every
+cue and the spoken counts, in one folder. Nord ships; make your own
+from blank or from a copy under Settings, Themes, edit colours and
+sounds in place, and see it live. Export a theme as a zip, import
+one from anywhere.
+
+A preset category can name a theme. Picking a preset from it puts
+that theme on.
+
+A countdown timer rings with any sound in the theme's library.
