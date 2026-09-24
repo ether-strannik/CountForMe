@@ -1,10 +1,17 @@
 // What a theme is, and whether one can be used.
 //
-// A theme is a folder: a library of sound files, and `theme.json`, a
-// preset over it. The JSON gives the theme its name, sets every colour
-// token, and names a file from the library for each cue, for the
-// timer, and for each spoken count. A timer may ring with any file in
-// the library. Nothing falls back to anything outside the theme.
+// A theme is a folder of two folders and `theme.json`, a preset over
+// them. `sounds/` is the library; `media/` is the music. The JSON
+// gives the theme its name, sets every colour token, and names a file
+// from `sounds/` for each cue, for the timer, and for each spoken
+// count. A timer may ring with any file in `sounds/`. Nothing falls
+// back to anything outside the theme.
+//
+// Music lives inside the theme, so a category naming a theme says
+// what plays as well as how it looks, with nothing left to point at.
+// No key says which song or in what order: `media/` is read as it is
+// found. A song can never be missing, an empty folder is silence, and
+// a theme with no music at all is still whole.
 //
 // Two lines are drawn, because a theme is built step by step and seen
 // live as it goes. `ok` is the line for using it: the name and every
@@ -85,14 +92,14 @@ export function slug(name) {
  * Can this theme be used, and is it whole? Every gap is named, so a
  * list can say what a theme lacks rather than only that it is out.
  * @param {any} m               the parsed theme.json
- * @param {string[]} files      names of the files beside it
+ * @param {string[]} sounds     names of the files in the theme's sounds/
  * @returns {{ok: boolean, whole: boolean, missing: string[], silent: string[]}}
  *   ok      the name and every colour are there: it can be put on
  *   whole   ok, and every sound and count too: it can be handed on
  *   missing every gap, named, for a message
  *   silent  the sound and count keys with no file behind them
  */
-export function themeCheck(m, files) {
+export function themeCheck(m, sounds) {
   const missing = [];
   const silent = [];
   if (!m || typeof m !== 'object') return { ok: false, whole: false, missing: ['theme.json'], silent };
@@ -100,7 +107,7 @@ export function themeCheck(m, files) {
   const ui = m.ui || {};
   for (const t of TOKENS) if (!text(ui[t])) missing.push('colour ' + t);
   const ok = !missing.length;
-  const have = new Set(files);
+  const have = new Set(sounds);
   const named = (group, keys, what) => {
     const g = m[group] || {};
     for (const k of keys) {

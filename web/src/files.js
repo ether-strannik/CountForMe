@@ -11,6 +11,7 @@
 //   list({ path? })     → { names, dirs }     files and subfolders of one folder
 //   read({ name })      → { base64 }          name may be a path
 //   write({ name, base64 })
+//   copyDir({ from, to, asset? }) → { ok }    a folder's contents into another
 //   remove({ name })
 //   share({ name, base64 })  the system share sheet
 
@@ -219,6 +220,29 @@ export async function removePath(path) {
   if (!b || !PATH.test(path)) return false;
   try {
     await b.remove({ name: path });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Everything under one folder, copied into another. The bytes never
+ * come here: a theme carries its music, and moving that through the
+ * page would be the base64 round trip all over again.
+ *
+ * A source that is not there copies nothing and still succeeds — a
+ * theme with no `media/` is a theme with no music, not a failure.
+ *
+ * @param {string} from   a path under the tree, or inside the app when `asset`
+ * @param {string} to     a path under the tree; folders are made
+ * @param {boolean} [asset]
+ */
+export async function copyDir(from, to, asset = false) {
+  const b = bridge();
+  if (!b || !PATH.test(to) || (!asset && !PATH.test(from))) return false;
+  try {
+    await b.copyDir({ from, to, asset });
     return true;
   } catch {
     return false;

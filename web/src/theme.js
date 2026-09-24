@@ -9,7 +9,17 @@
 // paints its colours over the stylesheet, and they are kept alongside
 // the choice so the next launch paints them before anything draws.
 import { load, save } from './storage.js';
-import { listDir, readFile, writeText, writeFile, removePath, exportZip, pickZip, unpackZip } from './files.js';
+import {
+  listDir,
+  readFile,
+  writeText,
+  writeFile,
+  copyDir,
+  removePath,
+  exportZip,
+  pickZip,
+  unpackZip,
+} from './files.js';
 import { TOKENS, SOUNDS, COUNTS, themeCheck, blankTheme, slug } from './themepack.js';
 
 const KEY = 'timer.theme';
@@ -86,7 +96,7 @@ export async function themeList() {
   }
   for (const dir of (await listDir(DIR)).dirs) {
     const m = await folderManifest(dir);
-    const check = themeCheck(m, (await listDir(DIR + '/' + dir)).names);
+    const check = themeCheck(m, await soundNames(dir));
     out.push({ id: FOLDER + dir, name: (m && m.name) || dir, ui: (m && m.ui) || {}, ...check });
   }
   return out;
@@ -95,6 +105,24 @@ export async function themeList() {
 /** an audio file, by its name */
 const AUDIO = /\.(mp3|wav|ogg|m4a|aac)$/i;
 
+// A theme is a tree: theme.json, the cue sounds under `sounds/`, the
+// music under `media/`. Neither folder has to exist — one is made the
+// first time something is written into it, and a folder that is not
+// there lists as empty, which is the right answer for a theme with no
+// music and for one still being built.
+const SOUNDS_DIR = 'sounds';
+const MEDIA_DIR = 'media';
+
+/** the path of one of a theme's folders */
+const inTheme = (dir, sub) => DIR + '/' + dir + '/' + sub;
+
+/** the cue sounds a folder theme holds, for the check and the library */
+const soundNames = async (dir) => (await listDir(inTheme(dir, SOUNDS_DIR))).names;
+
+/** the sound files named in a zip's listing, without their folder */
+const soundsIn = (names) =>
+  names.filter((n) => n.startsWith(SOUNDS_DIR + '/')).map((n) => n.slice(SOUNDS_DIR.length + 1));
+
 /**
  * Where the theme in use is read from: its manifest, its library, and
  * the bytes of a file beside it. The sound engine goes through this
@@ -102,11 +130,13 @@ const AUDIO = /\.(mp3|wav|ogg|m4a|aac)$/i;
  * resolves its manifest to null; the engine then falls back through
  * `lose()`.
  *
- * The library is every audio file in the theme's folder. The shipped
- * theme's folder cannot be listed, so its theme.json names them; a
- * folder theme's listing is read, and a file dropped in appears.
+ * The library is every audio file in the theme's `sounds/`. The shipped
+ * theme's folders cannot be listed, so its theme.json names them; a
+ * folder theme's listing is read, and a file dropped in appears. The
+ * same holds for `media/`, which no key ever assigns: it is whatever
+ * is in there.
  * @returns {{manifest: () => Promise<any>, library: () => Promise<string[]>,
- *   bytes: (file: string) => Promise<ArrayBuffer | null>}}
+ *   media: () => Promise<string[]>, bytes: (file: string) => Promise<ArrayBuffer | null>}}
  */
 export function themeSource() {
   const dir = folderOf(chosen.id);
@@ -114,24 +144,29 @@ export function themeSource() {
     return {
       manifest: shippedTheme,
       library: async () => (await shippedTheme()).library || [],
+      media: async () => (await shippedTheme()).media || [],
       bytes: async (file) => {
-        const r = await fetch('theme/' + file);
+        const r = await fetch('theme/' + SOUNDS_DIR + '/' + file);
         return r.ok ? r.arrayBuffer() : null;
       },
     };
   }
-  const path = DIR + '/' + dir;
+  const sounds = inTheme(dir, SOUNDS_DIR);
   return {
     // usable, or nothing: a colour gone since the theme was picked is
     // the same as the theme gone. A sound gone is that sound silent.
     manifest: async () => {
       const m = await folderManifest(dir);
-      return themeCheck(m, (await listDir(path)).names).ok ? m : null;
+      return themeCheck(m, await soundNames(dir)).ok ? m : null;
     },
-    library: async () => (await listDir(path)).names.filter((f) => AUDIO.test(f)),
-    bytes: (file) => readFile(path + '/' + file),
+    library: async () => (await soundNames(dir)).filter((f) => AUDIO.test(f)),
+    media: async () => (await listDir(inTheme(dir, MEDIA_DIR))).names.filter((f) => AUDIO.test(f)),
+    bytes: (file) => readFile(sounds + '/' + file),
   };
 }
+
+/** the songs the theme in use holds, in name order; empty when it has none */
+export const mediaList = () => themeSource().media();
 
 /**
  * A theme of the user's own: a folder under `themes/` named after it,
@@ -179,9 +214,13 @@ async function freeDir(name) {
 
 /**
  * The theme in use, copied whole into a new folder under a name of the
- * user's: its manifest under the new name, every file in its library,
- * every count. Nord included. Whole from the first second, then edited
- * like any theme of the user's own. Put on at once.
+ * user's: its manifest under the new name, its sounds, and its music.
+ * Nord included. Whole from the first second, then edited like any
+ * theme of the user's own. Put on at once.
+ *
+ * Both folders are copied natively, not a file at a time through here.
+ * `media/` can be an album, and that is not something to carry through
+ * a page as base64.
  * @param {string} name
  * @returns {Promise<string>} the new theme's id; "" when it could not be made
  */
@@ -195,13 +234,13 @@ export async function copyTheme(name) {
   }
   if (!m) return '';
   const dir = await freeDir(name);
-  const files = new Set([...(await src.library()), ...Object.values(m.sounds || {}), ...Object.values(m.counts || {})]);
-  for (const f of files) {
-    if (!FILE.test(f)) continue;
-    const bytes = await src.bytes(f);
-    if (bytes && !(await writeFile(DIR + '/' + dir + '/' + f, bytes))) return '';
-  }
-  // no `library` key: a folder theme's library is its folder
+  const from = folderOf(chosen.id);
+  const asset = !from;
+  const at = (sub) => (asset ? 'public/theme/' + sub : inTheme(from, sub));
+  if (!(await copyDir(at(SOUNDS_DIR), inTheme(dir, SOUNDS_DIR), asset))) return '';
+  // a theme with no music has no media/, and copying nothing succeeds
+  await copyDir(at(MEDIA_DIR), inTheme(dir, MEDIA_DIR), asset);
+  // no `library` key: a folder theme's library is its sounds/
   const out = {
     name: name.trim() || dir,
     ui: { ...m.ui },
@@ -238,7 +277,7 @@ const FILE = /^[^/\\]{1,120}$/;
 export async function addToLibrary(name, bytes) {
   const dir = folderOf(chosen.id);
   if (!dir || !FILE.test(name) || name === 'theme.json') return false;
-  return writeFile(DIR + '/' + dir + '/' + name, bytes);
+  return writeFile(inTheme(dir, SOUNDS_DIR) + '/' + name, bytes);
 }
 
 /** change one entry of the theme's manifest and write it back */
@@ -303,7 +342,7 @@ export async function importTheme() {
     m = null;
   }
   if (!m) return { missing: ['no theme.json in it'] };
-  const check = themeCheck(m, z.names);
+  const check = themeCheck(m, soundsIn(z.names));
   if (!check.whole) return { missing: check.missing };
   const dir = await freeDir(m.name);
   if (!(await unpackZip(DIR + '/' + dir))) return { missing: ['could not be unpacked'] };
@@ -362,7 +401,7 @@ export async function useTheme(ref) {
     return true;
   }
   const m = await folderManifest(ref);
-  const check = themeCheck(m, (await listDir(DIR + '/' + ref)).names);
+  const check = themeCheck(m, await soundNames(ref));
   if (!check.ok) {
     lost =
       'The set names a theme, ' +

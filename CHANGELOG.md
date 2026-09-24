@@ -7,6 +7,19 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- A theme is a folder of two folders now: `sounds/` for the cues, the
+  timer sound and the spoken counts, and `media/` for its music. The
+  music belongs to the theme, so a category that names a theme says
+  what plays as well as how the app looks, and there is nothing else
+  to point at.
+- A theme zip carries the whole thing, music included, so a theme
+  handed to someone arrives complete. Nothing in a theme has a size
+  limit any more.
+- Copying a theme copies its music with it, and is no longer slow on a
+  theme with a lot of sounds.
+
 ### Added
 
 - Music, with the cues mixed over it. A strip above the tabs plays one

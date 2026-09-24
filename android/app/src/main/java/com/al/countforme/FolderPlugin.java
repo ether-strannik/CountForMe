@@ -36,13 +36,14 @@ import java.util.List;
  *   read({ name })      -> { base64 }        name may be a path: "themes/x/y.mp3"
  *   write({ name, base64 })                  name may be a path; folders are made
  *   remove({ name })                         name may be a path; a folder goes with its contents
+ *   copyDir({ from, to, asset? })            a folder's contents into another, streamed here
  *   share({ name, base64 })  hand the bytes to another app
  *   pickFile({ type? }) -> { name, base64 }  one file from anywhere
  *   pickSong()          -> { name, uri }     one song, kept, streamed not carried
  *   song()              -> { name, uri }     the song kept last time
- *   exportZip({ path, name, asset? }) -> { saved }   a folder, zipped flat, to where the user picks
- *   pickZip()           -> { names, manifest }       a zip the user picks, looked inside
- *   unpackZip({ dest }) -> { ok }                    that zip, into a folder under the tree
+ *   exportZip({ path, name, asset? }) -> { saved }   a folder and all under it, to where the user picks
+ *   pickZip()           -> { names, manifest }       a zip the user picks, looked inside; names carry their paths
+ *   unpackZip({ dest }) -> { ok }                    that zip, tree and all, into a folder under the tree
  */
 @CapacitorPlugin(name = "Folder")
 public class FolderPlugin extends Plugin {
@@ -214,15 +215,33 @@ public class FolderPlugin extends Plugin {
   }
 
   // ---- a theme as a zip: Android's own zip, nothing added ----
-  // A theme is a folder of files. Export zips that folder, flat, to a
-  // place the user picks; import reads a zip the user picks and unpacks
-  // it into a folder under the tree. Nothing goes through the page as
-  // bytes: the zip is read and written here.
+  // A theme is a tree: theme.json, sounds/ and media/. Export zips it
+  // whole, paths and all, to a place the user picks; import reads a zip
+  // the user picks and unpacks it into a folder under the tree, making
+  // the folders it needs. Nothing goes through the page as bytes: the
+  // zip is read and written here.
 
-  /** an entry name that may land in a theme folder: plain, no path */
-  private static boolean plainName(String n) {
-    return n != null && !n.isEmpty() && !n.contains("/") && !n.contains("\\") && !n.equals(".") && !n.equals("..")
-        && n.length() <= 120;
+  /**
+   * An entry path that may land under the destination: plain segments,
+   * and no climbing out of it.
+   *
+   * This is the zip-slip guard, and it is the whole reason entries used
+   * to be flattened. A zip is a list of names written by someone else,
+   * and "../../../etc" is a valid name. Flattening made that safe by
+   * throwing the path away; a theme is a tree now, so the path has to
+   * be kept and checked instead.
+   */
+  private static boolean safePath(String n) {
+    if (n == null || n.isEmpty() || n.length() > 512) return false;
+    if (n.startsWith("/") || n.contains("\\")) return false;
+    if (n.length() > 1 && n.charAt(1) == ':') return false; // a drive letter
+    String[] segs = n.split("/", -1);
+    if (segs.length > 8) return false;
+    for (String seg : segs) {
+      if (seg.isEmpty() || seg.equals(".") || seg.equals("..")) return false;
+      if (seg.length() > 120) return false;
+    }
+    return true;
   }
 
   /** what a zip's entry names have in common at the front: "nord/" when a folder was zipped */
@@ -237,24 +256,85 @@ public class FolderPlugin extends Plugin {
     return prefix == null ? "" : prefix;
   }
 
-  private static final long MAX_ENTRY = 20L * 1024 * 1024;
-  private static final long MAX_TOTAL = 64L * 1024 * 1024;
-
+  /**
+   * Copy, with a ceiling only where one is needed: `theme.json` is
+   * read into memory to be parsed, so that read is bounded. Files go
+   * to and from storage in a stream and are as big as they are.
+   *
+   * What a zip has to be guarded against is a path that climbs out of
+   * the folder, and `safePath` refuses that at any size. A file too
+   * big to be what it claims is something the user can see.
+   */
   private static void pump(InputStream in, OutputStream out, long cap) throws Exception {
     byte[] b = new byte[65536];
     long total = 0;
     int n;
     while ((n = in.read(b)) > 0) {
       total += n;
-      if (total > cap) throw new Exception("too large");
+      if (cap > 0 && total > cap) throw new Exception("too large");
       out.write(b, 0, n);
     }
   }
 
   /**
-   * Zip a folder, flat, to a file the user picks through the system's
+   * Every file under a folder in the app's own files, written into the
+   * zip under its path. `rel` is where we are below `base`, and what
+   * the entry is named.
+   *
+   * An asset listing does not say what is a folder, and an empty one
+   * lists the same as a file. Opening it does say: a folder will not
+   * open.
+   */
+  private void zipAssets(java.util.zip.ZipOutputStream z, String base, String rel) throws Exception {
+    String dir = rel.isEmpty() ? base : base + "/" + rel;
+    for (String n : getContext().getAssets().list(dir)) {
+      String path = rel.isEmpty() ? n : rel + "/" + n;
+      InputStream in = null;
+      try {
+        in = getContext().getAssets().open(dir + "/" + n);
+      } catch (Exception notAFile) {
+        zipAssets(z, base, path);
+        continue;
+      }
+      try {
+        z.putNextEntry(new java.util.zip.ZipEntry(path));
+        pump(in, z, 0);
+        z.closeEntry();
+      } finally {
+        in.close();
+      }
+    }
+  }
+
+  /** the same for a folder under the tree, walking into its subfolders */
+  private void zipTree(java.util.zip.ZipOutputStream z, Uri t, String id, String rel) throws Exception {
+    Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(t, id);
+    String[] cols = { DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+        DocumentsContract.Document.COLUMN_MIME_TYPE };
+    try (Cursor c = getContext().getContentResolver().query(children, cols, null, null, null)) {
+      while (c != null && c.moveToNext()) {
+        String path = rel.isEmpty() ? c.getString(1) : rel + "/" + c.getString(1);
+        if (DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) {
+          zipTree(z, t, c.getString(0), path);
+          continue;
+        }
+        Uri doc = DocumentsContract.buildDocumentUriUsingTree(t, c.getString(0));
+        try (InputStream in = getContext().getContentResolver().openInputStream(doc)) {
+          z.putNextEntry(new java.util.zip.ZipEntry(path));
+          pump(in, z, 0);
+          z.closeEntry();
+        }
+      }
+    }
+  }
+
+  /**
+   * Zip a folder whole, to a file the user picks through the system's
    * save dialog. `path` is a folder under the tree, or, with `asset`
    * true, a folder inside the app's own files (the shipped theme).
+   *
+   * The tree goes in as a tree: `sounds/` and `media/` keep their
+   * paths, so a theme arrives complete rather than as a heap of files.
    *
    *   exportZip({ path, name, asset? }) -> { saved }
    */
@@ -282,31 +362,12 @@ public class FolderPlugin extends Plugin {
     try (java.util.zip.ZipOutputStream z = new java.util.zip.ZipOutputStream(
         getContext().getContentResolver().openOutputStream(data.getData(), "wt"))) {
       if (asset) {
-        for (String n : getContext().getAssets().list(path)) {
-          try (InputStream in = getContext().getAssets().open(path + "/" + n)) {
-            z.putNextEntry(new java.util.zip.ZipEntry(n));
-            pump(in, z, MAX_ENTRY);
-            z.closeEntry();
-          }
-        }
+        zipAssets(z, path, "");
       } else {
         Uri t = tree();
         String id = t == null ? null : docId(t, path);
         if (id == null) { call.reject("no such folder"); return; }
-        Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(t, id);
-        String[] cols = { DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-            DocumentsContract.Document.COLUMN_MIME_TYPE };
-        try (Cursor c = getContext().getContentResolver().query(children, cols, null, null, null)) {
-          while (c != null && c.moveToNext()) {
-            if (DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) continue;
-            Uri doc = DocumentsContract.buildDocumentUriUsingTree(t, c.getString(0));
-            try (InputStream in = getContext().getContentResolver().openInputStream(doc)) {
-              z.putNextEntry(new java.util.zip.ZipEntry(c.getString(1)));
-              pump(in, z, MAX_ENTRY);
-              z.closeEntry();
-            }
-          }
-        }
+        zipTree(z, t, id, "");
       }
       r.put("saved", true);
       call.resolve(r);
@@ -369,8 +430,8 @@ public class FolderPlugin extends Plugin {
     }
     String strip = commonDir(all);
     for (String n : all) {
-      String leaf = n.startsWith(strip) ? n.substring(strip.length()) : n;
-      if (plainName(leaf)) names.put(leaf);
+      String rel = n.startsWith(strip) ? n.substring(strip.length()) : n;
+      if (safePath(rel)) names.put(rel);
     }
     r.put("manifest", manifest);
     call.resolve(r);
@@ -378,8 +439,14 @@ public class FolderPlugin extends Plugin {
 
   /**
    * Unpack the zip picked last into a folder under the tree, made if
-   * need be. Entries with a path of their own are skipped; a folder
-   * zipped whole has its one top folder stripped.
+   * need be. An entry keeps its path and its folders are created; a
+   * folder zipped whole has its one top folder stripped. Anything
+   * `safePath` refuses is skipped.
+   *
+   * Entries stream straight to their file rather than through memory,
+   * because a song does not fit in the buffer the flat version used.
+   * An entry refused part way therefore leaves a short file behind, in
+   * a folder made for this import, which the check then fails.
    *
    *   unpackZip({ dest }) -> { ok }
    */
@@ -397,30 +464,36 @@ public class FolderPlugin extends Plugin {
         while ((e = z.getNextEntry()) != null) { if (!e.isDirectory()) all.add(e.getName()); z.closeEntry(); }
       }
       String strip = commonDir(all);
-      String parentId = dirId(t, dest);
-      if (parentId == null) { call.reject("cannot create folder"); return; }
-      Uri parent = DocumentsContract.buildDocumentUriUsingTree(t, parentId);
-      long total = 0;
+      if (dirId(t, dest) == null) { call.reject("cannot create folder"); return; }
+      // One lookup per folder, not per file: a media folder is a lot of
+      // entries and every one of them shares a parent.
+      java.util.HashMap<String, String> folders = new java.util.HashMap<>();
       try (java.util.zip.ZipInputStream z = new java.util.zip.ZipInputStream(
           getContext().getContentResolver().openInputStream(src))) {
         java.util.zip.ZipEntry e;
         while ((e = z.getNextEntry()) != null) {
           if (e.isDirectory()) { z.closeEntry(); continue; }
           String n = e.getName();
-          String leaf = n.startsWith(strip) ? n.substring(strip.length()) : n;
-          if (!plainName(leaf)) { z.closeEntry(); continue; }
+          String rel = n.startsWith(strip) ? n.substring(strip.length()) : n;
+          if (!safePath(rel)) { z.closeEntry(); continue; }
+          int cut = rel.lastIndexOf('/');
+          String leaf = cut < 0 ? rel : rel.substring(cut + 1);
+          String under = cut < 0 ? dest : dest + "/" + rel.substring(0, cut);
+          String parentId = folders.get(under);
+          if (parentId == null) {
+            parentId = dirId(t, under);
+            if (parentId == null) { call.reject("cannot create folder for " + rel); return; }
+            folders.put(under, parentId);
+          }
+          Uri parent = DocumentsContract.buildDocumentUriUsingTree(t, parentId);
           String mime = leaf.endsWith(".json") ? "application/json" : "application/octet-stream";
           String existing = childId(t, parentId, leaf);
           Uri doc = existing != null
               ? DocumentsContract.buildDocumentUriUsingTree(t, existing)
               : DocumentsContract.createDocument(getContext().getContentResolver(), parent, mime, leaf);
-          if (doc == null) { call.reject("cannot create " + leaf); return; }
-          ByteArrayOutputStream buf = new ByteArrayOutputStream();
-          pump(z, buf, MAX_ENTRY);
-          total += buf.size();
-          if (total > MAX_TOTAL) { call.reject("too large"); return; }
+          if (doc == null) { call.reject("cannot create " + rel); return; }
           try (OutputStream out = getContext().getContentResolver().openOutputStream(doc, "wt")) {
-            out.write(buf.toByteArray());
+            pump(z, out, 0);
           }
           z.closeEntry();
         }
@@ -512,6 +585,104 @@ public class FolderPlugin extends Plugin {
     r.put("names", names);
     r.put("dirs", dirs);
     call.resolve(r);
+  }
+
+  // ---- copying a folder into another, here rather than through the page ----
+  // Copying a theme used to be a file at a time through the bridge, which
+  // was tolerable while a theme was cue sounds. A theme carries its music
+  // now, and bytes that size do not belong in a page: they would cross as
+  // base64 and be decoded a character at a time. So the copy happens here,
+  // streamed, and the page only says what to copy where.
+
+  /** one file into a folder under the tree, replacing what is there */
+  private void writeInto(Uri t, String dirPath, String leaf, InputStream in) throws Exception {
+    String parentId = dirId(t, dirPath);
+    if (parentId == null) throw new Exception("cannot make " + dirPath);
+    Uri parent = DocumentsContract.buildDocumentUriUsingTree(t, parentId);
+    String existing = childId(t, parentId, leaf);
+    String mime = leaf.endsWith(".json") ? "application/json" : "application/octet-stream";
+    Uri doc = existing != null
+        ? DocumentsContract.buildDocumentUriUsingTree(t, existing)
+        : DocumentsContract.createDocument(getContext().getContentResolver(), parent, mime, leaf);
+    if (doc == null) throw new Exception("cannot make " + leaf);
+    try (OutputStream out = getContext().getContentResolver().openOutputStream(doc, "wt")) {
+      pump(in, out, 0);
+    }
+  }
+
+  /** everything under an asset folder, into a folder under the tree */
+  private void copyAssetsInto(Uri t, String from, String to) throws Exception {
+    String[] kids = getContext().getAssets().list(from);
+    if (kids == null) return;
+    for (String n : kids) {
+      InputStream in;
+      try {
+        in = getContext().getAssets().open(from + "/" + n);
+      } catch (Exception notAFile) {
+        copyAssetsInto(t, from + "/" + n, to + "/" + n);
+        continue;
+      }
+      try {
+        writeInto(t, to, n, in);
+      } finally {
+        in.close();
+      }
+    }
+  }
+
+  /** everything under one folder of the tree, into another */
+  private void copyTreeInto(Uri t, String fromId, String to) throws Exception {
+    Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(t, fromId);
+    String[] cols = { DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+        DocumentsContract.Document.COLUMN_MIME_TYPE };
+    try (Cursor c = getContext().getContentResolver().query(children, cols, null, null, null)) {
+      while (c != null && c.moveToNext()) {
+        if (DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) {
+          copyTreeInto(t, c.getString(0), to + "/" + c.getString(1));
+          continue;
+        }
+        Uri doc = DocumentsContract.buildDocumentUriUsingTree(t, c.getString(0));
+        try (InputStream in = getContext().getContentResolver().openInputStream(doc)) {
+          writeInto(t, to, c.getString(1), in);
+        }
+      }
+    }
+  }
+
+  /**
+   * Copy a folder's contents into another folder under the tree, made
+   * if need be. `from` is a path under the tree, or a folder in the
+   * app's own files when `asset` is true.
+   *
+   * A source that is not there copies nothing and is not a failure: a
+   * theme with no music has no `media/`, and copying it is a no-op, not
+   * an error.
+   *
+   *   copyDir({ from, to, asset? }) -> { ok }
+   */
+  @PluginMethod
+  public void copyDir(PluginCall call) {
+    Uri t = tree();
+    String from = call.getString("from", "");
+    String to = call.getString("to", "");
+    boolean asset = Boolean.TRUE.equals(call.getBoolean("asset", false));
+    JSObject r = new JSObject();
+    if (t == null || from.isEmpty() || to.isEmpty()) {
+      call.reject("nothing to copy");
+      return;
+    }
+    try {
+      if (asset) {
+        copyAssetsInto(t, from, to);
+      } else {
+        String id = docId(t, from);
+        if (id != null) copyTreeInto(t, id, to);
+      }
+      r.put("ok", true);
+      call.resolve(r);
+    } catch (Exception e) {
+      call.reject("cannot copy: " + e.getMessage());
+    }
   }
 
   @PluginMethod
