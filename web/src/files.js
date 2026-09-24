@@ -180,9 +180,13 @@ export async function exportZip(path, name, asset = false) {
 }
 
 /**
- * Pick a zip and look inside: the plain names of its files and the
- * text of its theme.json. Nothing is written yet. Null when nothing
- * was picked or it could not be read.
+ * Pick a zip and look inside: the paths of its files and the text of
+ * its theme.json. Nothing is written yet. Null when nothing was picked
+ * or it could not be read.
+ *
+ * Paths, not names: a theme is a tree, and `sounds/gong.mp3` is what
+ * the check has to see. Filtering these as plain names threw every
+ * entry away and the theme read as having no sounds at all.
  * @returns {Promise<{names: string[], manifest: string} | null>}
  */
 export async function pickZip() {
@@ -190,7 +194,7 @@ export async function pickZip() {
   if (!b) return null;
   try {
     const r = await b.pickZip();
-    const names = (r.names || []).filter((n) => NAME.test(n));
+    const names = (r.names || []).filter((n) => PATH.test(n));
     return names.length ? { names, manifest: r.manifest || '' } : null;
   } catch {
     return null;

@@ -190,10 +190,6 @@ Under the folder chosen in Settings, in `themes/`, one folder per
 theme. Copy a set from this repository's `themes/` in there and it
 appears in the picker.
 
-A theme made before the tree existed had its sounds loose in its own
-folder. The app moves them into `sounds/` the first time it opens such
-a theme, once, and leaves `theme.json` where it is.
-
 ## Making sounds
 
 The spoken counts in the shipped theme were rendered as described in
