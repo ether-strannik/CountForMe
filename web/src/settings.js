@@ -391,24 +391,32 @@ function renderDuck() {
   showUnit('dkGapVal', duckGap(), ' s');
   showUnit('dkDownVal', duckDown(), ' ms');
   showUnit('dkUpVal', duckUp(), ' ms');
-  refreshDuck();
 }
-$('dkDepth').addEventListener('input', () => {
-  setDuckDepth(+$in('dkDepth').value);
-  renderDuck();
-});
-$('dkGap').addEventListener('input', () => {
-  setDuckGap(+$in('dkGap').value);
-  renderDuck();
-});
-$('dkDown').addEventListener('input', () => {
-  setDuckDown(+$in('dkDown').value);
-  renderDuck();
-});
-$('dkUp').addEventListener('input', () => {
-  setDuckUp(+$in('dkUp').value);
-  renderDuck();
-});
+
+// A session already on the clock is rewritten once the thumb comes to
+// rest, not on the way. Rewriting is the whole envelope every time,
+// and there is nothing to hear mid-drag: a change lands on the next
+// cue, not under the finger. The number above the slider is what
+// answers while it moves.
+const SETTLE = 1000;
+let settleId;
+function settled() {
+  clearTimeout(settleId);
+  settleId = setTimeout(refreshDuck, SETTLE);
+}
+
+/** @param {string} id @param {(n: number) => void} set */
+function onFader(id, set) {
+  $(id).addEventListener('input', () => {
+    set(+$in(id).value);
+    renderDuck();
+    settled();
+  });
+}
+onFader('dkDepth', setDuckDepth);
+onFader('dkGap', setDuckGap);
+onFader('dkDown', setDuckDown);
+onFader('dkUp', setDuckUp);
 // The song is its own test: it plays while the faders move.
 $('volMusicTest').addEventListener('click', toggleMusic);
 applyVolumes();
