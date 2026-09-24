@@ -67,3 +67,38 @@ export async function openBattery() {
     /* no such screen on this device */
   }
 }
+
+// The device's media volume: what the buttons on the side of the phone
+// move. Everything the app plays goes out on that stream, so this is
+// the rocker on screen and not a control of the app's own levels.
+// There is no web API for it, which is why it comes through the bridge.
+
+/** @typedef {{ level: number, max: number }} Volume */
+const NO_VOLUME = { level: 0, max: 0 };
+
+/** where the media volume stands, whatever moved it last */
+export async function mediaVolume() {
+  const b = bridge();
+  if (!b) return NO_VOLUME;
+  try {
+    return await b.volume();
+  } catch {
+    return NO_VOLUME;
+  }
+}
+
+/**
+ * Move it, and answer with where it landed rather than where it was
+ * sent: Do Not Disturb can refuse the change.
+ * @param {number} level
+ * @returns {Promise<Volume>}
+ */
+export async function setMediaVolume(level) {
+  const b = bridge();
+  if (!b) return NO_VOLUME;
+  try {
+    return await b.setVolume({ level });
+  } catch {
+    return NO_VOLUME;
+  }
+}

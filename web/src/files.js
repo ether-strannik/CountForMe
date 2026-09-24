@@ -15,6 +15,11 @@
 //   remove({ name })
 //   share({ name, base64 })  the system share sheet
 
+/** an audio file, by its name. One test, wherever the question is asked */
+const AUDIO = /\.(mp3|wav|ogg|opus|m4a|aac)$/i;
+/** @param {string} name */
+export const isAudio = (name) => AUDIO.test(name);
+
 /** one file or folder name: no separators */
 const NAME = /^[^/\\]{1,120}$/;
 /** a path of names under the folder: no empty, dot or dot-dot segments */
@@ -59,6 +64,69 @@ export async function pickFolder() {
     return await b.pick();
   } catch {
     return folder();
+  }
+}
+
+// ---- the folders music is kept in ----
+// Each is a grant of its own, made through the system picker. Android
+// keeps the list, so there is nothing stored here and nothing to go
+// stale: a grant taken back from system settings is simply not in the
+// next answer.
+
+/** @typedef {{ uri: string, name: string, path: string }} MusicFolder */
+
+/** @param {any} r @returns {MusicFolder[]} */
+const asFolders = (r) => (r && Array.isArray(r.folders) ? r.folders : []);
+
+/** the folders added for music */
+export async function musicFolders() {
+  const b = bridge();
+  if (!b) return [];
+  try {
+    return asFolders(await b.folders());
+  } catch {
+    return [];
+  }
+}
+
+/** the system picker; the folder it returns is kept for good */
+export async function addMusicFolder() {
+  const b = bridge();
+  if (!b) return [];
+  try {
+    return asFolders(await b.addFolder());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * What one folder holds, by URI. The added folders have no shared root
+ * to walk from, so going down a level is following a URI rather than
+ * joining names onto a path.
+ * @param {string} uri
+ * @returns {Promise<{dirs: {uri: string, name: string}[], files: {uri: string, name: string}[]}>}
+ */
+export async function browseFolder(uri) {
+  const b = bridge();
+  const empty = { dirs: [], files: [] };
+  if (!b || !uri) return empty;
+  try {
+    const r = await b.browse({ uri });
+    return { dirs: r.dirs || [], files: r.files || [] };
+  } catch {
+    return empty;
+  }
+}
+
+/** give one folder's grant back @param {string} uri */
+export async function dropMusicFolder(uri) {
+  const b = bridge();
+  if (!b) return [];
+  try {
+    return asFolders(await b.dropFolder({ uri }));
+  } catch {
+    return [];
   }
 }
 

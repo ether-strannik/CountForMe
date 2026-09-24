@@ -22,6 +22,18 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A folder browser in the player, on its own tab. Your music folders
+  are the top level; tap into one to see its folders and its songs, and
+  tap a song to play it — the rest of that folder follows it as the
+  queue. Nothing is indexed and nothing is scanned: a folder is read
+  when you open it.
+- Music folders, under Settings → Music. Each is opened once through
+  the system picker and the app can read it from then on, which is how
+  it reaches your music without asking for the whole of storage.
+- A volume control in the player, on the speaker beside the seek bar.
+  It moves the same volume the buttons on the side of the phone do, so
+  it carries the cues with the music. It goes away four seconds after
+  you stop touching it.
 - A player, opened by tapping the song name on the strip. The queue in
   the order it plays, tap a song to jump to it, then the title, a seek
   bar with elapsed and total, previous, play, next, shuffle, and

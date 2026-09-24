@@ -17,6 +17,7 @@ import {
   copyDir,
   fileUri,
   songUrl,
+  isAudio,
   removePath,
   exportZip,
   pickZip,
@@ -104,9 +105,6 @@ export async function themeList() {
   return out;
 }
 
-/** an audio file, by its name */
-const AUDIO = /\.(mp3|wav|ogg|opus|m4a|aac)$/i;
-
 // A theme is a tree: theme.json, the cue sounds under `sounds/`, the
 // music under `media/`. Neither folder has to exist — one is made the
 // first time something is written into it, and a folder that is not
@@ -164,8 +162,8 @@ export function themeSource() {
       const m = await folderManifest(dir);
       return themeCheck(m, await soundNames(dir)).ok ? m : null;
     },
-    library: async () => (await soundNames(dir)).filter((f) => AUDIO.test(f)),
-    media: async () => (await listDir(inTheme(dir, MEDIA_DIR))).names.filter((f) => AUDIO.test(f)),
+    library: async () => (await soundNames(dir)).filter(isAudio),
+    media: async () => (await listDir(inTheme(dir, MEDIA_DIR))).names.filter(isAudio),
     bytes: (file) => readFile(sounds + '/' + file),
     // A song is streamed, never read: its URI becomes a URL the local
     // server answers and the decoder pulls from as it plays.

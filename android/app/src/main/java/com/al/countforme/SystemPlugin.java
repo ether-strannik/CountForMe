@@ -24,6 +24,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  *   notifications()  the app's own notification settings
  *   battery()        the exemption dialog, or the list to undo it
  *   keepAwake({on})  hold the screen on while the app is in front
+ *   volume()         -> { level, max }   the device's media volume
+ *   setVolume({level}) -> { level, max }
  *   "changed"        pushed whenever the app comes back to the front
  *
  * Both are read, never assumed: a permission granted once can be taken
@@ -50,6 +52,53 @@ public class SystemPlugin extends Plugin {
   @Override
   protected void handleOnResume() {
     notifyListeners("changed", state());
+  }
+
+  // ---- the device's media volume ----
+  // The one the buttons on the side of the phone move. Everything this
+  // app plays goes out on that stream, so this moves the cues and the
+  // voice with the music: it is the rocker on screen, not a control of
+  // the app's own levels. Those are the theme's, and the duck's.
+  //
+  // No web API reaches it, which is why it is here at all.
+
+  private android.media.AudioManager audio() {
+    return (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+  }
+
+  private JSObject levels() {
+    android.media.AudioManager am = audio();
+    JSObject r = new JSObject();
+    r.put("level", am == null ? 0 : am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC));
+    r.put("max", am == null ? 0 : am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC));
+    return r;
+  }
+
+  /** where the media volume stands right now, whatever moved it last */
+  @PluginMethod
+  public void volume(PluginCall call) {
+    call.resolve(levels());
+  }
+
+  /**
+   * Set it, and answer with where it actually landed. Not where it was
+   * asked to land: Do Not Disturb refuses a change without notification
+   * policy access, and a slider that sprang back is the honest reply to
+   * that.
+   */
+  @PluginMethod
+  public void setVolume(PluginCall call) {
+    android.media.AudioManager am = audio();
+    Integer want = call.getInt("level");
+    if (am != null && want != null) {
+      int max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+      try {
+        am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, Math.max(0, Math.min(max, want)), 0);
+      } catch (SecurityException refused) {
+        // Do Not Disturb is on and this app cannot change it
+      }
+    }
+    call.resolve(levels());
   }
 
   /** is the app out of Android's battery optimisation? */

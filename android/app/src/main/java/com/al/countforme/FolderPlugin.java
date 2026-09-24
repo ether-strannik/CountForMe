@@ -32,6 +32,10 @@ import java.util.List;
  *
  *   status()            -> { granted, name }
  *   pick()              -> { granted, name }
+ *   folders()           -> { folders }       the folders added for music, each its own grant
+ *   addFolder()         -> { folders }       the picker again; what comes back is kept
+ *   dropFolder({ uri }) -> { folders }       that grant given back
+ *   browse({ uri })     -> { dirs, files }   inside one folder, by URI, for the added ones
  *   list({ path? })     -> { names, dirs }   files and subfolders of a folder
  *   read({ name })      -> { base64 }        name may be a path: "themes/x/y.mp3"
  *   write({ name, base64 })                  name may be a path; folders are made
@@ -65,18 +69,33 @@ public class FolderPlugin extends Plugin {
     return null;
   }
 
+  /** what a granted tree is called: the last part of its document id */
+  private static String treeName(Uri u) {
+    String id = DocumentsContract.getTreeDocumentId(u); // "primary:Timer"
+    int c = id.lastIndexOf(':');
+    int s = id.lastIndexOf('/');
+    String name = id.substring(Math.max(c, s) + 1);
+    return name.isEmpty() ? id : name;
+  }
+
+  /**
+   * Where a granted tree sits, for a human: "Internal storage / Music".
+   * The document id carries a volume and a path, and neither is a real
+   * filesystem path — this is a label, not something to open.
+   */
+  private static String treePath(Uri u) {
+    String id = DocumentsContract.getTreeDocumentId(u); // "primary:Music/Rock"
+    int c = id.indexOf(':');
+    String volume = c < 0 ? "" : id.substring(0, c);
+    String path = c < 0 ? id : id.substring(c + 1);
+    String head = "primary".equals(volume) ? "Internal storage" : volume;
+    return path.isEmpty() ? head : head + " / " + path.replace("/", " / ");
+  }
+
   private JSObject status(Uri u) {
     JSObject r = new JSObject();
     r.put("granted", u != null);
-    String name = "";
-    if (u != null) {
-      String id = DocumentsContract.getTreeDocumentId(u); // "primary:Timer"
-      int c = id.lastIndexOf(':');
-      int s = id.lastIndexOf('/');
-      name = id.substring(Math.max(c, s) + 1);
-      if (name.isEmpty()) name = id;
-    }
-    r.put("name", name);
+    r.put("name", u == null ? "" : treeName(u));
     return r;
   }
 
@@ -92,6 +111,137 @@ public class FolderPlugin extends Plugin {
         | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
     startActivityForResult(call, i, "picked");
+  }
+
+  // ---- the folders the user keeps music in ----
+  // The app declares no storage permission, so a folder it can read is
+  // a folder the user handed it through the system picker. Adding one
+  // here is another such grant, kept for good.
+  //
+  // Nothing is stored to remember them: Android already keeps the list
+  // of what this app has been granted, and that list IS the answer. A
+  // grant revoked from system settings therefore disappears from here
+  // on its own, with nothing to go stale.
+  //
+  // Every tree grant but one: the folder chosen under General, which is
+  // where themes and presets live and is not a place to scan for music.
+
+  /** @return the tree grants that are not the app's own folder */
+  private List<Uri> musicTrees() {
+    Uri main = tree();
+    List<Uri> out = new ArrayList<>();
+    for (android.content.UriPermission up : getContext().getContentResolver().getPersistedUriPermissions()) {
+      Uri u = up.getUri();
+      if (!up.isReadPermission() || !DocumentsContract.isTreeUri(u)) continue;
+      if (main != null && u.equals(main)) continue;
+      out.add(u);
+    }
+    return out;
+  }
+
+  private JSObject folderList() {
+    JSArray arr = new JSArray();
+    for (Uri u : musicTrees()) {
+      JSObject o = new JSObject();
+      o.put("uri", u.toString());
+      o.put("name", treeName(u));
+      o.put("path", treePath(u));
+      arr.put(o);
+    }
+    JSObject r = new JSObject();
+    r.put("folders", arr);
+    return r;
+  }
+
+  /** the folders added for music: name, where it sits, and its grant */
+  @PluginMethod
+  public void folders(PluginCall call) {
+    call.resolve(folderList());
+  }
+
+  /** the system tree picker; what comes back is kept for good */
+  @PluginMethod
+  public void addFolder(PluginCall call) {
+    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+    i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+    startActivityForResult(call, i, "addedFolder");
+  }
+
+  @ActivityCallback
+  private void addedFolder(PluginCall call, ActivityResult result) {
+    if (call == null) return;
+    Intent data = result.getData();
+    if (result.getResultCode() == android.app.Activity.RESULT_OK && data != null && data.getData() != null) {
+      try {
+        getContext()
+            .getContentResolver()
+            .takePersistableUriPermission(data.getData(), Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      } catch (Exception wontPersist) {
+        // a provider that will not keep the grant: nothing is added
+      }
+    }
+    call.resolve(folderList());
+  }
+
+  /**
+   * What one folder holds, by URI rather than by path.
+   *
+   * `list` above walks the app's own folder from its root, a name at a
+   * time. That will not reach the folders added for music: each is its
+   * own grant, with no shared root to walk from. So this takes a URI
+   * and answers with URIs, and moving down the tree is following one
+   * of them rather than joining strings.
+   *
+   * A document URI built inside a tree carries that tree with it, so
+   * one URI is enough to ask again at the next level down.
+   *
+   *   browse({ uri }) -> { dirs: [{uri, name}], files: [{uri, name}] }
+   */
+  @PluginMethod
+  public void browse(PluginCall call) {
+    String s = call.getString("uri", "");
+    JSArray dirs = new JSArray();
+    JSArray files = new JSArray();
+    try {
+      Uri u = Uri.parse(s);
+      String id = DocumentsContract.isTreeUri(u) && !s.contains("/document/")
+          ? DocumentsContract.getTreeDocumentId(u)
+          : DocumentsContract.getDocumentId(u);
+      Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(u, id);
+      String[] cols = { DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+          DocumentsContract.Document.COLUMN_MIME_TYPE };
+      try (Cursor c = getContext().getContentResolver().query(children, cols, null, null, null)) {
+        while (c != null && c.moveToNext()) {
+          JSObject o = new JSObject();
+          o.put("uri", DocumentsContract.buildDocumentUriUsingTree(u, c.getString(0)).toString());
+          o.put("name", c.getString(1));
+          if (DocumentsContract.Document.MIME_TYPE_DIR.equals(c.getString(2))) dirs.put(o);
+          else files.put(o);
+        }
+      }
+    } catch (Exception notReadable) {
+      // a grant taken back, or a folder that went: it lists as empty
+    }
+    JSObject r = new JSObject();
+    r.put("dirs", dirs);
+    r.put("files", files);
+    call.resolve(r);
+  }
+
+  /** give a folder's grant back; the app can no longer read it */
+  @PluginMethod
+  public void dropFolder(PluginCall call) {
+    String uri = call.getString("uri", "");
+    if (!uri.isEmpty()) {
+      try {
+        getContext()
+            .getContentResolver()
+            .releasePersistableUriPermission(Uri.parse(uri), Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      } catch (Exception gone) {
+        // already released, or never ours
+      }
+    }
+    call.resolve(folderList());
   }
 
   /**

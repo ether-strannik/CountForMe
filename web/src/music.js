@@ -18,14 +18,12 @@
 // and nothing points at a playlist. A theme with no music falls back
 // to the one file picked by hand, which is how music worked before
 // themes carried any.
-import { $, $btn } from './dom.js';
+import { $, $btn, PLAY_SVG, PAUSE_SVG } from './dom.js';
 import { pickSong, keptSong, songUrl } from './files.js';
 import { mediaList, mediaUrl, onThemeChange } from './theme.js';
 import { audioCtx, musicInput } from './sound.js';
 
 const NOTE = '♪';
-const PLAY = '▶';
-const PAUSE = '⏸';
 
 /** what the end of a song does: stop, start the next, or play it again */
 const OFF = 'off';
@@ -61,6 +59,47 @@ const shown = (f) => f.replace(/\.[^.]+$/, '');
 /** the track playing, or null */
 const current = () => (at < 0 ? null : queue[order[at]] || null);
 
+// How long each song runs. Only the decoder knows, and only once it
+// has read the file's header, so this fills in rather than being
+// known: the track playing gives its length for nothing, and the rest
+// are read one at a time when the player opens. Keyed by the file
+// itself, so shuffling and changing theme cost nothing.
+/** @type {Map<string, number>} */
+const lengths = new Map();
+const keyOf = (t) => (t ? t.file || t.url || '' : '');
+
+/** seconds the nth song of the ordered queue runs; 0 until it is known */
+export const trackLength = (n) => lengths.get(keyOf(queue[order[n]])) || 0;
+
+/**
+ * Read the length of every song that has not given one. One at a time:
+ * this opens the file to read its header, and a queue is a folder of
+ * them.
+ */
+export async function measureQueue() {
+  for (const track of queue) {
+    const key = keyOf(track);
+    if (!key || lengths.has(key)) continue;
+    const url = track.url || (track.file ? await mediaUrl(track.file) : '');
+    if (!url) continue;
+    await new Promise((done) => {
+      const probe = new Audio();
+      probe.preload = 'metadata';
+      const over = () => {
+        probe.src = '';
+        done(null);
+      };
+      probe.addEventListener('loadedmetadata', () => {
+        if (isFinite(probe.duration)) lengths.set(key, probe.duration);
+        over();
+      });
+      probe.addEventListener('error', over);
+      probe.src = url;
+    });
+    draw(); // the list fills in as they come, rather than all at the end
+  }
+}
+
 // The element joins the graph once and stays: a media element source
 // can only be made once, and making it is what takes the element's
 // output off the speakers and onto the bus. It waits for the first
@@ -78,21 +117,13 @@ function joinBus() {
   }
 }
 
-// The strip and the Music tab's top line say the same thing, so one
-// function draws both. The tab's copy is what the four faders are
-// tuned against, and the settings page covers the strip.
+/** the strip, and then whatever else is showing the same thing */
 function draw() {
   const track = current();
-  const playing = !el.paused;
-  const label = NOTE + ' ' + (track ? track.name : 'none');
-  $('mName').textContent = label;
+  $('mName').textContent = NOTE + ' ' + (track ? track.name : 'none');
   $('mName').classList.toggle('none', !track);
-  $('mPlay').textContent = playing ? PAUSE : PLAY;
+  $('mPlay').innerHTML = el.paused ? PLAY_SVG : PAUSE_SVG;
   $btn('mPlay').disabled = !track;
-  $btn('mStop').disabled = !track;
-  $('volMusicName').textContent = label;
-  $('volMusicTest').textContent = playing ? 'Pause' : 'Play';
-  $btn('volMusicTest').disabled = !track;
   for (const fn of watchers) fn();
 }
 
@@ -160,12 +191,6 @@ export const nextTrack = () => playAt(at + 1);
 /** the previous song, wrapping at the start */
 export const prevTrack = () => playAt(at - 1);
 
-/** stop, and go back to the start of the song */
-export function stopMusic() {
-  el.pause();
-  el.currentTime = 0;
-}
-
 /** shuffle on or off; what is playing carries on */
 export function setShuffle(on) {
   shuffled = !!on;
@@ -184,6 +209,20 @@ export const playlist = () => order.map((i) => queue[i].name);
 export const playingAt = () => at;
 /** play the nth song of the queue as it is ordered */
 export const playNth = (n) => playAt(n);
+
+/**
+ * A folder becomes the queue, starting at one of its songs. That is
+ * what tapping a song in the browser means: the rest of the folder is
+ * what follows it, as a playlist rather than one file.
+ *
+ * `from` counts through the folder as it was listed. Shuffle moves
+ * what plays after, never what was asked for.
+ * @param {Track[]} tracks @param {number} from
+ */
+export function playFolder(tracks, from) {
+  setQueue(tracks);
+  playAt(order.indexOf(from));
+}
 
 export const isPlaying = () => !el.paused;
 /** seconds into the song */
@@ -213,7 +252,6 @@ const watchers = [];
 export const onMusicChange = (fn) => watchers.push(fn);
 
 $('mPlay').addEventListener('click', toggleMusic);
-$('mStop').addEventListener('click', stopMusic);
 
 // The end of a song is where a queue differs from a single file. One
 // on repeat plays again; otherwise the next one starts, and the end of
@@ -226,6 +264,12 @@ el.addEventListener('ended', () => {
 });
 el.addEventListener('play', draw);
 el.addEventListener('pause', draw);
+// the song playing gives its length without being asked
+el.addEventListener('loadedmetadata', () => {
+  const key = keyOf(current());
+  if (key && isFinite(el.duration)) lengths.set(key, el.duration);
+  draw();
+});
 
 /**
  * What is in the queue, read again. The theme's music is the playlist;

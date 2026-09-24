@@ -250,8 +250,7 @@
          name is the picker; the two buttons are the whole player. -->
     <div class="music">
       <button class="mname none" id="mName">&#9834; none</button>
-      <button class="mbtn" id="mPlay" aria-label="Play or pause" disabled>&#9654;</button>
-      <button class="mbtn" id="mStop" aria-label="Stop" disabled>&#9632;</button>
+      <button class="mbtn" id="mPlay" aria-label="Play or pause" disabled></button>
     </div>
 
     <!-- bottom tabs -->
@@ -408,13 +407,13 @@
            and a cue pushes it down for as long as the cues keep
            coming. These four say by how much, and how fast. -->
       <div id="sMusic" class="spage" hidden>
-        <div class="vrow">
-          <div class="slabel">The song <small>picked on the strip, played here to tune against</small></div>
-          <div class="mhead">
-            <span class="msong" id="volMusicName">&#9834; none</span>
-            <button id="volMusicTest" class="pbtn" disabled>Play</button>
-          </div>
-        </div>
+        <!-- Where the music is. Each folder is a grant of its own: the
+             app holds no storage permission, so a folder it can read is
+             one handed to it through the system picker. -->
+        <div class="sgroup">Song library</div>
+        <button class="srow rowbtn" id="libScan">
+          <div class="slabel">Music folders</div>
+        </button>
         <div class="vrow">
           <div class="slabel">Depth <small>how far the song drops under a cue</small></div>
           <div class="vline pair">
@@ -519,24 +518,54 @@
       <div class="sheet">
         <div class="sheethead">
           <div class="stitle">Music</div>
-          <button id="plClose" class="x" aria-label="Close">&times;</button>
         </div>
-        <div id="plList" class="xlist"></div>
-        <div class="pltitle" id="plTitle">none</div>
-        <div class="plseek">
-          <span class="pltime" id="plAt">0:00</span>
-          <input id="plSeek" class="vslider" type="range" min="0" max="100" step="1" value="0" />
-          <span class="pltime" id="plLen">0:00</span>
+        <div id="plPane">
+          <div id="plList" class="xlist"></div>
+          <div class="pltitle" id="plTitle">none</div>
+          <!-- The seek row, and the volume strip that covers it. One
+               place, because they are never both wanted at once and the
+               sheet must not grow a row when the strip appears. -->
+          <div class="plseekwrap">
+            <div class="plseek">
+              <button id="plVolBtn" class="pltiny" aria-label="Volume"></button>
+              <span class="pltime" id="plAt">0:00</span>
+              <input id="plSeek" class="vslider" type="range" min="0" max="100" step="1" value="0" />
+              <span class="pltime" id="plLen">0:00</span>
+            </div>
+            <div class="plvol" id="plVol" hidden>
+              <span class="pltiny" id="plVolIcon"></span>
+              <span class="pltime" id="plVolVal">0</span>
+              <input id="plVolSlider" class="vslider" type="range" min="0" max="15" step="1" value="0" />
+            </div>
+          </div>
+          <div class="plbtns">
+            <button id="plShuffle" class="plbtn" aria-pressed="false" aria-label="Shuffle"></button>
+            <button id="plPrev" class="plbtn" aria-label="Previous"></button>
+            <button id="plPlay" class="plbtn big" aria-label="Play or pause"></button>
+            <button id="plNext" class="plbtn" aria-label="Next"></button>
+            <button id="plRepeat" class="plbtn" aria-pressed="false" aria-label="Repeat"></button>
+          </div>
         </div>
-        <div class="plbtns">
-          <button id="plShuffle" class="plbtn" aria-pressed="false" aria-label="Shuffle">&#8646;</button>
-          <button id="plPrev" class="plbtn" aria-label="Previous">&#9198;</button>
-          <button id="plPlay" class="plbtn big" aria-label="Play or pause">&#9654;</button>
-          <button id="plNext" class="plbtn" aria-label="Next">&#9197;</button>
-          <button id="plRepeat" class="plbtn" aria-pressed="false" aria-label="Repeat">&#8635;</button>
+        <!-- the folder browser, not built yet: the tab is here so the
+             shape of the sheet is settled before it is -->
+        <div id="plBrowse" hidden></div>
+        <nav class="pltabs">
+          <button class="pltab" data-pltab="player" aria-selected="true" aria-label="Player"></button>
+          <button class="pltab" data-pltab="browse" aria-selected="false" aria-label="Folders"></button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- the folders the browser starts from, each one a grant -->
+    <div id="folders" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle">Music folders</div>
         </div>
+        <div class="hint">Where you keep your music. Each is opened through the system picker, once.</div>
+        <div id="fdList" class="xlist"></div>
         <div class="catactions">
-          <button id="plFile" class="pbtn">File&hellip;</button>
+          <button id="fdAdd" class="pbtn">Add folder&hellip;</button>
         </div>
       </div>
     </div>

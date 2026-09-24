@@ -2,7 +2,7 @@
 // folder, the theme, and what Android is allowing. Sounds: what the
 // theme plays for each cue, to hear, not to change. Volume: a fader
 // per bus. Android back closes it (nav.js); nothing is drawn for that.
-import { $, $$, $in, $sel, $btn } from './dom.js';
+import { $, $$, $in, $sel, $btn, CIRCLE_MINUS_SVG } from './dom.js';
 import {
   getStartTab,
   setStartTab,
@@ -23,7 +23,6 @@ import {
   duckUp,
   setDuckUp,
 } from './prefs.js';
-import { toggleMusic } from './music.js';
 import {
   audioCtx,
   ensureSound,
@@ -39,7 +38,7 @@ import {
   testVoice,
 } from './sound.js';
 import { TOKENS, SOUNDS, COUNTS, isHex } from './themepack.js';
-import { hasBridge, folder, pickFolder } from './files.js';
+import { hasBridge, folder, pickFolder, musicFolders, addMusicFolder, dropMusicFolder } from './files.js';
 import {
   themeId,
   themeList,
@@ -375,6 +374,53 @@ $('volVoice').addEventListener('input', () => {
 $('volCueTest').addEventListener('click', testCue);
 $('volVoiceTest').addEventListener('click', testVoice);
 
+// ---- the song library: where the music is ----
+// The app holds no storage permission, so a folder it can read is one
+// handed to it through the system picker, and each row here is a grant
+// of its own. Android keeps that list, so there is nothing stored and
+// nothing to go stale.
+//
+// These are where the browser starts, not a set to index. Nothing walks
+// the whole tree, so there is nothing to exclude from it either: a
+// browser shows one folder at a time, and the folder it does not show
+// costs nothing.
+
+/** @param {{uri: string, name: string, path: string}[]} folders */
+function drawFolders(folders) {
+  const box = $('fdList');
+  box.innerHTML = '';
+  for (const f of folders) {
+    const row = document.createElement('div');
+    row.className = 'xrow';
+    const name = document.createElement('span');
+    name.textContent = f.name;
+    const where = document.createElement('small');
+    where.textContent = f.path;
+    name.appendChild(document.createElement('br'));
+    name.appendChild(where);
+    row.appendChild(name);
+    const drop = document.createElement('button');
+    drop.className = 'fdx';
+    drop.setAttribute('aria-label', 'Remove ' + f.name);
+    drop.innerHTML = CIRCLE_MINUS_SVG;
+    // Removing one gives its grant back, and Android answers with what
+    // is left: the app stops being able to read it at all.
+    drop.addEventListener('click', async () => drawFolders(await dropMusicFolder(f.uri)));
+    row.appendChild(drop);
+    box.appendChild(row);
+  }
+}
+
+$('libScan').addEventListener('click', async () => {
+  drawFolders(await musicFolders());
+  $('folders').hidden = false;
+  openScreen('folders', () => ($('folders').hidden = true));
+});
+$('fdAdd').addEventListener('click', async () => drawFolders(await addMusicFolder()));
+$('folders').addEventListener('click', (e) => {
+  if (e.target === $('folders')) closeScreen('folders'); // backdrop; Android back does the same
+});
+
 // ---- music: what a cue does to the song ----
 // Four numbers, all the user's, because the sweet spot is found by ear
 // against a song that is playing. Every move rewrites the duck the
@@ -417,8 +463,6 @@ onFader('dkDepth', setDuckDepth);
 onFader('dkGap', setDuckGap);
 onFader('dkDown', setDuckDown);
 onFader('dkUp', setDuckUp);
-// The song is its own test: it plays while the faders move.
-$('volMusicTest').addEventListener('click', toggleMusic);
 applyVolumes();
 
 // ---- what Android is letting the app do ----

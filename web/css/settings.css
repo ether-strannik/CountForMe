@@ -125,6 +125,20 @@
 
 /* ---- the sheets that open over a page. z 22 clears the settings
    page at 20. The preset manager has its own file ---- */
+/* a settings row that opens something: the whole row is the target,
+   and it has to be told it is a button rather than inherit one's look.
+   No rule between them — two rows that open the same kind of thing are
+   one stack, not two sections. */
+.rowbtn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+#folders,
 #xferOverlay,
 #tsOverlay,
 #tnOverlay {
@@ -173,10 +187,39 @@
 /* The picker is a column: title and buttons stay put, only the list
    moves. Without this the sheet itself scrolls and OK leaves the
    screen, which on a long list means it is never visible. */
-#tsOverlay .sheet {
+#tsOverlay .sheet,
+#folders .sheet {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+#fdList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+#folders .catactions {
+  flex: none;
+  justify-content: flex-start;
+}
+/* the mark that gives a folder's grant back */
+.fdx {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+/* a folder's location, under its name rather than beside it */
+#fdList .xrow small {
+  display: block;
+  margin-top: 2px;
 }
 #tsList {
   flex: 1;
@@ -378,26 +421,10 @@
   gap: 12px;
   margin-top: 10px;
 }
-/* The Music tab's faders have no test of their own: the song is the
-   test, and it is started once at the top of the page. */
+/* The Music tab's faders have no test button: these are settings, and
+   the song is played from the player. */
 .vline.pair {
   grid-template-columns: 1fr auto;
-}
-/* what is loaded, and the button that plays it while the faders move */
-.mhead {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 10px;
-}
-.msong {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--muted);
-  font-size: 15px;
 }
 .vval {
   min-width: 2.4em;

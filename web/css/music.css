@@ -36,8 +36,13 @@
 .mname.none {
   color: var(--muted);
 }
+/* Flex rather than text alignment: what sits in these is a drawn mark,
+   and a glyph's baseline is not the middle of the button. */
 .mbtn {
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 28px;
   border: none;
@@ -47,6 +52,10 @@
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
+}
+.mbtn svg {
+  width: 17px;
+  height: 17px;
 }
 .mbtn:disabled {
   color: var(--muted);
@@ -73,28 +82,132 @@
   flex-direction: column;
   overflow: hidden;
 }
+/* the pane the tabs switch between: a column of its own, so the list
+   inside it is what scrolls and not the sheet */
+#plPane,
+#plBrowse {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+#plBrowse {
+  overflow-y: auto;
+}
+/* A folder's mark in the browser, so a folder reads apart from a song
+   without a word saying so.
+   Two classes deep on purpose: `.xrow span` gives every span in a row
+   a share of the width, and the mark is a span. Left at one class it
+   lost to that rule and took half the row. */
+.xrow .fdicon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  width: 18px;
+  color: var(--muted);
+}
+.xrow .fdicon svg {
+  width: 18px;
+  height: 18px;
+}
 #plList {
   flex: 1;
   min-height: 0; /* a flex child will not shrink past its content without this */
   overflow-y: auto;
+}
+/* The sheet's own tabs, the shape of the app's: a row of equal widths
+   under a rule, the one in use marked by a line above it. Not the same
+   element, because those are fixed to the window and these belong to
+   this sheet. */
+.pltabs {
+  flex: none;
+  display: flex;
+  margin: 4px -16px calc(-20px - env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  /* The app's tab bar is the card colour on the page's; inside a sheet
+     everything is already the card colour, so the pair is inverted to
+     keep the bar a surface of its own rather than part of the sheet. */
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+.pltab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pltab svg {
+  width: 22px;
+  height: 22px;
+}
+.pltab[aria-selected='true'] {
+  color: var(--accent);
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+/* A queue reads as one block, so the songs are not ruled off from each
+   other. The single line is where the list ends and what is playing
+   begins, which is the only division that means anything here. */
+#plList .xrow {
+  border-top: none;
 }
 /* the song playing, named again under the list: the list scrolls and
    the answer to "what is this" has to stay put */
 .pltitle {
   flex: none;
   margin: 12px 2px 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
   font-size: 17px;
   font-weight: 700;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.plseek {
+/* The strip sits over the seek row rather than beside it, so the sheet
+   is the same height whether it is up or not. */
+.plseekwrap {
   flex: none;
+  position: relative;
+}
+.plseek {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
   gap: 10px;
+}
+.plvol {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+/* the speaker: a mark, not a control, at the size of the times beside it */
+.pltiny {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pltiny svg {
+  width: 24px;
+  height: 24px;
 }
 .pltime {
   color: var(--muted);
@@ -110,6 +223,9 @@
   padding: 4px 0 8px;
 }
 .plbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 52px;
   height: 44px;
   border: none;
