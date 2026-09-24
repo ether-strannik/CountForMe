@@ -52,3 +52,93 @@
   color: var(--muted);
   opacity: 0.45;
 }
+
+/* ---- the player ---- */
+/* A sheet over everything, on the same level as the other sheets. The
+   list is the queue in the order it plays; the controls below it are
+   what the strip has no room for. */
+#player {
+  position: fixed;
+  inset: 0;
+  z-index: 22;
+  background: var(--scrim);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+/* A column, so only the list moves: the controls are the reason the
+   player is open and must not scroll off a long queue. */
+#player .sheet {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#plList {
+  flex: 1;
+  min-height: 0; /* a flex child will not shrink past its content without this */
+  overflow-y: auto;
+}
+/* the song playing, named again under the list: the list scrolls and
+   the answer to "what is this" has to stay put */
+.pltitle {
+  flex: none;
+  margin: 12px 2px 2px;
+  font-size: 17px;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.plseek {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.pltime {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.plbtns {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0 8px;
+}
+.plbtn {
+  width: 52px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+/* play is the one that is pressed most, so it is the one that is filled */
+.plbtn.big {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 22px;
+}
+.plbtn:disabled {
+  color: var(--muted);
+  opacity: 0.45;
+}
+/* shuffle and repeat are switches: on is the accent, off is quiet */
+.plbtn[aria-pressed='true'] {
+  color: var(--accent);
+}
+#player .catactions {
+  flex: none;
+  justify-content: flex-start;
+}
+/* the row playing */
+#plList .xrow[aria-pressed='true'] {
+  color: var(--accent);
+}

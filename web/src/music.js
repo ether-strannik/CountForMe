@@ -93,6 +93,7 @@ function draw() {
   $('volMusicName').textContent = label;
   $('volMusicTest').textContent = playing ? 'Pause' : 'Play';
   $btn('volMusicTest').disabled = !track;
+  for (const fn of watchers) fn();
 }
 
 /** the play order: straight through, or shuffled around what is playing */
@@ -184,7 +185,33 @@ export const playingAt = () => at;
 /** play the nth song of the queue as it is ordered */
 export const playNth = (n) => playAt(n);
 
-$('mName').addEventListener('click', choose);
+export const isPlaying = () => !el.paused;
+/** seconds into the song */
+export const position = () => el.currentTime || 0;
+/** how long the song is; 0 until the decoder has read that far */
+export const duration = () => (isFinite(el.duration) ? el.duration : 0);
+/** @param {number} sec */
+export function seekTo(sec) {
+  if (!isFinite(el.duration)) return;
+  el.currentTime = Math.max(0, Math.min(el.duration, sec));
+}
+
+/** the system picker: one file from anywhere, as a queue of one */
+export async function chooseFile() {
+  const s = await pickSong();
+  if (!s) return;
+  setQueue([{ name: shown(s.name), url: songUrl(s.uri) }]);
+  playAt(0);
+}
+
+// What is on screen has to follow what the queue does, and the queue
+// changes from the strip, from the player and from a theme coming on.
+// One list of listeners rather than each of those telling the others.
+/** @type {(() => void)[]} */
+const watchers = [];
+/** run `fn` whenever the track or the playing state changes */
+export const onMusicChange = (fn) => watchers.push(fn);
+
 $('mPlay').addEventListener('click', toggleMusic);
 $('mStop').addEventListener('click', stopMusic);
 
@@ -199,14 +226,6 @@ el.addEventListener('ended', () => {
 });
 el.addEventListener('play', draw);
 el.addEventListener('pause', draw);
-
-/** the system picker: one file from anywhere, as a queue of one */
-async function choose() {
-  const s = await pickSong();
-  if (!s) return;
-  setQueue([{ name: shown(s.name), url: songUrl(s.uri) }]);
-  playAt(0);
-}
 
 /**
  * What is in the queue, read again. The theme's music is the playlist;

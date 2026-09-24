@@ -4,6 +4,7 @@ import './theme.js'; // paint the saved theme before anything draws
 import { $, $$ } from './dom.js';
 import './settings.js'; // the gear, and the sheet behind it
 import './music.js'; // the strip above the tabs
+import { openPlayer } from './player.js'; // and the sheet it opens
 import { getStartTab } from './prefs.js';
 import { renderTimers } from './timers.js';
 import { isRunning } from './intervals.js';
@@ -36,6 +37,11 @@ function showTab(t) {
   }
 }
 $$('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+// The strip names the song; tapping the name opens the player over
+// whatever screen is up. Wired here rather than in `music.js`, which
+// would have to import the sheet that imports it.
+$('mName').addEventListener('click', openPlayer);
 
 // open on the tab the user picked in settings (default Intervals)
 showTab(getStartTab());

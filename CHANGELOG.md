@@ -22,6 +22,11 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A player, opened by tapping the song name on the strip. The queue in
+  the order it plays, tap a song to jump to it, then the title, a seek
+  bar with elapsed and total, previous, play, next, shuffle, and
+  repeat off, all or one. A file from anywhere is still reachable, on
+  the File button.
 - A theme's `media/` folder is the playlist. Put the theme on and the
   strip already names its first song, with nothing to pick and nothing
   to point at. One song runs on to the next. Putting a different theme

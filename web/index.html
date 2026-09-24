@@ -513,6 +513,34 @@
       </div>
     </div>
 
+    <!-- the player: the theme's songs, and the controls the strip has
+         no room for. The list is what plays, in the order it plays. -->
+    <div id="player" hidden>
+      <div class="sheet">
+        <div class="sheethead">
+          <div class="stitle">Music</div>
+          <button id="plClose" class="x" aria-label="Close">&times;</button>
+        </div>
+        <div id="plList" class="xlist"></div>
+        <div class="pltitle" id="plTitle">none</div>
+        <div class="plseek">
+          <span class="pltime" id="plAt">0:00</span>
+          <input id="plSeek" class="vslider" type="range" min="0" max="100" step="1" value="0" />
+          <span class="pltime" id="plLen">0:00</span>
+        </div>
+        <div class="plbtns">
+          <button id="plShuffle" class="plbtn" aria-pressed="false" aria-label="Shuffle">&#8646;</button>
+          <button id="plPrev" class="plbtn" aria-label="Previous">&#9198;</button>
+          <button id="plPlay" class="plbtn big" aria-label="Play or pause">&#9654;</button>
+          <button id="plNext" class="plbtn" aria-label="Next">&#9197;</button>
+          <button id="plRepeat" class="plbtn" aria-pressed="false" aria-label="Repeat">&#8635;</button>
+        </div>
+        <div class="catactions">
+          <button id="plFile" class="pbtn">File&hellip;</button>
+        </div>
+      </div>
+    </div>
+
     <script src="/shared/fullscreen.js" defer></script>
     <script src="/shared/textzoom.js" defer></script>
     <script type="module" src="src/app.js"></script>
