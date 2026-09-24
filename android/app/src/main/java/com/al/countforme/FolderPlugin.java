@@ -41,6 +41,7 @@ import java.util.List;
  *   pickFile({ type? }) -> { name, base64 }  one file from anywhere
  *   pickSong()          -> { name, uri }     one song, kept, streamed not carried
  *   song()              -> { name, uri }     the song kept last time
+ *   fileUri({ name })   -> { uri }           a file under the tree, to stream rather than read
  *   exportZip({ path, name, asset? }) -> { saved }   a folder and all under it, to where the user picks
  *   pickZip()           -> { names, manifest }       a zip the user picks, looked inside; names carry their paths
  *   unpackZip({ dest }) -> { ok }                    that zip, tree and all, into a folder under the tree
@@ -197,6 +198,30 @@ public class FolderPlugin extends Plugin {
         .apply();
     r.put("name", name);
     r.put("uri", u.toString());
+    call.resolve(r);
+  }
+
+  /**
+   * The content URI of one file under the tree.
+   *
+   * A picked song arrives with a URI already; a song sitting in a
+   * theme's `media/` is only a path, and a path cannot be streamed.
+   * This is the other half of the same idea: the page turns what comes
+   * back into a URL and the decoder pulls from it, so a theme's music
+   * is never read into the page either.
+   *
+   * A file the tree does not hold answers with "".
+   *
+   *   fileUri({ name }) -> { uri }   name may be a path
+   */
+  @PluginMethod
+  public void fileUri(PluginCall call) {
+    Uri t = tree();
+    String name = call.getString("name", "");
+    JSObject r = new JSObject();
+    r.put("uri", "");
+    String id = (t == null || name.isEmpty()) ? null : docId(t, name);
+    if (id != null) r.put("uri", DocumentsContract.buildDocumentUriUsingTree(t, id).toString());
     call.resolve(r);
   }
 

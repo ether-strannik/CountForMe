@@ -22,6 +22,11 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A theme's `media/` folder is the playlist. Put the theme on and the
+  strip already names its first song, with nothing to pick and nothing
+  to point at. One song runs on to the next. Putting a different theme
+  on swaps the music with it; a theme carrying none falls back to the
+  file you picked by hand.
 - Opus files count as audio, so a theme can use them for its cues and
   its music.
 - Music, with the cues mixed over it. A strip above the tabs plays one

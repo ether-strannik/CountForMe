@@ -153,6 +153,23 @@ export async function keptSong() {
 }
 
 /**
+ * The URI of one file under the folder. A picked song arrives with a
+ * URI already; a song sitting in a theme's `media/` is only a path,
+ * and a path cannot be streamed. "" when the folder does not hold it.
+ * @param {string} path
+ * @returns {Promise<string>}
+ */
+export async function fileUri(path) {
+  const b = bridge();
+  if (!b || !PATH.test(path)) return '';
+  try {
+    return (await b.fileUri({ name: path })).uri || '';
+  } catch {
+    return '';
+  }
+}
+
+/**
  * A song's URI as a URL the WebView will stream. Capacitor's own local
  * server answers it, on the same origin as the page, so this holds in
  * the dev build too.

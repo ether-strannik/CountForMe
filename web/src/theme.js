@@ -15,6 +15,8 @@ import {
   writeText,
   writeFile,
   copyDir,
+  fileUri,
+  songUrl,
   removePath,
   exportZip,
   pickZip,
@@ -136,7 +138,8 @@ const soundsIn = (names) =>
  * same holds for `media/`, which no key ever assigns: it is whatever
  * is in there.
  * @returns {{manifest: () => Promise<any>, library: () => Promise<string[]>,
- *   media: () => Promise<string[]>, bytes: (file: string) => Promise<ArrayBuffer | null>}}
+ *   media: () => Promise<string[]>, bytes: (file: string) => Promise<ArrayBuffer | null>,
+ *   mediaUrl: (file: string) => Promise<string>}}
  */
 export function themeSource() {
   const dir = folderOf(chosen.id);
@@ -149,6 +152,8 @@ export function themeSource() {
         const r = await fetch('theme/' + SOUNDS_DIR + '/' + file);
         return r.ok ? r.arrayBuffer() : null;
       },
+      // an asset is already a URL the page can hand to a media element
+      mediaUrl: async (file) => 'theme/' + MEDIA_DIR + '/' + file,
     };
   }
   const sounds = inTheme(dir, SOUNDS_DIR);
@@ -162,11 +167,24 @@ export function themeSource() {
     library: async () => (await soundNames(dir)).filter((f) => AUDIO.test(f)),
     media: async () => (await listDir(inTheme(dir, MEDIA_DIR))).names.filter((f) => AUDIO.test(f)),
     bytes: (file) => readFile(sounds + '/' + file),
+    // A song is streamed, never read: its URI becomes a URL the local
+    // server answers and the decoder pulls from as it plays.
+    mediaUrl: async (file) => {
+      const uri = await fileUri(inTheme(dir, MEDIA_DIR) + '/' + file);
+      return uri ? songUrl(uri) : '';
+    },
   };
 }
 
 /** the songs the theme in use holds, in name order; empty when it has none */
 export const mediaList = () => themeSource().media();
+
+/**
+ * One of the theme's songs, as something a media element can play.
+ * "" when it is not there.
+ * @param {string} file
+ */
+export const mediaUrl = (file) => themeSource().mediaUrl(file);
 
 /**
  * A theme of the user's own: a folder under `themes/` named after it,
@@ -350,12 +368,23 @@ export async function importTheme() {
   return { id: FOLDER + dir };
 }
 
+// Everything that changes the theme goes through `setTheme`, so this
+// is the one place that can say so. A listener rather than a call
+// because what needs telling — the music queue — reads this module,
+// and a module cannot import the one that imports it.
+/** @type {(() => void)[]} */
+const watchers = [];
+
+/** run `fn` whenever the theme in use changes */
+export const onThemeChange = (fn) => watchers.push(fn);
+
 /** use a theme and remember it, colours included */
 export function setTheme(id, name, ui) {
   lost = '';
   chosen = { id, name, ui: id === SHIPPED ? null : ui };
   save(KEY, chosen);
   paint(chosen.ui);
+  for (const fn of watchers) fn();
 }
 
 // The one state the app cannot refuse. A folder theme was picked,
