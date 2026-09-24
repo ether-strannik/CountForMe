@@ -103,7 +103,7 @@ export async function themeList() {
 }
 
 /** an audio file, by its name */
-const AUDIO = /\.(mp3|wav|ogg|m4a|aac)$/i;
+const AUDIO = /\.(mp3|wav|ogg|opus|m4a|aac)$/i;
 
 // A theme is a tree: theme.json, the cue sounds under `sounds/`, the
 // music under `media/`. Neither folder has to exist — one is made the

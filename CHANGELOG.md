@@ -22,6 +22,8 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Opus files count as audio, so a theme can use them for its cues and
+  its music.
 - Music, with the cues mixed over it. A strip above the tabs plays one
   song: tap the name to pick a file, then play, pause and stop. It
   plays at its own level and keeps playing across the tabs and through
