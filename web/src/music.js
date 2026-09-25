@@ -25,7 +25,7 @@ import { $, $btn, PLAY_SVG, PAUSE_SVG } from './dom.js';
 import { load, save } from './storage.js';
 import { songUrl } from './files.js';
 import { mediaList, mediaUrl, onThemeChange } from './theme.js';
-import { themeMusic } from './prefs.js';
+import { themeMusic, musicShuffle, setMusicShuffle, musicRepeat, setMusicRepeat } from './prefs.js';
 import { audioCtx, musicInput } from './sound.js';
 import { musicState, musicStopped, onMusicControl } from './session.js';
 
@@ -61,8 +61,10 @@ let order = [];
 let at = -1;
 /** which position the element actually holds, which is not always `at` */
 let loaded = -1;
-let shuffled = false;
-let repeat = OFF;
+// Both come from the settings, so they are how the queue plays rather
+// than how it plays until the app is next opened.
+let shuffled = musicShuffle();
+let repeat = musicRepeat();
 
 const shown = (f) => f.replace(/\.[^.]+$/, '');
 
@@ -85,33 +87,43 @@ const urlOf = async (t) => (t.uri ? songUrl(t.uri) : t.file ? await mediaUrl(t.f
 export const trackLength = (n) => lengths.get(keyOf(queue[order[n]])) || 0;
 
 /**
- * Read the length of every song that has not given one. One at a time:
- * this opens the file to read its header, and a queue is a folder of
- * them.
+ * Read the length of each song that has not given one, and say so as
+ * each arrives rather than when all of them have. One at a time: this
+ * opens the file to read its header, and a folder is a lot of them.
+ *
+ * Cached by the file, so a song measured while browsing is already
+ * known by the time it is played.
+ * @param {Track[]} tracks
+ * @param {(n: number, seconds: number) => void} [each]
  */
-export async function measureQueue() {
-  for (const track of queue) {
-    const key = keyOf(track);
-    if (!key || lengths.has(key)) continue;
-    const url = await urlOf(track);
-    if (!url) continue;
-    await new Promise((done) => {
-      const probe = new Audio();
-      probe.preload = 'metadata';
-      const over = () => {
-        probe.src = '';
-        done(null);
-      };
-      probe.addEventListener('loadedmetadata', () => {
-        if (isFinite(probe.duration)) lengths.set(key, probe.duration);
-        over();
+export async function measureTracks(tracks, each) {
+  for (let n = 0; n < tracks.length; n++) {
+    const key = keyOf(tracks[n]);
+    if (!key) continue;
+    if (!lengths.has(key)) {
+      const url = await urlOf(tracks[n]);
+      if (!url) continue;
+      await new Promise((done) => {
+        const probe = new Audio();
+        probe.preload = 'metadata';
+        const over = () => {
+          probe.src = '';
+          done(null);
+        };
+        probe.addEventListener('loadedmetadata', () => {
+          if (isFinite(probe.duration)) lengths.set(key, probe.duration);
+          over();
+        });
+        probe.addEventListener('error', over);
+        probe.src = url;
       });
-      probe.addEventListener('error', over);
-      probe.src = url;
-    });
-    draw(); // the list fills in as they come, rather than all at the end
+    }
+    if (each) each(n, lengths.get(key) || 0);
   }
 }
+
+/** the queue's lengths, filling the player's list as they come */
+export const measureQueue = () => measureTracks(queue, draw);
 
 // The element joins the graph once and stays: a media element source
 // can only be made once, and making it is what takes the element's
@@ -246,9 +258,17 @@ const KEPT = 'timer.queue';
 const SAVE_EVERY = 5;
 let saved = 0;
 
+// The song is kept by where it sits in the queue, not by where it sits
+// in the play order. Shuffle builds a fresh order every launch, and a
+// place in that order would be a different song.
+//
+// The place is the one on screen, not the player's. After a restart the
+// player holds nothing and reads zero, while the place the app was
+// closed at is still known and still shown — and closing again without
+// pressing play would otherwise write that zero over it.
 function remember() {
-  saved = el.currentTime || 0;
-  save(KEPT, { tracks: queue, at, pos: saved });
+  saved = position();
+  save(KEPT, { tracks: queue, i: at < 0 ? 0 : order[at], pos: saved });
 }
 
 /**
@@ -268,7 +288,8 @@ function recall() {
   const kept = load(KEPT, null);
   if (!kept || !Array.isArray(kept.tracks) || !kept.tracks.length) return false;
   setQueue(kept.tracks);
-  at = Math.min(Math.max(0, Math.round(kept.at) || 0), order.length - 1);
+  const found = order.indexOf(Math.round(kept.i) || 0);
+  at = found < 0 ? 0 : found;
   resumeAt = Math.max(0, kept.pos || 0);
   resumeIndex = at;
   draw();
@@ -347,13 +368,16 @@ export const prevTrack = () => playAt(at - 1);
 /** shuffle on or off; what is playing carries on */
 export function setShuffle(on) {
   shuffled = !!on;
+  setMusicShuffle(shuffled);
   reorder();
+  remember();
 }
 export const isShuffled = () => shuffled;
 
 /** @param {string} mode  off, all, or one */
 export function setRepeat(mode) {
   repeat = mode === ALL || mode === ONE ? mode : OFF;
+  setMusicRepeat(repeat);
 }
 export const repeatMode = () => repeat;
 
@@ -423,7 +447,7 @@ el.addEventListener('seeked', draw);
 // page. So the most that can be lost is the last few seconds, and the
 // cost is one small write per five of them.
 el.addEventListener('timeupdate', () => {
-  if (Math.abs(el.currentTime - saved) >= SAVE_EVERY) remember();
+  if (Math.abs(position() - saved) >= SAVE_EVERY) remember();
 });
 el.addEventListener('pause', remember);
 el.addEventListener('seeked', remember);

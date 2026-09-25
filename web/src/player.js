@@ -30,6 +30,7 @@ import {
   playNth,
   trackLength,
   measureQueue,
+  measureTracks,
   toggleMusic,
   nextTrack,
   prevTrack,
@@ -197,15 +198,24 @@ $('plVolIcon').innerHTML = VOLUME_SVG;
 
 /** where the browser has walked to; empty is the list of music folders */
 let crumbs = [];
+/**
+ * Which listing is on screen. Lengths are read one file at a time and
+ * arrive late, so each answer is checked against this: a folder left
+ * behind must not write into the one that replaced it.
+ */
+let walk = 0;
 
 async function drawBrowse() {
   const here = crumbs[crumbs.length - 1];
   const box = $('plBrowse');
+  const mine = ++walk;
   box.innerHTML = '';
 
   const list = document.createElement('div');
   list.className = 'xlist';
-  const row = (label, icon, go) => {
+  /** @type {HTMLElement[]} the time beside each song, filled in as it is read */
+  const times = [];
+  const row = (label, icon, go, time) => {
     const b = document.createElement('button');
     b.className = 'xrow';
     if (icon) {
@@ -217,6 +227,11 @@ async function drawBrowse() {
     const s = document.createElement('span');
     s.textContent = label;
     b.appendChild(s);
+    if (time) {
+      const t = document.createElement('small');
+      b.appendChild(t);
+      times.push(t);
+    }
     b.addEventListener('click', go);
     list.appendChild(b);
   };
@@ -240,13 +255,23 @@ async function drawBrowse() {
   // mean something the next time the app opens.
   const songs = inside.files.filter((f) => isAudio(f.name)).map((f) => ({ name: shown(f.name), uri: f.uri }));
   songs.forEach((s, i) =>
-    row(s.name, '', () => {
-      playFolder(songs, i);
-      showPane('player'); // picking a song is done browsing
-    }),
+    row(
+      s.name,
+      '',
+      () => {
+        playFolder(songs, i);
+        showPane('player'); // picking a song is done browsing
+      },
+      true,
+    ),
   );
 
   box.appendChild(list);
+  // Each length is a file opened for its header, so they come in one
+  // after another and each fills its own row when it does.
+  measureTracks(songs, (n, seconds) => {
+    if (mine === walk && times[n]) times[n].textContent = seconds ? fmt(Math.round(seconds)) : '';
+  });
 }
 
 // ---- the sheet's two tabs ----

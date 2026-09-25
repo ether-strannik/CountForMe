@@ -32,7 +32,9 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - The app comes back to what it was playing: the same folder, the same
   song, the same place in it, not playing. Whether that came from a
-  theme or from the browser, last played is what opens.
+  theme or from the browser, last played is what opens. Shuffle and
+  repeat are settings too, so they are how the queue plays rather than
+  how it plays until you next open the app.
 - Theme music can be switched off, at the top of the Music tab. Off, a
   theme is its colours and its cues, and the app is a player over your
   own folders with nothing loaded until you pick a song in the browser.
@@ -43,10 +45,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   there is something to press; closing it stops the song and takes it
   away until you play something again.
 - A folder browser in the player, on its own tab. Your music folders
-  are the top level; tap into one to see its folders and its songs, and
-  tap a song to play it — the rest of that folder follows it as the
-  queue. Nothing is indexed and nothing is scanned: a folder is read
-  when you open it.
+  are the top level; tap into one to see its folders and its songs with
+  their lengths, and tap a song to play it — the rest of that folder
+  follows it as the queue. Nothing is indexed and nothing is scanned: a
+  folder is read when you open it.
 - Music folders, under Settings → Music. Each is opened once through
   the system picker and the app can read it from then on, which is how
   it reaches your music without asking for the whole of storage.

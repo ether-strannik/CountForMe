@@ -66,6 +66,27 @@ export function setThemeMusic(on) {
   saveStr('timer.thememusic', themeSongs ? '1' : '0');
 }
 
+// How the queue is played. Set once and left, like everything else
+// here, rather than something to put back every time the app opens.
+let shuffle = loadStr('timer.shuffle', '0') === '1';
+let repeat = loadStr('timer.repeat', 'off');
+
+/** play the queue in a jumbled order */
+export const musicShuffle = () => shuffle;
+/** @param {boolean} on */
+export function setMusicShuffle(on) {
+  shuffle = !!on;
+  saveStr('timer.shuffle', shuffle ? '1' : '0');
+}
+
+/** what the end of a song does: off, all, or one */
+export const musicRepeat = () => repeat;
+/** @param {string} mode */
+export function setMusicRepeat(mode) {
+  repeat = mode === 'all' || mode === 'one' ? mode : 'off';
+  saveStr('timer.repeat', repeat);
+}
+
 // ---- the duck ----
 // The music has no level of its own to set: it plays at the file's
 // own, and the only thing that ever moves it is a cue. These four say
