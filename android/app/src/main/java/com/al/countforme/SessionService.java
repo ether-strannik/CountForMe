@@ -34,6 +34,8 @@ public class SessionService extends Service {
   static final String EXTRA_PAUSED = "paused";
   static final String EXTRA_AT = "at";
   static final String EXTRA_LEN = "len";
+  /** the close mark: not transport, so it goes on as a custom action */
+  private static final String CLOSE = "com.al.countforme.CLOSE";
   private static final int ID = 1;
 
   /** kept from START, so pause and resume need not send it again */
@@ -53,6 +55,25 @@ public class SessionService extends Service {
   @Override
   public IBinder onBind(Intent intent) {
     return null;
+  }
+
+  /**
+   * The app was swiped out of the recents list. Everything this service
+   * exists for went with it.
+   *
+   * The session's clock, the countdowns and the music all live in the
+   * page, and the page dies with the activity. Carrying on would leave a
+   * notification with nothing behind it: a countdown that is not
+   * counting, buttons that reach nobody. So it goes.
+   *
+   * This is not the same as the app merely leaving the screen, which is
+   * the case the service was built for and where it still holds.
+   */
+  @Override
+  public void onTaskRemoved(Intent root) {
+    release();
+    stopForeground(true);
+    stopSelf();
   }
 
   @Override
@@ -139,6 +160,11 @@ public class SessionService extends Service {
       public void onStop() {
         SessionPlugin.control("stop");
       }
+
+      @Override
+      public void onCustomAction(String what, android.os.Bundle extras) {
+        if (CLOSE.equals(what)) SessionPlugin.control("stop");
+      }
     });
     media.setActive(true);
     return media;
@@ -169,8 +195,13 @@ public class SessionService extends Service {
     // The speed is how the bar moves between updates: the system carries
     // the position forward from here rather than being told it again, so
     // this is set when the song changes and not while it plays.
+    // The close mark is not transport, so it rides as a custom action —
+    // the one kind that brings its own icon. Where the panel puts it is
+    // the panel's business: supplying the whole row as notification
+    // actions was tried, and the panel ignored them.
     s.setPlaybackState(new PlaybackState.Builder()
         .setActions(can)
+        .addCustomAction(CLOSE, "Close", R.drawable.ic_close)
         .setState(paused ? PlaybackState.STATE_PAUSED : PlaybackState.STATE_PLAYING, at, paused ? 0f : 1f)
         .build());
 
@@ -188,10 +219,10 @@ public class SessionService extends Service {
         .setOngoing(!paused)
         .setOnlyAlertOnce(true)
         .setShowWhen(false)
-        // No buttons of its own. The transport on the lock screen and in
-        // the shade's media panel is drawn from the session's playback
-        // state, so adding three more here would be the same controls
-        // twice, each needing an icon nobody asked for.
+        // No buttons of its own. The panel draws the transport from the
+        // session and ignores a notification's actions, so supplying
+        // four here changed nothing but the work. Where the close mark
+        // sits is the system's to decide.
         .setStyle(new Notification.MediaStyle().setMediaSession(s.getSessionToken()));
     return b.build();
   }

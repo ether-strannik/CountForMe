@@ -1,0 +1,24 @@
+<!-- The close mark on the media panel. A custom action needs a real
+     drawable: the panel draws the transport from the session's state,
+     but anything beyond that has to bring its own icon.
+
+     Drawn as a mask like the notification icon above it, so only the
+     alpha matters. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M18,6 L6,18" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M6,6 L18,18" />
+</vector>

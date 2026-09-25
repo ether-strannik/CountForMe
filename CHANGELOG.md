@@ -7,6 +7,14 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed
+
+- Swiping the app out of the recents list left its notification behind,
+  with a countdown still ticking towards an end that could never sound.
+  The session, the timers and the music all live in the app, so closing
+  it now takes the notification with them. Merely leaving the app is
+  unaffected: that is what the notification is for.
+
 ### Changed
 
 - A theme is a folder of two folders now: `sounds/` for the cues, the
