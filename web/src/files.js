@@ -181,49 +181,18 @@ export async function pickFile(type) {
 /** one audio file, the same way */
 export const pickAudio = () => pickFile('audio/*');
 
-// ---- the song: a URL, not bytes ----
+// ---- a song: a URL, not bytes ----
 // A cue sound is a few hundred kilobytes and is copied into a theme,
 // so `pickFile` carrying the bytes is right for it. A song is not.
 // Reading one whole file before a note plays means the bytes cross the
 // bridge as base64 and are decoded a character at a time here, which
 // on a ten-megabyte track is ten million turns of a loop on the main
-// thread. So the song is never read: the native side keeps the URI
-// with a grant that survives a restart, and `songUrl` turns it into
-// something the media decoder can stream.
+// thread. So a song is never read: its URI becomes a URL the local
+// server answers, and the decoder pulls from it as it plays.
 
 /**
- * @typedef {{ name: string, uri: string }} Song
- */
-
-/** @param {any} r @returns {Song | null} */
-const asSong = (r) => (r && r.name && r.uri ? { name: r.name, uri: r.uri } : null);
-
-/** the system picker, for one song that is then remembered */
-export async function pickSong() {
-  const b = bridge();
-  if (!b) return null;
-  try {
-    return asSong(await b.pickSong());
-  } catch {
-    return null;
-  }
-}
-
-/** the song picked last time, if its grant survived */
-export async function keptSong() {
-  const b = bridge();
-  if (!b) return null;
-  try {
-    return asSong(await b.song());
-  } catch {
-    return null;
-  }
-}
-
-/**
- * The URI of one file under the folder. A picked song arrives with a
- * URI already; a song sitting in a theme's `media/` is only a path,
- * and a path cannot be streamed. "" when the folder does not hold it.
+ * The URI of one file under the folder. A song is a path, and a path
+ * cannot be streamed. "" when the folder does not hold it.
  * @param {string} path
  * @returns {Promise<string>}
  */

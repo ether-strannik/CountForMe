@@ -15,11 +15,15 @@
 //
 // The queue is the theme's `media/`, in name order. That is the whole
 // of choosing: a category names a theme, the theme carries its music,
-// and nothing points at a playlist. A theme with no music falls back
-// to the one file picked by hand, which is how music worked before
-// themes carried any.
+// and nothing points at a playlist. Anything else comes from the
+// browser, a folder at a time.
+//
+// What was playing last is what the app opens on, whichever of the two
+// it came from. A theme's music loads when that theme is put on, not
+// every time the app starts.
 import { $, $btn, PLAY_SVG, PAUSE_SVG } from './dom.js';
-import { pickSong, keptSong, songUrl } from './files.js';
+import { load, save } from './storage.js';
+import { songUrl } from './files.js';
 import { mediaList, mediaUrl, onThemeChange } from './theme.js';
 import { themeMusic } from './prefs.js';
 import { audioCtx, musicInput } from './sound.js';
@@ -39,10 +43,14 @@ const el = new Audio();
 el.preload = 'metadata';
 
 /**
- * One song in the queue. A track from the theme is a file name and is
- * resolved to a URL when it is reached; a file picked by hand arrives
- * with its URL already.
- * @typedef {{ name: string, file?: string, url?: string }} Track
+ * One song in the queue, and never a URL.
+ *
+ * A track from the theme is a file name under its `media/`; one from
+ * the browser is a URI of its own. Either is turned into something the
+ * decoder can pull from at the moment it is reached, because a URL
+ * carries the server that answered it and that is not the same server
+ * next time the app opens.
+ * @typedef {{ name: string, file?: string, uri?: string }} Track
  */
 
 /** @type {Track[]} */
@@ -68,7 +76,10 @@ const current = () => (at < 0 ? null : queue[order[at]] || null);
 // itself, so shuffling and changing theme cost nothing.
 /** @type {Map<string, number>} */
 const lengths = new Map();
-const keyOf = (t) => (t ? t.file || t.url || '' : '');
+const keyOf = (t) => (t ? t.file || t.uri || '' : '');
+
+/** what a track plays from, worked out when it is reached */
+const urlOf = async (t) => (t.uri ? songUrl(t.uri) : t.file ? await mediaUrl(t.file) : '');
 
 /** seconds the nth song of the ordered queue runs; 0 until it is known */
 export const trackLength = (n) => lengths.get(keyOf(queue[order[n]])) || 0;
@@ -82,7 +93,7 @@ export async function measureQueue() {
   for (const track of queue) {
     const key = keyOf(track);
     if (!key || lengths.has(key)) continue;
-    const url = track.url || (track.file ? await mediaUrl(track.file) : '');
+    const url = await urlOf(track);
     if (!url) continue;
     await new Promise((done) => {
       const probe = new Audio();
@@ -222,6 +233,48 @@ function reorder() {
   at = playing < 0 ? -1 : order.indexOf(playing);
 }
 
+// What was playing last time, so the app opens on it rather than on
+// nothing. The queue and the place in it, not a URL: a URL carries the
+// server that answered it, and that is not the same server next time.
+//
+// Last played always wins at launch. A theme's music is loaded when
+// that theme is put on — by hand or by a preset — and not every time
+// the app opens, or a folder played yesterday would be unreachable
+// without going and finding it again.
+const KEPT = 'timer.queue';
+/** how far the song may run before the place is written down again */
+const SAVE_EVERY = 5;
+let saved = 0;
+
+function remember() {
+  saved = el.currentTime || 0;
+  save(KEPT, { tracks: queue, at, pos: saved });
+}
+
+/**
+ * Seconds into the song the app was closed on, waiting for that song to
+ * be loaded. A place cannot be set on an element that has not read the
+ * file yet, so it is held here — and shown from here, so the bar opens
+ * where the song was left rather than at nothing.
+ *
+ * It belongs to one position in the queue. Play something else first
+ * and it is dropped: it was never that song's place.
+ */
+let resumeAt = 0;
+let resumeIndex = -1;
+
+/** the queue from last time; false when there was none */
+function recall() {
+  const kept = load(KEPT, null);
+  if (!kept || !Array.isArray(kept.tracks) || !kept.tracks.length) return false;
+  setQueue(kept.tracks);
+  at = Math.min(Math.max(0, Math.round(kept.at) || 0), order.length - 1);
+  resumeAt = Math.max(0, kept.pos || 0);
+  resumeIndex = at;
+  draw();
+  return true;
+}
+
 /**
  * Put a queue up. Whatever was playing stops: its file belonged to the
  * queue being replaced. Nothing starts — a theme coming on is not a
@@ -235,6 +288,7 @@ function setQueue(tracks) {
   at = -1;
   reorder();
   if (queue.length) at = 0;
+  remember();
   draw();
 }
 
@@ -244,11 +298,28 @@ async function playAt(i) {
   at = ((i % order.length) + order.length) % order.length;
   const track = current();
   if (!track) return;
-  const url = track.url || (track.file ? await mediaUrl(track.file) : '');
+  const url = await urlOf(track);
   draw();
   if (!url) return; // the file went; the strip still names it
   el.src = url;
   loaded = at;
+  // Back where it was left, once the file has been read far enough for
+  // a place to mean anything. Only the song the app closed on has one.
+  if (resumeAt && at === resumeIndex) {
+    el.addEventListener(
+      'loadedmetadata',
+      () => {
+        seekTo(resumeAt);
+        resumeAt = 0;
+        resumeIndex = -1;
+      },
+      { once: true },
+    );
+  } else {
+    resumeAt = 0;
+    resumeIndex = -1;
+  }
+  remember();
   start();
 }
 
@@ -307,22 +378,18 @@ export function playFolder(tracks, from) {
 }
 
 export const isPlaying = () => !el.paused;
+
+// Both answer before the song is loaded, so the bar opens on the place
+// the app was closed at rather than on nothing and then jumping. The
+// element knows neither until it has read the file.
 /** seconds into the song */
-export const position = () => el.currentTime || 0;
-/** how long the song is; 0 until the decoder has read that far */
-export const duration = () => (isFinite(el.duration) ? el.duration : 0);
+export const position = () => el.currentTime || (at === resumeIndex ? resumeAt : 0);
+/** how long the song is, from the element or from what was measured */
+export const duration = () => (isFinite(el.duration) && el.duration ? el.duration : trackLength(at));
 /** @param {number} sec */
 export function seekTo(sec) {
   if (!isFinite(el.duration)) return;
   el.currentTime = Math.max(0, Math.min(el.duration, sec));
-}
-
-/** the system picker: one file from anywhere, as a queue of one */
-export async function chooseFile() {
-  const s = await pickSong();
-  if (!s) return;
-  setQueue([{ name: shown(s.name), url: songUrl(s.uri) }]);
-  playAt(0);
 }
 
 // What is on screen has to follow what the queue does, and the queue
@@ -349,6 +416,19 @@ el.addEventListener('pause', draw);
 // The system carries the bar forward on its own, so a jump is the only
 // time it needs telling where the song actually is.
 el.addEventListener('seeked', draw);
+
+// Where the song had got to. Written while it plays, every few seconds,
+// because an app being closed is the case this exists for and a closing
+// app fires none of the tidy events: no pause, and not always a hidden
+// page. So the most that can be lost is the last few seconds, and the
+// cost is one small write per five of them.
+el.addEventListener('timeupdate', () => {
+  if (Math.abs(el.currentTime - saved) >= SAVE_EVERY) remember();
+});
+el.addEventListener('pause', remember);
+el.addEventListener('seeked', remember);
+document.addEventListener('visibilitychange', () => document.hidden && remember());
+window.addEventListener('pagehide', remember);
 // the song playing gives its length without being asked
 el.addEventListener('loadedmetadata', () => {
   const key = keyOf(current());
@@ -358,20 +438,13 @@ el.addEventListener('loadedmetadata', () => {
 
 /**
  * What is in the queue, read again. The theme's music is the playlist,
- * unless theme music is switched off; a theme with none falls back to
- * the file picked by hand last time, so the strip is never dead on a
- * phone that has no themes yet.
+ * and nothing else loads on its own: with theme music off, or a theme
+ * that carries none, the queue is empty until the browser is asked for
+ * something.
  */
 export async function refreshPlaylist() {
-  if (themeMusic()) {
-    const songs = await mediaList();
-    if (songs.length) return setQueue(songs.map((f) => ({ name: shown(f), file: f })));
-    const s = await keptSong();
-    return setQueue(s ? [{ name: shown(s.name), url: songUrl(s.uri) }] : []);
-  }
-  // Theme music off: nothing is loaded and nothing plays until the
-  // browser is asked for something.
-  setQueue([]);
+  const songs = themeMusic() ? await mediaList() : [];
+  setQueue(songs.map((f) => ({ name: shown(f), file: f })));
 }
 
 // A theme carries its music, so putting one on replaces the queue.
@@ -391,4 +464,6 @@ onMusicControl((what, value) => {
 });
 
 draw();
-refreshPlaylist();
+// Last played wins at launch. Only when there is nothing to come back
+// to does the theme's music load on its own.
+if (!recall()) refreshPlaylist();

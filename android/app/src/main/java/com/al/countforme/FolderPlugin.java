@@ -43,8 +43,6 @@ import java.util.List;
  *   copyDir({ from, to, asset? })            a folder's contents into another, streamed here
  *   share({ name, base64 })  hand the bytes to another app
  *   pickFile({ type? }) -> { name, base64 }  one file from anywhere
- *   pickSong()          -> { name, uri }     one song, kept, streamed not carried
- *   song()              -> { name, uri }     the song kept last time
  *   fileUri({ name })   -> { uri }           a file under the tree, to stream rather than read
  *   exportZip({ path, name, asset? }) -> { saved }   a folder and all under it, to where the user picks
  *   pickZip()           -> { names, manifest }       a zip the user picks, looked inside; names carry their paths
@@ -54,8 +52,6 @@ import java.util.List;
 public class FolderPlugin extends Plugin {
   private static final String PREFS = "folder";
   private static final String KEY = "tree";
-  private static final String KEY_SONG = "song";
-  private static final String KEY_SONG_NAME = "songName";
 
   private Uri tree() {
     SharedPreferences p = getContext().getSharedPreferences(PREFS, 0);
@@ -297,68 +293,13 @@ public class FolderPlugin extends Plugin {
     return name == null ? "" : name;
   }
 
-  /** is this URI still ours to read, after a restart or a revoke */
-  private boolean readable(Uri u) {
-    for (android.content.UriPermission up : getContext().getContentResolver().getPersistedUriPermissions()) {
-      if (up.getUri().equals(u) && up.isReadPermission()) return true;
-    }
-    return false;
-  }
-
-  // ---- the song ----
-  // Not read here, and never carried as bytes. The grant is made
-  // persistable and the URI is kept, so the page turns it into a URL
-  // through Capacitor's own local server and the media decoder streams
-  // it: playing starts on the first chunk instead of the last, and a
-  // long track costs no memory. `pickFile` above is the other shape,
-  // for the short cue sounds that get copied into a theme.
-
-  /** one song, through the system picker, with a grant that outlives the run */
-  @PluginMethod
-  public void pickSong(PluginCall call) {
-    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-    i.addCategory(Intent.CATEGORY_OPENABLE);
-    i.setType("audio/*");
-    i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-    startActivityForResult(call, i, "pickedSong");
-  }
-
-  @ActivityCallback
-  private void pickedSong(PluginCall call, ActivityResult result) {
-    if (call == null) return;
-    JSObject r = new JSObject();
-    r.put("name", "");
-    Intent data = result.getData();
-    if (result.getResultCode() != android.app.Activity.RESULT_OK || data == null || data.getData() == null) {
-      call.resolve(r);
-      return;
-    }
-    Uri u = data.getData();
-    try {
-      getContext().getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-    } catch (Exception e) {
-      // a provider that will not persist still plays for this run
-    }
-    String name = displayName(u);
-    getContext()
-        .getSharedPreferences(PREFS, 0)
-        .edit()
-        .putString(KEY_SONG, u.toString())
-        .putString(KEY_SONG_NAME, name)
-        .apply();
-    r.put("name", name);
-    r.put("uri", u.toString());
-    call.resolve(r);
-  }
-
   /**
    * The content URI of one file under the tree.
    *
-   * A picked song arrives with a URI already; a song sitting in a
-   * theme's `media/` is only a path, and a path cannot be streamed.
-   * This is the other half of the same idea: the page turns what comes
-   * back into a URL and the decoder pulls from it, so a theme's music
-   * is never read into the page either.
+   * A song in a theme's `media/` is only a path, and a path cannot be
+   * streamed. The page turns what comes back into a URL and the decoder
+   * pulls from it, so a theme's music is never read into the page. The
+   * browser's songs already arrive with a URI of their own.
    *
    * A file the tree does not hold answers with "".
    *
@@ -372,20 +313,6 @@ public class FolderPlugin extends Plugin {
     r.put("uri", "");
     String id = (t == null || name.isEmpty()) ? null : docId(t, name);
     if (id != null) r.put("uri", DocumentsContract.buildDocumentUriUsingTree(t, id).toString());
-    call.resolve(r);
-  }
-
-  /** the song kept last time, if the grant survived */
-  @PluginMethod
-  public void song(PluginCall call) {
-    JSObject r = new JSObject();
-    r.put("name", "");
-    SharedPreferences p = getContext().getSharedPreferences(PREFS, 0);
-    String s = p.getString(KEY_SONG, null);
-    if (s != null && readable(Uri.parse(s))) {
-      r.put("name", p.getString(KEY_SONG_NAME, ""));
-      r.put("uri", s);
-    }
     call.resolve(r);
   }
 

@@ -30,9 +30,12 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- The app comes back to what it was playing: the same folder, the same
+  song, the same place in it, not playing. Whether that came from a
+  theme or from the browser, last played is what opens.
 - Theme music can be switched off, at the top of the Music tab. Off, a
   theme is its colours and its cues, and the app is a player over your
-  own folders with nothing loaded until you pick something.
+  own folders with nothing loaded until you pick a song in the browser.
 - Music keeps playing when you leave the app or lock the phone, with no
   session or timer running. The song's name shows in the shade and on
   the lock screen, with play, pause, next, previous and a position bar
@@ -54,22 +57,19 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - A player, opened by tapping the song name on the strip. The queue in
   the order it plays, tap a song to jump to it, then the title, a seek
   bar with elapsed and total, previous, play, next, shuffle, and
-  repeat off, all or one. A file from anywhere is still reachable, on
-  the File button.
+  repeat off, all or one.
 - A theme's `media/` folder is the playlist. Put the theme on and the
   strip already names its first song, with nothing to pick and nothing
-  to point at. One song runs on to the next. Putting a different theme
-  on swaps the music with it; a theme carrying none falls back to the
-  file you picked by hand.
+  to point at. One song runs on to the next, and putting a different
+  theme on swaps the music with it.
 - Opus files count as audio, so a theme can use them for its cues and
   its music.
-- Music, with the cues mixed over it. A strip above the tabs plays one
-  song: tap the name to pick a file, then play, pause and stop. It
+- Music, with the cues mixed over it. A strip above the tabs names the
+  song and plays or pauses it; tapping the name opens the player. It
   plays at its own level and keeps playing across the tabs and through
   a session.
-- The song starts playing straight away, whatever its length, and is
-  still there named on the strip the next time the app opens. Picking
-  one is a one-off.
+- A song starts playing straight away whatever its length, because it
+  is never read into the app — it streams from where it sits.
 - The song ducks under every cue and every spoken count, and comes back
   up between them. Cues closer together than the gap keep it down
   instead of pumping it up and down between each one, so a Cadence

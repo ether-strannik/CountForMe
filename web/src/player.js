@@ -44,7 +44,7 @@ import {
   playFolder,
   onMusicChange,
 } from './music.js';
-import { musicFolders, browseFolder, songUrl, isAudio } from './files.js';
+import { musicFolders, browseFolder, isAudio } from './files.js';
 
 /** a song's name as it shows: without the extension nobody needs */
 const shown = (f) => f.replace(/\.[^.]+$/, '');
@@ -236,7 +236,9 @@ async function drawBrowse() {
     });
   }
   // the songs of this folder, as the queue they would become
-  const songs = inside.files.filter((f) => isAudio(f.name)).map((f) => ({ name: shown(f.name), url: songUrl(f.uri) }));
+  // The URI, not a URL made from it: what the queue keeps has to still
+  // mean something the next time the app opens.
+  const songs = inside.files.filter((f) => isAudio(f.name)).map((f) => ({ name: shown(f.name), uri: f.uri }));
   songs.forEach((s, i) =>
     row(s.name, '', () => {
       playFolder(songs, i);
