@@ -21,6 +21,7 @@
 import { $, $btn, PLAY_SVG, PAUSE_SVG } from './dom.js';
 import { pickSong, keptSong, songUrl } from './files.js';
 import { mediaList, mediaUrl, onThemeChange } from './theme.js';
+import { themeMusic } from './prefs.js';
 import { audioCtx, musicInput } from './sound.js';
 import { musicPlaying, musicPaused, musicStopped, onMusicControl } from './session.js';
 
@@ -339,15 +340,21 @@ el.addEventListener('loadedmetadata', () => {
 });
 
 /**
- * What is in the queue, read again. The theme's music is the playlist;
- * a theme with none falls back to the file picked by hand last time,
- * so the strip is never dead on a phone that has no themes yet.
+ * What is in the queue, read again. The theme's music is the playlist,
+ * unless theme music is switched off; a theme with none falls back to
+ * the file picked by hand last time, so the strip is never dead on a
+ * phone that has no themes yet.
  */
 export async function refreshPlaylist() {
-  const songs = await mediaList();
-  if (songs.length) return setQueue(songs.map((f) => ({ name: shown(f), file: f })));
-  const s = await keptSong();
-  setQueue(s ? [{ name: shown(s.name), url: songUrl(s.uri) }] : []);
+  if (themeMusic()) {
+    const songs = await mediaList();
+    if (songs.length) return setQueue(songs.map((f) => ({ name: shown(f), file: f })));
+    const s = await keptSong();
+    return setQueue(s ? [{ name: shown(s.name), url: songUrl(s.uri) }] : []);
+  }
+  // Theme music off: nothing is loaded and nothing plays until the
+  // browser is asked for something.
+  setQueue([]);
 }
 
 // A theme carries its music, so putting one on replaces the queue.

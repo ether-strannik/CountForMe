@@ -53,6 +53,19 @@ export function setVoiceVolume(db) {
   saveStr('timer.voicedb', String(voiceDb));
 }
 
+// Whether a theme's own music is used at all. Off, the theme is its
+// colours and its cues, and the player is a player over the user's own
+// folders with nothing loaded into it.
+let themeSongs = loadStr('timer.thememusic', '1') === '1';
+
+/** play what the theme carries */
+export const themeMusic = () => themeSongs;
+/** @param {boolean} on */
+export function setThemeMusic(on) {
+  themeSongs = !!on;
+  saveStr('timer.thememusic', themeSongs ? '1' : '0');
+}
+
 // ---- the duck ----
 // The music has no level of its own to set: it plays at the file's
 // own, and the only thing that ever moves it is a cue. These four say

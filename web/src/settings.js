@@ -22,7 +22,10 @@ import {
   setDuckDown,
   duckUp,
   setDuckUp,
+  themeMusic,
+  setThemeMusic,
 } from './prefs.js';
+import { refreshPlaylist } from './music.js';
 import {
   audioCtx,
   ensureSound,
@@ -373,6 +376,19 @@ $('volVoice').addEventListener('input', () => {
 });
 $('volCueTest').addEventListener('click', testCue);
 $('volVoiceTest').addEventListener('click', testVoice);
+
+// ---- theme music, on or off ----
+// Off, a theme is its colours and its cues, and the player is a player
+// over the user's own folders. The queue is read again either way, so
+// turning it off empties what the theme put there rather than leaving
+// it playing.
+const renderThemeMusic = () => $('themeMusicBtn').setAttribute('aria-checked', String(themeMusic()));
+$('themeMusicBtn').addEventListener('click', () => {
+  setThemeMusic(!themeMusic());
+  renderThemeMusic();
+  refreshPlaylist();
+});
+renderThemeMusic();
 
 // ---- the song library: where the music is ----
 // The app holds no storage permission, so a folder it can read is one

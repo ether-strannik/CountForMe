@@ -22,6 +22,9 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Theme music can be switched off, at the top of the Music tab. Off, a
+  theme is its colours and its cues, and the app is a player over your
+  own folders with nothing loaded until you pick something.
 - Music keeps playing when you leave the app or lock the phone, with no
   session or timer running. The song's name shows in the shade and on
   the lock screen, with play, pause, next and previous there and on a
