@@ -46,11 +46,17 @@ public class SessionPlugin extends Plugin {
     live = this;
   }
 
-  /** a button pressed outside the app: play, pause, next or previous */
+  /** a button pressed outside the app: play, pause, next, previous or stop */
   static void control(String what) {
+    control(what, 0);
+  }
+
+  /** the same, with a number: the place a scrubbed bar was let go of */
+  static void control(String what, long value) {
     if (live == null) return;
     JSObject o = new JSObject();
     o.put("action", what);
+    o.put("value", value);
     live.notifyListeners("control", o);
   }
 
@@ -83,6 +89,8 @@ public class SessionPlugin extends Plugin {
     i.setAction(SessionService.ACTION_MUSIC);
     i.putExtra(SessionService.EXTRA_TITLE, call.getString("title", "Music"));
     i.putExtra(SessionService.EXTRA_PAUSED, Boolean.TRUE.equals(call.getBoolean("paused", false)));
+    i.putExtra(SessionService.EXTRA_AT, call.getInt("at", 0).longValue());
+    i.putExtra(SessionService.EXTRA_LEN, call.getInt("len", 0).longValue());
     send(i, call);
   }
 

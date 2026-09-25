@@ -17,7 +17,11 @@
 
 const bridge = () => /** @type {any} */ (window).Capacitor?.Plugins?.Session || null;
 
-/** @type {Map<string, {ms: number, title: string, paused: boolean}>} who holds it, and what to show */
+/**
+ * who holds it, and what to show. `at` and `len` are milliseconds and
+ * only a song has them: they are the bar in the media panel.
+ * @type {Map<string, {ms: number, title: string, paused: boolean, at?: number, len?: number}>}
+ */
 const held = new Map();
 
 /** which one shows: session, then timers, then song. "" when none do */
@@ -36,7 +40,9 @@ async function post() {
     if (!h) return await b.stop();
     // A song is not a clock. It goes up as a media session, which is
     // what gives it the lock screen and the buttons on a headset.
-    if (who === 'music') return await b.music({ title: h.title, paused: h.paused });
+    if (who === 'music') {
+      return await b.music({ title: h.title, paused: h.paused, at: h.at, len: h.len });
+    }
     await b.start({ ms: h.ms, title: h.title });
     if (h.paused) await b.pause();
   } catch {
@@ -91,22 +97,28 @@ export const timersRunning = (seconds, title) => hold('timers', seconds, title);
 export const timersDone = () => letGo('timers');
 
 /**
- * A song is playing. The process is held for it the same way, because
- * without that Android freezes the app within seconds of it leaving
- * the screen and the music goes with it.
+ * A song, playing or paused. The process is held for it the same way a
+ * session is, because without that Android freezes the app within
+ * seconds of it leaving the screen and the music goes with it.
  *
- * No seconds: a song has no end the shade needs to count down to.
- * @param {string} title  the song's name
+ * Paused counts: the notification stays so the lock screen keeps its
+ * play button, and taking it down would leave nothing to press.
+ *
+ * Where it is and how long it runs are what draw the bar in the media
+ * panel. The system carries the position forward on its own, so this
+ * is said when the song changes and not while it plays.
+ *
+ * @param {string} title @param {boolean} paused
+ * @param {number} at  seconds in @param {number} len  seconds long
  */
-export const musicPlaying = (title) => hold('music', 0, title);
-
-/**
- * A song that is paused. The notification stays, so the lock screen
- * keeps its play button: taking it down would leave nothing to press.
- * @param {string} title
- */
-export function musicPaused(title) {
-  held.set('music', { ms: 0, title, paused: true });
+export function musicState(title, paused, at, len) {
+  held.set('music', {
+    ms: 0,
+    title,
+    paused,
+    at: Math.round(at * 1000),
+    len: Math.round(len * 1000),
+  });
   return post();
 }
 
@@ -115,10 +127,11 @@ export const musicStopped = () => letGo('music');
 
 /**
  * What the lock screen, the shade's media panel or a headset asked
- * for: play, pause, next or previous.
- * @param {(what: string) => void} fn
+ * for: play, pause, next, previous, stop, or seek with a place in
+ * milliseconds.
+ * @param {(what: string, value: number) => void} fn
  */
 export function onMusicControl(fn) {
   const b = bridge();
-  if (b) b.addListener('control', (e) => fn(e && e.action));
+  if (b) b.addListener('control', (e) => fn((e && e.action) || '', (e && e.value) || 0));
 }

@@ -23,7 +23,7 @@ import { pickSong, keptSong, songUrl } from './files.js';
 import { mediaList, mediaUrl, onThemeChange } from './theme.js';
 import { themeMusic } from './prefs.js';
 import { audioCtx, musicInput } from './sound.js';
-import { musicPlaying, musicPaused, musicStopped, onMusicControl } from './session.js';
+import { musicState, musicStopped, onMusicControl } from './session.js';
 
 const NOTE = '♪';
 
@@ -166,21 +166,34 @@ function takeButtons() {
 //
 // A paused song keeps the notification. Taking it down would leave the
 // lock screen with nothing to press, and pressing play there is the
-// whole point of it being there.
+// whole point of it being there. Closing it by hand is the one thing
+// that takes it away, and it stays away until something plays again.
 //
 // What was last said is remembered, because `draw` runs for more than a
 // change of song and saying the same thing again would repost the
-// notification for nothing.
+// notification for nothing. The position is part of that: the system
+// carries the bar forward on its own, so it only needs telling when the
+// song, the state or the place actually changes.
 let heldFor = '';
+/** the notification was closed by hand; nothing puts it back but play */
+let dismissed = false;
 
 function holdProcess() {
   const track = current();
-  const want = track ? (el.paused ? 'paused:' : 'playing:') + track.name : '';
+  if (dismissed) return;
+  const want = track ? [el.paused, track.name, Math.round(position()), Math.round(duration())].join('|') : '';
   if (want === heldFor) return;
   heldFor = want;
   if (!track) return musicStopped();
-  if (el.paused) musicPaused(track.name);
-  else musicPlaying(track.name);
+  musicState(track.name, el.paused, position(), duration());
+}
+
+/** the X on the notification: playing stops and it goes */
+function dismiss() {
+  dismissed = true;
+  heldFor = '';
+  el.pause();
+  musicStopped();
 }
 
 /** the strip, and then whatever else is showing the same thing */
@@ -241,6 +254,7 @@ async function playAt(i) {
 
 function start() {
   joinBus();
+  dismissed = false; // playing again is what brings the notification back
   el.preload = 'auto';
   el.play().catch(() => draw()); // a device that will not play it leaves the strip honest
 }
@@ -332,6 +346,9 @@ el.addEventListener('ended', () => {
 });
 el.addEventListener('play', draw);
 el.addEventListener('pause', draw);
+// The system carries the bar forward on its own, so a jump is the only
+// time it needs telling where the song actually is.
+el.addEventListener('seeked', draw);
 // the song playing gives its length without being asked
 el.addEventListener('loadedmetadata', () => {
   const key = keyOf(current());
@@ -364,11 +381,13 @@ takeButtons();
 
 // The lock screen, the shade's media panel and a headset all arrive
 // here. Same four things the strip and the player do, from outside.
-onMusicControl((what) => {
+onMusicControl((what, value) => {
   if (what === 'play') toggleMusic();
   else if (what === 'pause') el.pause();
   else if (what === 'next') nextTrack();
   else if (what === 'previous') prevTrack();
+  else if (what === 'stop') dismiss();
+  else if (what === 'seek') seekTo(value / 1000);
 });
 
 draw();

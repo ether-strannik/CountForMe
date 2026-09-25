@@ -27,8 +27,10 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   own folders with nothing loaded until you pick something.
 - Music keeps playing when you leave the app or lock the phone, with no
   session or timer running. The song's name shows in the shade and on
-  the lock screen, with play, pause, next and previous there and on a
-  headset. Pausing keeps it there, so there is something to press.
+  the lock screen, with play, pause, next, previous and a position bar
+  you can scrub, there and on a headset. Pausing keeps it there, so
+  there is something to press; closing it stops the song and takes it
+  away until you play something again.
 - A folder browser in the player, on its own tab. Your music folders
   are the top level; tap into one to see its folders and its songs, and
   tap a song to play it — the rest of that folder follows it as the

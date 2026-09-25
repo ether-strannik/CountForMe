@@ -32,6 +32,8 @@ public class SessionService extends Service {
   static final String EXTRA_MS = "ms";
   static final String EXTRA_TITLE = "title";
   static final String EXTRA_PAUSED = "paused";
+  static final String EXTRA_AT = "at";
+  static final String EXTRA_LEN = "len";
   private static final int ID = 1;
 
   /** kept from START, so pause and resume need not send it again */
@@ -67,7 +69,7 @@ public class SessionService extends Service {
       String t = intent.getStringExtra(EXTRA_TITLE);
       if (t != null) title = t;
       boolean paused = intent.getBooleanExtra(EXTRA_PAUSED, false);
-      startForeground(ID, music(paused));
+      startForeground(ID, music(paused, intent.getLongExtra(EXTRA_AT, 0), intent.getLongExtra(EXTRA_LEN, 0)));
       return START_NOT_STICKY;
     }
     // back to a session or the timers: the media session has no business
@@ -127,6 +129,16 @@ public class SessionService extends Service {
       public void onSkipToPrevious() {
         SessionPlugin.control("previous");
       }
+
+      @Override
+      public void onSeekTo(long pos) {
+        SessionPlugin.control("seek", pos);
+      }
+
+      @Override
+      public void onStop() {
+        SessionPlugin.control("stop");
+      }
     });
     media.setActive(true);
     return media;
@@ -140,18 +152,26 @@ public class SessionService extends Service {
     media = null;
   }
 
-  private Notification music(boolean paused) {
+  private Notification music(boolean paused, long at, long len) {
     android.media.session.MediaSession s = session();
+    // The length is what makes the bar a bar. Without it the panel has
+    // no scale to draw and the scrubber does nothing.
     s.setMetadata(new android.media.MediaMetadata.Builder()
         .putString(android.media.MediaMetadata.METADATA_KEY_TITLE, title)
+        .putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, len)
         .build());
     long can = PlaybackState.ACTION_PLAY
         | PlaybackState.ACTION_PAUSE
         | PlaybackState.ACTION_SKIP_TO_NEXT
-        | PlaybackState.ACTION_SKIP_TO_PREVIOUS;
+        | PlaybackState.ACTION_SKIP_TO_PREVIOUS
+        | PlaybackState.ACTION_SEEK_TO
+        | PlaybackState.ACTION_STOP;
+    // The speed is how the bar moves between updates: the system carries
+    // the position forward from here rather than being told it again, so
+    // this is set when the song changes and not while it plays.
     s.setPlaybackState(new PlaybackState.Builder()
         .setActions(can)
-        .setState(paused ? PlaybackState.STATE_PAUSED : PlaybackState.STATE_PLAYING, 0, 1f)
+        .setState(paused ? PlaybackState.STATE_PAUSED : PlaybackState.STATE_PLAYING, at, paused ? 0f : 1f)
         .build());
 
     Intent open = new Intent(this, MainActivity.class);
