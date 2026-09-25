@@ -26,6 +26,7 @@ export default [
         Element: 'readonly',
         AudioContext: 'readonly',
         Audio: 'readonly',
+        MediaMetadata: 'readonly',
         atob: 'readonly',
         btoa: 'readonly',
         TextEncoder: 'readonly',

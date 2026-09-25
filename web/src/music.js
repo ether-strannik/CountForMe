@@ -22,6 +22,7 @@ import { $, $btn, PLAY_SVG, PAUSE_SVG } from './dom.js';
 import { pickSong, keptSong, songUrl } from './files.js';
 import { mediaList, mediaUrl, onThemeChange } from './theme.js';
 import { audioCtx, musicInput } from './sound.js';
+import { musicPlaying, musicPaused, musicStopped, onMusicControl } from './session.js';
 
 const NOTE = '♪';
 
@@ -117,6 +118,70 @@ function joinBus() {
   }
 }
 
+// ---- what the phone shows while the app is away ----
+// The lock screen and the shade, through the browser's own media
+// session: the song's name, and buttons that reach back in here.
+//
+// Nothing native is involved. Chromium builds the Android media session
+// from this, when it builds one at all — a page in a WebView does not
+// always get the notification a page in a browser would.
+const session = () => /** @type {any} */ (navigator).mediaSession || null;
+
+/** the name and the state, whenever either changes */
+function tellPhone() {
+  const s = session();
+  if (!s) return;
+  const track = current();
+  try {
+    s.metadata = track ? new MediaMetadata({ title: track.name }) : null;
+    s.playbackState = track ? (el.paused ? 'paused' : 'playing') : 'none';
+  } catch {
+    /* no media session here; the strip is still the way in */
+  }
+}
+
+/** the buttons on the lock screen, and on a headset, once */
+function takeButtons() {
+  const s = session();
+  if (!s || !s.setActionHandler) return;
+  const set = (name, fn) => {
+    try {
+      s.setActionHandler(name, fn);
+    } catch {
+      /* this device does not offer that one */
+    }
+  };
+  set('play', () => toggleMusic());
+  set('pause', () => el.pause());
+  set('previoustrack', () => prevTrack());
+  set('nexttrack', () => nextTrack());
+}
+
+// The foreground service, held for as long as a song is playing.
+// Without it Android freezes the app within seconds of it leaving the
+// screen, and the music stops with the process. A session or a
+// countdown timer holds the same service for its own reasons; whoever
+// is left keeps it.
+//
+// A paused song keeps the notification. Taking it down would leave the
+// lock screen with nothing to press, and pressing play there is the
+// whole point of it being there.
+//
+// What was last said is remembered, because `draw` runs for more than a
+// change of song and saying the same thing again would repost the
+// notification for nothing.
+let heldFor = '';
+
+function holdProcess() {
+  const track = current();
+  const want = track ? (el.paused ? 'paused:' : 'playing:') + track.name : '';
+  if (want === heldFor) return;
+  heldFor = want;
+  if (!track) return musicStopped();
+  if (el.paused) musicPaused(track.name);
+  else musicPlaying(track.name);
+}
+
 /** the strip, and then whatever else is showing the same thing */
 function draw() {
   const track = current();
@@ -124,6 +189,8 @@ function draw() {
   $('mName').classList.toggle('none', !track);
   $('mPlay').innerHTML = el.paused ? PLAY_SVG : PAUSE_SVG;
   $btn('mPlay').disabled = !track;
+  holdProcess();
+  tellPhone();
   for (const fn of watchers) fn();
 }
 
@@ -285,6 +352,17 @@ export async function refreshPlaylist() {
 
 // A theme carries its music, so putting one on replaces the queue.
 onThemeChange(refreshPlaylist);
+
+takeButtons();
+
+// The lock screen, the shade's media panel and a headset all arrive
+// here. Same four things the strip and the player do, from outside.
+onMusicControl((what) => {
+  if (what === 'play') toggleMusic();
+  else if (what === 'pause') el.pause();
+  else if (what === 'next') nextTrack();
+  else if (what === 'previous') prevTrack();
+});
 
 draw();
 refreshPlaylist();
