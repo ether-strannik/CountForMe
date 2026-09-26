@@ -7,6 +7,8 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-26
+
 ### Fixed
 
 - Swiping the app out of the recents list left its notification behind,

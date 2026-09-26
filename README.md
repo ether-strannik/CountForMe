@@ -13,17 +13,18 @@
 - **Timers that announce and stop.** A single cue when the timer reaches zero, like a sports watch, with no alarm to dismiss.
 - **Two interval modes that fit how you think.** Build workouts from work, rest, cycles, and sets, or define a block, cycle, and work duration and let the timer calculate the rest and cycle count.
 - **Variable cadence timer.** Split a block into ranges and give each range its own rate. Repeat the complete pattern across rounds.
-- **Themes that carry their sounds.** A theme is the colours, the sound of every cue, and the spoken counts, in one folder. The app ships with one; make your own from blank or from a copy, edit it in place, and see it live.
-- **Presets in categories.** Save a complete setup by name, group presets into categories, and pick one back up from the top of the screen. A category can name a theme, and picking a preset from it puts that theme on.
+- **Themes that carry their sound and their music.** A theme is the colours, the sound of every cue, the spoken counts, and the music the workout runs to, in one folder. The app ships with one; make your own from blank or from a copy, edit it in place, and see it live.
+- **Music the cues cut through.** Play your own music in the app and every cue ducks it: the song drops as the cue lands and comes back between, by however much and however fast you set.
+- **Presets in categories.** Save a complete setup by name, group presets into categories, and pick one back up from the top of the screen. A category can name a theme, and picking a preset from it puts that theme on — its look, its cues, and its music, or as much of that as the category asks for.
 - **Presets and themes that travel.** Export what a tab holds to a file, or a theme as a zip, and hand it to someone else. Import either from anywhere on the phone.
 
 ## What it can become for you
 
-Nothing above is new in kind. It is deeper. A theme is not colours any more but colours and sounds. A preset is not alone but in a category, and a category can carry a theme. Both travel.
+Nothing above is new in kind. It is deeper. A theme is not colours any more but colours, sounds and music. A preset is not alone but in a category, and a category can carry a theme. Both travel.
 
 Put those together and you are not saving a workout. You are saving a story line.
 
-A set of workouts with its own palette, its own gong, its own voice counting the reps, and names that mean something to you, is an identity. Someone who opens it does not open five squats, five push-ups, five pull-ups, five rounds. They open a room you made, and the workout is what happens in it. A program can walk them through levels of it, each with its own look and sound.
+A set of workouts with its own palette, its own gong, its own voice counting the reps, its own music underneath it all, and names that mean something to you, is an identity. Someone who opens it does not open five squats, five push-ups, five pull-ups, five rounds. They open a room you made, and the workout is what happens in it. A program can walk them through levels of it, each with its own look and sound.
 
 This is a tool for creators and for a community. It is made for sharing your programs and what stands behind them: the part of you that does not usually travel with a program. Your mood, your thinking, the zone you are in. Sounds, colours, themed categories, the names of the workouts and the workouts themselves all say it, and they say it together.
 
