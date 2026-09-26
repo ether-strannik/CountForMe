@@ -7,7 +7,8 @@
 // greying rows, because the two answer different questions — what am
 // I acting on now, versus what goes in the file. Its own screen too,
 // so Android back leaves export rather than closing the sheet.
-import { $, $in } from './dom.js';
+import { $, $in, $btn } from './dom.js';
+import { themeMusic } from './prefs.js';
 import { openScreen, closeScreen } from './nav.js';
 import { packLibrary, unpackProfiles, fileName, cleanFileName } from './profiles.js';
 import { writeText, shareText } from './files.js';
@@ -19,7 +20,8 @@ import { writeText, shareText } from './files.js';
  *            exportPicked: (names: string[], catIds: string[]) =>
  *              {cats: {name: string, items: {label: string, item: any}[]}[],
  *               items: {label: string, item: any}[]},
- *            importDoc: (doc: any) => {cats: number, items: number, skipped: number}}} Library
+ *            importDoc: (doc: any, opts?: {theme: boolean, music: boolean})
+ *              => {cats: number, items: number, skipped: number}}} Library
  */
 /** @type {Library | null} */
 let box = null;
@@ -116,6 +118,40 @@ async function finish(how) {
 }
 
 // ---- import: a file in, nothing overwritten ----
+// A file may bring more than presets: a set in it can name a theme, and
+// that theme can bring its music. Those are offered rather than taken,
+// because a set of workouts is worth having without someone else's
+// colours, and the colours are worth having without their songs.
+//
+// Nothing is asked when there is nothing to ask: a file whose sets name
+// no theme lands as it always did.
+
+/** the file waiting on an answer */
+let pending = null;
+
+/** does anything in the file name a theme @param {any} doc */
+const namesTheme = (doc) => (doc.cats || []).some((c) => c.theme);
+
+function land(doc, opts) {
+  const { cats, items, skipped } = box.importDoc(doc, opts);
+  const bits = [];
+  if (cats) bits.push(cats + (cats === 1 ? ' category' : ' categories'));
+  if (items) bits.push(items + (items === 1 ? ' preset' : ' presets'));
+  note(bits.length ? 'Added ' + bits.join(' and ') + (skipped ? ', skipped ' + skipped : '') : 'Nothing to add.');
+  redraw();
+}
+
+function closeAsk() {
+  pending = null;
+  $('presetImpRow').hidden = true;
+  $('presetActions').hidden = false;
+}
+
+const asked = (id) => $(id).getAttribute('aria-checked') === 'true';
+function setAsked(id, on) {
+  $(id).setAttribute('aria-checked', String(on));
+}
+
 $('presetImport').addEventListener('click', () => $('presetFile').click());
 $('presetFile').addEventListener('change', async () => {
   const file = ($in('presetFile').files || [])[0];
@@ -124,10 +160,34 @@ $('presetFile').addEventListener('change', async () => {
   const doc = unpackProfiles(await file.text());
   if (!doc) return note('Not a presets file.');
   if (doc.kind !== box.id) return note('That file is for the other tab.');
-  const { cats, items, skipped } = box.importDoc(doc);
-  const bits = [];
-  if (cats) bits.push(cats + (cats === 1 ? ' category' : ' categories'));
-  if (items) bits.push(items + (items === 1 ? ' preset' : ' presets'));
-  note(bits.length ? 'Added ' + bits.join(' and ') + (skipped ? ', skipped ' + skipped : '') : 'Nothing to add.');
-  redraw();
+  if (!namesTheme(doc)) return land(doc);
+
+  pending = doc;
+  const sets = (doc.cats || []).length;
+  $('presetImpWhat').textContent =
+    sets + (sets === 1 ? ' set' : ' sets') + ', naming a theme. What of it would you like?';
+  setAsked('impTheme', true);
+  // The setting is the wider answer: theme music off there is off here,
+  // and this cannot say otherwise.
+  const allowed = themeMusic();
+  setAsked('impMusic', allowed);
+  $btn('impMusic').disabled = !allowed;
+  $('presetImpRow').hidden = false;
+  $('presetActions').hidden = true;
+});
+
+$('impTheme').addEventListener('click', () => {
+  const on = !asked('impTheme');
+  setAsked('impTheme', on);
+  // music without a theme means nothing, so it goes with it
+  if (!on) setAsked('impMusic', false);
+  $btn('impMusic').disabled = !on || !themeMusic();
+});
+$('impMusic').addEventListener('click', () => setAsked('impMusic', !asked('impMusic')));
+$('impCancel').addEventListener('click', closeAsk);
+$('impOk').addEventListener('click', () => {
+  const doc = pending;
+  const opts = { theme: asked('impTheme'), music: asked('impMusic') };
+  closeAsk();
+  if (doc) land(doc, opts);
 });

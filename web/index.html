@@ -469,6 +469,24 @@
           <button id="presetFileOk" class="pbtn save">Export</button>
         </div>
         <input id="presetFile" type="file" accept=".json,application/json" hidden />
+        <!-- what a file brings, and how much of it to take. Shown only
+             when a set in it names a theme; there is nothing to ask
+             about one that does not. -->
+        <div id="presetImpRow" hidden>
+          <div class="prnote" id="presetImpWhat"></div>
+          <div class="srow">
+            <div class="slabel">Apply the theme each set names</div>
+            <button id="impTheme" class="switch" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="srow">
+            <div class="slabel">Take the theme&rsquo;s music</div>
+            <button id="impMusic" class="switch" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="catactions">
+            <button id="impCancel" class="pbtn">Cancel</button>
+            <button id="impOk" class="pbtn save">Import</button>
+          </div>
+        </div>
         <div class="catactions" id="presetActions">
           <button id="presetAddCat" class="pbtn">+ Category</button>
           <button id="presetAdd" class="pbtn">+ Preset</button>

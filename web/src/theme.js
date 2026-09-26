@@ -370,19 +370,28 @@ export async function importTheme() {
 // is the one place that can say so. A listener rather than a call
 // because what needs telling — the music queue — reads this module,
 // and a module cannot import the one that imports it.
-/** @type {(() => void)[]} */
+//
+// The listener is told whether the theme's music comes with it. A
+// preset category may name a theme and want its look without its
+// songs, and only the caller knows which this is.
+/** @type {((opts: {music: boolean}) => void)[]} */
 const watchers = [];
 
 /** run `fn` whenever the theme in use changes */
 export const onThemeChange = (fn) => watchers.push(fn);
 
-/** use a theme and remember it, colours included */
-export function setTheme(id, name, ui) {
+/**
+ * Use a theme and remember it, colours included.
+ * @param {string} id @param {string} name @param {Record<string, string> | null} ui
+ * @param {{music?: boolean}} [opts]  music comes too unless it says not
+ */
+export function setTheme(id, name, ui, opts) {
   lost = '';
   chosen = { id, name, ui: id === SHIPPED ? null : ui };
   save(KEY, chosen);
   paint(chosen.ui);
-  for (const fn of watchers) fn();
+  const said = { music: !opts || opts.music !== false };
+  for (const fn of watchers) fn(said);
 }
 
 // The one state the app cannot refuse. A folder theme was picked,
@@ -419,12 +428,14 @@ export const refOfId = (id) => (id === SHIPPED ? 'shipped' : folderOf(id));
  * that is not in the folder, or a theme there that cannot be used,
  * leaves the theme in use as it is and says so once.
  * @param {string} ref  "shipped", a folder name, or ""
+ * @param {{music?: boolean}} [opts]  the theme's music comes too unless
+ *   this says not: a set may want the look without the songs
  * @returns {Promise<boolean>} true when the theme is on
  */
-export async function useTheme(ref) {
+export async function useTheme(ref, opts) {
   if (!ref) return false;
   if (ref === 'shipped') {
-    if (chosen.id !== SHIPPED) setTheme(SHIPPED, '', null);
+    if (chosen.id !== SHIPPED) setTheme(SHIPPED, '', null, opts);
     return true;
   }
   const m = await folderManifest(ref);
@@ -438,6 +449,6 @@ export async function useTheme(ref) {
       '.';
     return false;
   }
-  if (chosen.id !== FOLDER + ref) setTheme(FOLDER + ref, m.name, m.ui);
+  if (chosen.id !== FOLDER + ref) setTheme(FOLDER + ref, m.name, m.ui, opts);
   return true;
 }

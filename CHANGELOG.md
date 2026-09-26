@@ -30,6 +30,14 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A preset category says whether it takes its theme's music, not just
+  which theme. The tag sits beside the theme's on its row. Picking a
+  preset from it switches the music to that theme every time, and a
+  category that says no gets the look and the cues while whatever is
+  playing keeps playing.
+- Importing presets stops to ask when a set in the file names a theme:
+  apply the theme, and take its music. A file whose sets name no theme
+  lands as it always did.
 - The app comes back to what it was playing: the same folder, the same
   song, the same place in it, not playing. Whether that came from a
   theme or from the browser, last played is what opens. Shuffle and

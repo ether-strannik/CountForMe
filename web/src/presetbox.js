@@ -21,13 +21,14 @@ import { $, $in } from './dom.js';
 import { askConfirm } from './confirm.js';
 import { openScreen, closeScreen } from './nav.js';
 import { attach, exporting, ticked, tick } from './presetxfer.js';
+import { themeMusic } from './prefs.js';
 
 /**
  * @typedef {{id: string, names: () => string[], loose: () => string[],
  *            exportPicked: (names: string[], catIds: string[]) =>
  *              {cats: {name: string, items: {label: string, item: any}[]}[],
  *               items: {label: string, item: any}[]},
- *            cats: () => {id: string, name: string, theme: string, items: string[]}[],
+ *            cats: () => {id: string, name: string, theme: string, music: boolean, items: string[]}[],
  *            pick: (n: string) => void,
  *            create: (n: string, catId: string) => void,
  *            remove: (n: string) => void,
@@ -35,6 +36,7 @@ import { attach, exporting, ticked, tick } from './presetxfer.js';
  *            importDoc: (doc: any) => {cats: number, items: number, skipped: number},
  *            addCat: (name: string, theme: string) => void,
  *            setCatTheme: (id: string, theme: string) => void,
+ *            setCatMusic: (id: string, on: boolean) => void,
  *            themes: () => Promise<{ref: string, name: string}[]>,
  *            removeCat: (id: string) => void,
  *            move: (names: string[], catId: string) => void}} PresetApi
@@ -218,6 +220,24 @@ function render() {
       openThemeMenu(c.id);
     });
     el.insertBefore(tag, n);
+    // Whether the theme's music comes with it. Only where a theme is
+    // named: music of no theme means nothing. Switched off in settings
+    // it is off here too, and says so by not being pressable — the
+    // setting is the wider answer and this cannot overrule it.
+    const allowed = themeMusic();
+    const mus = document.createElement('button');
+    mus.className = 'prtheme';
+    mus.textContent = 'music';
+    mus.classList.toggle('none', !(allowed && c.music));
+    mus.disabled = !allowed;
+    mus.title = allowed ? '' : 'Theme music is off in Settings';
+    mus.hidden = !c.theme || selecting() || exporting();
+    mus.addEventListener('click', (e) => {
+      e.stopPropagation();
+      api.setCatMusic(c.id, !c.music);
+      render();
+    });
+    el.insertBefore(mus, n);
     list.appendChild(el);
     // A ticked category carries its presets, so they are not offered
     // separately while exporting — the set goes whole.

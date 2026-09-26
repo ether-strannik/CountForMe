@@ -466,13 +466,19 @@ el.addEventListener('loadedmetadata', () => {
  * that carries none, the queue is empty until the browser is asked for
  * something.
  */
+/** the theme's music, because something asked for it and not because
+ *  the theme changed */
+export const loadThemeMusic = () => refreshPlaylist();
+
 export async function refreshPlaylist() {
   const songs = themeMusic() ? await mediaList() : [];
   setQueue(songs.map((f) => ({ name: shown(f), file: f })));
 }
 
-// A theme carries its music, so putting one on replaces the queue.
-onThemeChange(refreshPlaylist);
+// A theme carries its music, so putting one on replaces the queue —
+// unless the thing that put it on asked for the look without the
+// songs, and then what is playing keeps playing.
+onThemeChange((said) => said.music && refreshPlaylist());
 
 takeButtons();
 

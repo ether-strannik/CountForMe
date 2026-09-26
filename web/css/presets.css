@@ -125,6 +125,12 @@
   border-color: var(--line);
   color: var(--muted);
 }
+/* the music tag when Settings has turned theme music off: it shows what
+   the set says and cannot be argued with from here */
+.prtheme:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 
 /* selection: the row goes grey, the way a list app shows it */
 .prrow.picked {

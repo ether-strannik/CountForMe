@@ -11,17 +11,21 @@ import { $, $btn } from './dom.js';
 import { load, save, loadStr, saveStr } from './storage.js';
 import { openPresets } from './presetbox.js';
 import { useTheme, themeList, refOfId } from './theme.js';
+import { loadThemeMusic } from './music.js';
 
 /**
  * A store as it is now, whatever it was before.
  * @param {any} raw
- * @returns {{cats: {id: string, name: string, theme: string, items: Record<string, any>}[],
- *            items: Record<string, any>}}
+ * @returns {{cats: {id: string, name: string, theme: string, music: boolean,
+ *            items: Record<string, any>}[], items: Record<string, any>}}
  */
 function migrate(raw) {
   if (raw && Array.isArray(raw.cats) && raw.items) {
     // a set made before sets could name a theme names none
     raw.cats.forEach((c) => (c.theme = typeof c.theme === 'string' ? c.theme : ''));
+    // and one made before a theme carried music takes it: that is what
+    // naming a theme meant when there was nothing else it could mean
+    raw.cats.forEach((c) => (c.music = c.music !== false));
     return raw;
   }
   // v1: a flat map of presets, which are all loose until moved
@@ -30,6 +34,27 @@ function migrate(raw) {
 
 /** a theme name as the presets file may carry it: "shipped", or a folder name */
 const themeName = (v) => (typeof v === 'string' && /^[a-z0-9-]{0,120}$/.test(v) ? v : '');
+
+/**
+ * Whether a set takes the theme's music with the theme. Absent means
+ * yes: a file written before the flag existed came from a time when a
+ * theme's music was simply what you got.
+ */
+const wantsMusic = (v) => v !== false;
+
+/**
+ * Put on what a set wears: its theme, and its music if it wants it.
+ *
+ * The music is asked for here rather than left to follow the theme,
+ * because a theme that is already on does not change and so tells
+ * nobody. Picking a preset has to mean the same thing whether or not
+ * the last one wore the same theme.
+ * @param {{theme: string, music?: boolean}} set
+ */
+function wearTheme(set) {
+  const want = wantsMusic(set.music);
+  useTheme(set.theme, { music: false }).then((on) => on && want && loadThemeMusic());
+}
 
 /**
  * @param {object} o
@@ -90,23 +115,34 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
       id,
       names,
       // each set with the presets inside it, so the sheet can nest them
-      cats: () => store.cats.map((c) => ({ id: c.id, name: c.name, theme: c.theme || '', items: sorted(c.items) })),
+      cats: () =>
+        store.cats.map((c) => ({
+          id: c.id,
+          name: c.name,
+          theme: c.theme || '',
+          music: wantsMusic(c.music),
+          items: sorted(c.items),
+        })),
       // the presets in no set: these stay at the root, unindented
       loose: () => sorted(store.items),
       // A set may name a theme. Picking a preset from it puts that
       // theme on, so the setup screen already looks and will sound
       // like the workout. A set naming none changes nothing.
+      //
+      // The theme's music comes with it unless the set says otherwise,
+      // in which case the look and the cues arrive and whatever was
+      // playing is left playing.
       pick(n) {
         const p = flat()[n];
         if (!p) return;
         const set = setOf(n);
-        if (set && set.theme) useTheme(set.theme);
+        if (set && set.theme) wearTheme(set);
         setCurrent(n);
         apply(p);
       },
       create(n, catId) {
         const set = store.cats.find((c) => c.id === catId);
-        if (set && set.theme) useTheme(set.theme);
+        if (set && set.theme) wearTheme(set);
         setCurrent(n, catId); // unsaved until the tab's Save is pressed
         apply(blank());
       },
@@ -119,6 +155,13 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
         const set = store.cats.find((c) => c.id === catId);
         if (!set) return;
         set.theme = themeName(ref);
+        saveStore();
+      },
+      /** does this set take the theme's music with the theme */
+      setCatMusic(catId, on) {
+        const set = store.cats.find((c) => c.id === catId);
+        if (!set) return;
+        set.music = !!on;
         saveStore();
       },
       remove(n) {
@@ -143,7 +186,7 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
         saveStore();
       },
       addCat(name, theme) {
-        store.cats.push({ id: 'c' + Date.now().toString(36), name, theme: themeName(theme), items: {} });
+        store.cats.push({ id: 'c' + Date.now().toString(36), name, theme: themeName(theme), music: true, items: {} });
         saveStore();
       },
       /**
@@ -163,6 +206,7 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
           cats: cats.map((c) => ({
             name: c.name,
             theme: c.theme || '',
+            music: wantsMusic(c.music),
             items: sorted(c.items).map((n) => ({ label: n, item: c.items[n] })),
           })),
           items: picked
@@ -175,11 +219,18 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
        * Bring a file in. Nothing is overwritten: a preset whose name
        * is taken arrives as "name (2)", and so does a category. What
        * the user already has is never touched.
-       * @param {{cats: {name: string, theme?: string, items: {label: string, item: any}[]}[],
+       * @param {{cats: {name: string, theme?: string, music?: boolean,
+       *            items: {label: string, item: any}[]}[],
        *          items: {label: string, item: any}[]}} doc
+       * @param {{theme: boolean, music: boolean}} [opts]  how much of a
+       *   set's theme to keep; all of it when nothing is said
        * @returns {{cats: number, items: number, skipped: number}}
        */
-      importDoc(doc) {
+      importDoc(doc, opts) {
+        // What of a set's theme to keep. Music without a theme means
+        // nothing, so it cannot outlive one.
+        const takeTheme = !opts || opts.theme !== false;
+        const takeMusic = takeTheme && (!opts || opts.music !== false);
         let added = 0;
         let skipped = 0;
         const free = (want, taken) => {
@@ -203,7 +254,8 @@ export function makeLibrary({ id, label, ids, storeKey, lastKey, get, apply, bla
           store.cats.push({
             id: 'c' + Date.now().toString(36) + store.cats.length,
             name,
-            theme: themeName(c.theme),
+            theme: takeTheme ? themeName(c.theme) : '',
+            music: takeMusic && wantsMusic(c.music),
             items,
           });
         });
