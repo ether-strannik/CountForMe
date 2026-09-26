@@ -1,23 +1,10 @@
-Music, and the cues cut through it. Play your own music in the app
-and every cue ducks the song: it drops as the cue lands and comes
-back between, by however much and however fast you set under
-Settings, Music.
+Music, and the cues cut through it. Play your own and every cue ducks
+the song: it drops as the cue lands and comes back between, by however
+much and however fast you set.
 
-A theme carries its music as well as its sounds. A theme is now a
-folder of two: sounds for the cues and the spoken counts, media for
-the songs. A zip carries the whole of it.
+A theme carries music as well as sounds, and a zip carries the whole
+of it. A player behind the strip: the queue, seek, shuffle, repeat,
+and a browser for your own folders.
 
-A player behind the strip above the tabs: the queue with each song's
-length, seek, previous and next, shuffle and repeat. A folder browser
-beside it walks the music folders you add under Settings, and playing
-a song makes that folder the queue.
-
-Music keeps playing off screen and on the lock screen, with the song
-named there and the transport on it. The app comes back to what it
-was playing, at the place it was left.
-
-A preset category says whether it takes its theme's music. Importing
-presets asks how much of a named theme to apply.
-
-Fixed: closing the app from recents left its notification behind,
-still counting down.
+It plays off screen and on the lock screen, and comes back where it
+was left.
