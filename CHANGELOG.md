@@ -7,6 +7,12 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- Folder setting shows the full path, not just the folder name.
+- Last seconds sound and its count sit together in Themes → Sounds.
+- Cues from Prepare to Timer are drawn as one block.
+
 ## [1.2.0] - 2026-09-26
 
 ### Fixed

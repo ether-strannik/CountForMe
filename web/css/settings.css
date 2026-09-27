@@ -41,11 +41,12 @@
   padding: 14px 2px;
   border-top: 1px solid var(--line);
 }
-/* the two permission rows are one section: a rule above the first, none
-   between them. Last seconds is the same shape: its sound and its
-   count belong together. */
-#permBattery,
-#rowApproach {
+/* A row that continues the section above it: the rule goes above the
+   first row of a group and nowhere inside it. The two permission rows are
+   one group, Last seconds and how many of them are one, and the cues from
+   Prepare to Timer are one -- what they play is one decision, so one
+   block. Counts is not a cue and keeps its rule. */
+.srow.cont {
   border-top: none;
 }
 .slabel {

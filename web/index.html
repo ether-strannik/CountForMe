@@ -282,10 +282,6 @@
           <div class="slabel">Folder <small id="folderName">none picked</small></div>
           <button id="pickFolder" class="pbtn">Choose</button>
         </div>
-        <div class="srow" id="rowApproach">
-          <div class="slabel">Last seconds <small>knocks before a cycle or a timer ends; 0 is off</small></div>
-          <input id="approach" class="setnum" inputmode="numeric" />
-        </div>
         <div class="srow" id="rowAwake" hidden>
           <div class="slabel">Keep screen on <small>while the app is in front</small></div>
           <button id="awakeBtn" class="switch" role="switch" aria-checked="false"></button>
@@ -294,7 +290,7 @@
           <div class="slabel">Notifications <small id="permNotifState"></small></div>
           <button id="permNotifBtn" class="switch" role="switch" aria-checked="false"></button>
         </div>
-        <div class="srow" id="permBattery" hidden>
+        <div class="srow cont" id="permBattery" hidden>
           <div class="slabel">Battery <small id="permBatteryState"></small></div>
           <button id="permBatteryBtn" class="switch" role="switch" aria-checked="false"></button>
         </div>
@@ -340,31 +336,39 @@
         </nav>
         <div id="tColours" class="swatches"></div>
         <div id="tSounds" hidden>
+          <!-- The sound and how many seconds of it are one setting in two
+               rows: the rule above the first, none between them. -->
           <div class="srow">
             <div class="slabel">Last seconds <small>a knock through each of the last seconds</small></div>
             <button id="snd-approach" class="pbtn sndbtn"></button>
           </div>
+          <div class="srow cont" id="rowApproach">
+            <div class="slabel">How many <small>before a cycle or a timer ends; 0 is off</small></div>
+            <input id="approach" class="setnum" inputmode="numeric" />
+          </div>
+          <!-- The cues, from the lead-in to the last countdown: one block,
+               a rule above it and none inside. -->
           <div class="srow">
             <div class="slabel">Prepare <small>the lead-in begins</small></div>
             <button id="snd-prepare" class="pbtn sndbtn"></button>
           </div>
-          <div class="srow">
+          <div class="srow cont">
             <div class="slabel">Work <small>work interval starts</small></div>
             <button id="snd-main" class="pbtn sndbtn"></button>
           </div>
-          <div class="srow">
+          <div class="srow cont">
             <div class="slabel">Halfway <small>halfway for work interval</small></div>
             <button id="snd-turn" class="pbtn sndbtn"></button>
           </div>
-          <div class="srow">
+          <div class="srow cont">
             <div class="slabel">Rest <small>rest phase starts</small></div>
             <button id="snd-rest" class="pbtn sndbtn"></button>
           </div>
-          <div class="srow">
+          <div class="srow cont">
             <div class="slabel">End <small>session done</small></div>
             <button id="snd-end" class="pbtn sndbtn"></button>
           </div>
-          <div class="srow">
+          <div class="srow cont">
             <div class="slabel">Timer <small>what a countdown timer plays</small></div>
             <button id="snd-timer" class="pbtn sndbtn"></button>
           </div>

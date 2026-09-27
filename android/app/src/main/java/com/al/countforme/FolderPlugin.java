@@ -30,8 +30,8 @@ import java.util.List;
  * through DocumentsContract on the framework, so no androidx library is
  * pulled in for it.
  *
- *   status()            -> { granted, name }
- *   pick()              -> { granted, name }
+ *   status()            -> { granted, name, path }
+ *   pick()              -> { granted, name, path }
  *   folders()           -> { folders }       the folders added for music, each its own grant
  *   addFolder()         -> { folders }       the picker again; what comes back is kept
  *   dropFolder({ uri }) -> { folders }       that grant given back
@@ -92,6 +92,10 @@ public class FolderPlugin extends Plugin {
     JSObject r = new JSObject();
     r.put("granted", u != null);
     r.put("name", u == null ? "" : treeName(u));
+    // Where it sits, not just what it is called. "Timer" could be anywhere
+    // and the settings row is the only place a person can check which one
+    // they handed over.
+    r.put("path", u == null ? "" : treePath(u));
     return r;
   }
 

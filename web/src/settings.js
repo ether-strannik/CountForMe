@@ -68,7 +68,9 @@ async function renderFolder() {
   $btn('pickFolder').disabled = !inApp;
   if (!inApp) return ($('folderName').textContent = 'in the app only');
   const f = await folder();
-  $('folderName').textContent = f.granted ? f.name : 'none picked';
+  // Where it is, not just what it is called: "Timer" could be anywhere, and
+  // this row is the only place to check which folder was handed over.
+  $('folderName').textContent = f.granted ? f.path || f.name : 'none picked';
 }
 // Each cue is a button naming the theme's sound for it; tapping plays
 // it. Nothing here changes a sound: that is a different theme.

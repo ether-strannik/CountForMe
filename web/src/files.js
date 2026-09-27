@@ -24,7 +24,7 @@ export const isAudio = (name) => AUDIO.test(name);
 const NAME = /^[^/\\]{1,120}$/;
 /** a path of names under the folder: no empty, dot or dot-dot segments */
 const PATH = /^(?!.*(^|\/)\.\.?(\/|$))[^/\\]{1,120}(\/[^/\\]{1,120}){0,8}$/;
-const NONE = { granted: false, name: '' };
+const NONE = { granted: false, name: '', path: '' };
 
 const bridge = () => /** @type {any} */ (window).Capacitor?.Plugins?.Folder || null;
 
@@ -45,7 +45,8 @@ function toB64(buf) {
   return btoa(s);
 }
 
-/** the granted folder: { granted, name } */
+/** the granted folder: { granted, name, path } — `path` is where it sits,
+ *  as a label ("Internal storage / Timer"), not a filesystem path */
 export async function folder() {
   const b = bridge();
   if (!b) return NONE;
