@@ -33,22 +33,39 @@
 // THE PAGE'S OWN NAME is the first path segment -- "timer" for /timer/ --
 // and it answers only what is addressed to it, or to "*".
 //
-// IT RUNS ONLY UNDER THE STACK'S SERVER, IN A BROWSER. In an APK, a dev
-// build, or a page served by `dev`, it does nothing at all: there is no
-// server there to carry the channel. A portable app ships this file in
-// its own shared/ beside the other two and it stays inert.
+// WHERE IT RUNS. A board on the 8080 server, and a page served by `dev`
+// -- including inside a dev build of a portable app, which is where that
+// app's real data is. `dev` proxies the stream and the endpoints on to
+// the 8080 server and writes the page's name into the HTML, because
+// served from there every app sits at `/` and has no name to read.
+//
+// In a real APK it does nothing at all: no server, no name, no channel.
+// A portable app ships this file in its own shared/ beside the other two
+// and it stays inert there.
 
 (() => {
-  const page = location.pathname.split('/')[1] || '';
+  // WHO THIS PAGE IS, asked in the two places it can be answered.
+  //
+  // On the 8080 server the name is the first path segment: /timer/ is
+  // "timer". Served by `dev` every app sits at `/`, so there is nothing
+  // to read -- and that is why the dev config writes the name into a
+  // meta tag at serve time. Injected, never on disk.
+  const told = document.querySelector('meta[name="agent-page"]')?.getAttribute('content')?.trim() ?? '';
+  const page = told || location.pathname.split('/')[1] || '';
 
-  // ONLY WHERE THE CHANNEL EXISTS, which is a page the stack's server
-  // put in a browser. Served by `dev` the page sits at `/` and has no
-  // name; inside an APK or a dev build the Capacitor bridge is present
-  // and the server is not. In both there is no /events to listen to,
-  // and the honest thing is to do nothing rather than fail at it. This
-  // is what lets a portable app carry this file beside the other two
-  // without paying for it.
-  if (!page || /** @type {any} */ (globalThis).Capacitor) return;
+  // ONLY WHERE THE CHANNEL EXISTS. Inside an APK there is no server to
+  // carry it: nothing injects a name, and the page is served at `/` so
+  // the path says nothing either. A Capacitor bridge with no name told
+  // to it is exactly that case, and the honest thing is to do nothing
+  // rather than retry a stream that will never answer.
+  //
+  // A dev build is the other way round: the bridge is present AND the
+  // page came from `dev`, which proxies the stream and the endpoints on
+  // to the 8080 server. That one does have a channel, and being able to
+  // drive it is the whole point -- a portable app's real data lives in
+  // its dev build.
+  if (!page) return;
+  if (!told && /** @type {any} */ (globalThis).Capacitor) return;
 
   /** @param {string} path @param {unknown} data */
   const post = (path, data) =>
