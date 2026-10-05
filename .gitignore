@@ -14,3 +14,9 @@ www/
 
 # The release checklist. Working notes, not part of the app.
 TASKS.md
+
+# Written into web/ by `cap sync`, because the build's working copy
+# reaches this folder by symlink rather than by copy -- which is what
+# keeps the APK from ever shipping a stale page. Generated, never source.
+web/cordova.js
+web/cordova_plugins.js
